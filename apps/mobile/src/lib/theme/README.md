@@ -199,9 +199,11 @@ on the lake about 3:1.
 Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
 all the shaders and render the three scenes at phone, iPad, landscape and
 picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise or
-Kristen drops below 4.5:1 (or below a lower Kristen `floor`);
-Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (a few
-minutes); it says nothing about GPU cost.
+Kristen drops below 4.5:1 (or below a lower Kristen `floor`), or if Kristen's
+hiker or hawk strays outside `kristenLifeBand`. Giuseppe's lowest contrast is
+only reported. The headless renderer is CPU-only and slow (about 15
+minutes on an idle Mac, much longer when other jobs compete for the CPU); it
+says nothing about GPU cost.
 
 ### Pine Night and Velvet (festive)
 

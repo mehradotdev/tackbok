@@ -297,7 +297,7 @@ float hiker(float2 q, float time) {
   // Right arm (our left): waves for about five seconds, rests for four.
   float ct = mod(time, 9.0);
   float up = smoothstep(0.0, 0.6, ct) * (1.0 - smoothstep(5.0, 5.8, ct));
-  float swing = sin(time * 6.2831 * 1.7) * 0.5 * up;
+  float swing = sin(time * 6.2831853 * 1.7) * 0.5 * up;
   float upper = mix(0.25, 2.45, up);
   float fore = mix(0.35, 2.9 + swing, up);
   float2 shoulder = float2(-1.7, 12.2);
@@ -311,7 +311,7 @@ float hiker(float2 q, float time) {
 // A hawk soaring in slow loops over the valley: wings in a shallow V, banking
 // with the turn. Signed distance in bird units.
 float hawk(float2 q, float time) {
-  float flex = 0.5 * sin(time * 0.9);
+  float flex = 0.5 * sin(time * 6.2831853 / 8.0);  // 8 s divides the 6 h clock wrap
   float d = seg(q, float2(0.0, 0.3), float2(0.0, -1.2)) - 0.65;            // body
   for (int k = 0; k < 2; k++) {
     float sx = k == 0 ? -1.0 : 1.0;
@@ -336,7 +336,7 @@ half4 main(float2 xy) {
     a = max(a, 1.0 - smoothstep(-0.5 / k, 0.5 / k, hiker(q, time)));
   }
 
-  float orbit = time * 6.2831 / 36.0;
+  float orbit = time * 6.2831853 / 36.0;
   float2 c = float2(size.x * 0.40 + 120.0 * s * cos(orbit), wallTop() - 75.0 * s + 22.0 * s * sin(orbit));
   float kb = s * (0.85 + 0.15 * sin(orbit));
   float bank = 0.3 * cos(orbit);
@@ -347,7 +347,8 @@ half4 main(float2 xy) {
   }
   if (a <= 0.0) return half4(0.0);
 
-  // Darkest tone the scene allows, so text over the figures still reads.
+  // Darkest tone the scene allows, so text over the figures still reads
+  // (a fixed soft tone when the floor is off).
   float3 figure = mix(ink, haze, 0.35);
   if (floorRatio > 1.01) {
     float floorLum = (lumOf(ink) + 0.05) * floorRatio - 0.05;

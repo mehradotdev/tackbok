@@ -2,7 +2,8 @@
 // picker sizes and check body-text contrast against every background pixel.
 // Denise must stay at or above 4.5:1 and Kristen at its KRISTEN_CONTRAST floor;
 // Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is reported only,
-// because the owner kept it as is (2026-11-26).
+// because the owner kept it as is (2026-11-26). It also checks that Kristen's
+// hiker and hawk stay inside the strip their overlay is clipped to.
 const fs = require('fs'),
   path = require('path'),
   Module = require('module');
@@ -86,6 +87,7 @@ for (const ext of ['.ts', '.tsx'])
       const d = tokens('denise');
       const g = tokens('giuseppe');
       const k = tokens('kristen');
+      const lifeBand = shaders.kristenLifeBand(width, height);
       const scenes = [
         {
           name: 'denise',
@@ -213,7 +215,10 @@ for (const ext of ['.ts', '.tsx'])
                 haze: rgb(KRISTEN_PALETTE.haze),
                 floorRatio: KRISTEN_CONTRAST.floor,
               },
-              ...Object.values(shaders.kristenLifeBand(width, height)),
+              lifeBand.x,
+              lifeBand.y,
+              lifeBand.width,
+              lifeBand.height,
             ),
           ],
         },
@@ -245,6 +250,49 @@ for (const ext of ['.ts', '.tsx'])
         image.dispose();
         surface.dispose();
       }
+      // Kristen's hiker and hawk must fit the strip their overlay is clipped to:
+      // draw the life layer over the whole canvas through a full hawk orbit and
+      // look for figure pixels outside kristenLifeBand.
+      if (time !== 0) continue;
+      let outside = 0,
+        inside = 0;
+      for (let t = 0; t < 36; t += 3) {
+        const surface = headless.makeOffscreenSurface(width, height);
+        const life = layer(
+          fx.KRISTEN_LIFE,
+          {
+            size: [width, height],
+            time: t,
+            ink: rgb(k['--color-foreground']),
+            haze: rgb(KRISTEN_PALETTE.haze),
+            floorRatio: KRISTEN_CONTRAST.floor,
+          },
+          0,
+          0,
+          width,
+          height,
+        );
+        const image = await headless.drawOffscreen(surface, life);
+        const pixels = await image.readPixels();
+        for (let y = 0; y < height; y++)
+          for (let x = 0; x < width; x++) {
+            if (pixels[(y * width + x) * 4 + 3] === 0) continue;
+            const within =
+              x >= lifeBand.x &&
+              x < lifeBand.x + lifeBand.width &&
+              y >= lifeBand.y &&
+              y < lifeBand.y + lifeBand.height;
+            if (within) inside++;
+            else outside++;
+          }
+        image.dispose();
+        surface.dispose();
+      }
+      const contained = outside === 0 && inside > 0;
+      failed ||= !contained;
+      console.log(
+        `${contained ? 'ok  ' : 'FAIL'} kristen-${size} life band: ${outside} figure pixels outside, ${inside} inside`,
+      );
     }
   }
   if (failed) process.exit(1);
