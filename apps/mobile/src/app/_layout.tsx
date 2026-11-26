@@ -221,8 +221,12 @@ export default function Layout() {
       !devSetupReady ||
       (!fontsLoaded && !fontsError));
 
+  // Sync starts after the launch animation: its start-up work on the JS thread
+  // competes with the animation's frames on slower phones.
+  const launchAnimating = useSplashActive((s) => s.active);
   useEffect(() => {
     if (!success || !hasHydrated || !profileReady || !devSetupReady) return;
+    if (launchAnimating) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -238,7 +242,7 @@ export default function Layout() {
       cancelled = true;
       cloudSyncRuntime.stop();
     };
-  }, [devSetupReady, hasHydrated, profileReady, success]);
+  }, [devSetupReady, hasHydrated, launchAnimating, profileReady, success]);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {
