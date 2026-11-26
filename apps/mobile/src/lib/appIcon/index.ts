@@ -38,7 +38,7 @@ const BUILD_ICONS: readonly AppIconName[] = IS_BETA_BUILD
 // Classic alternate and fail midway on an unknown alias, leaving two launcher
 // icons, so they get the original list (frozen: later icons such as Christmas
 // are not in them). Older iOS binaries just reject an icon they lack.
-const ORIGINAL_ANDROID_ICONS: readonly string[] = [
+const ORIGINAL_ANDROID_ICONS: readonly AppIconName[] = [
   'Sage',
   'Midnight',
   'Ocean',
