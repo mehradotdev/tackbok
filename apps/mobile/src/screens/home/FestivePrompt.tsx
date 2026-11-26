@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Platform, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { useCSSVariable } from 'uniwind';
 import { useAchievementDialogStore } from '~/lib/achievement-dialog';
 import { appIconChangeClosesApp, useAppIconStore } from '~/lib/appIcon';
 import { useAppLockStore } from '~/lib/appLock';
@@ -12,19 +14,11 @@ import {
 } from '~/lib/seasonal/festivePrompt';
 import { flushSettings, useSettingsStore } from '~/lib/settings';
 import { useSplashActive } from '~/lib/splash';
+import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { AppIconTile } from '~/screens/settings/AppIconPickerSheet';
 import { homeTipsShowing } from './HomeCoachMarks';
+import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '~/components/ui/alert-dialog';
 
 /** Lets the screen transition and any post-save achievement settle first. */
 const SETTLE_MS = 800;
@@ -59,7 +53,25 @@ function somethingElseFirst() {
 export function FestivePrompt() {
   const router = useRouter();
   const { t } = useTranslation();
+  const sheet = useRef<TrueSheet>(null);
   const [prompt, setPrompt] = useState<Shown | null>(null);
+  // One answer per showing: the buttons stay tappable while the sheet slides away.
+  const answered = useRef(false);
+  // Whether the sheet is up (or on its way), so it is dismissed only once.
+  const open = useRef(false);
+  const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
+    '--color-background',
+    '--theme-radius',
+    '--color-muted-foreground',
+  ]);
+  const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
+
+  /** Closes the sheet; `onDidDismiss` then clears the prompt. */
+  const close = async () => {
+    if (!open.current) return;
+    open.current = false;
+    await sheet.current?.dismiss().catch(() => {});
+  };
   // Home's first focus is the app opening; later ones are returns from elsewhere.
   const returned = useRef(false);
 
@@ -94,19 +106,27 @@ export function FestivePrompt() {
         if (!next || next.kind === 'forget') return;
         // Counted as shown straight away, so closing the app doesn't bring it back.
         if (next.kind === 'suggest') settings.setFestivePromptSeason(next.season);
+        answered.current = false;
         setPrompt(next);
       }, SETTLE_MS);
       return () => {
         cancelled = true;
         clearTimeout(timer);
-        // Something opened over Home (a reminder tap): don't leave the dialog on top.
-        setPrompt(null);
+        // Something opened over Home (a reminder tap): don't leave the sheet on top.
+        void close();
       };
     }, []),
   );
 
-  const takeALook = () => {
-    if (prompt?.kind !== 'suggest') return;
+  useEffect(() => {
+    if (!prompt || open.current) return;
+    open.current = true;
+    sheet.current?.present().catch(() => {});
+  }, [prompt]);
+
+  const takeALook = async () => {
+    if (prompt?.kind !== 'suggest' || answered.current) return;
+    answered.current = true;
     const settings = useSettingsStore.getState();
     settings.setFestiveSwitch(
       festiveSwitchFrom(new Date(), prompt, {
@@ -114,14 +134,15 @@ export function FestivePrompt() {
         icon: useAppIconStore.getState().current,
       }),
     );
-    setPrompt(null);
+    await close();
     router.push('/appearance');
   };
 
   const switchBack = async () => {
-    if (prompt?.kind !== 'switchBack') return;
+    if (prompt?.kind !== 'switchBack' || answered.current) return;
+    answered.current = true;
     const { theme, icon } = prompt;
-    setPrompt(null);
+    await close();
     // The saved look stays until the festive look is really gone: the next return
     // to Home forgets it, or offers again if the icon change failed.
     const settings = useSettingsStore.getState();
@@ -135,8 +156,10 @@ export function FestivePrompt() {
 
   /** "Not now", or "Keep it", which forgets the remembered look. */
   const decline = () => {
-    if (prompt?.kind === 'switchBack') useSettingsStore.getState().setFestiveSwitch(null);
-    setPrompt(null);
+    if (!prompt || answered.current) return;
+    answered.current = true;
+    if (prompt.kind === 'switchBack') useSettingsStore.getState().setFestiveSwitch(null);
+    void close();
   };
 
   const suggest = prompt?.kind === 'suggest';
@@ -145,48 +168,61 @@ export function FestivePrompt() {
     prompt?.kind === 'switchBack' && prompt.icon && appIconChangeClosesApp;
 
   return (
-    <AlertDialog
-      open={prompt !== null}
-      // The buttons close the dialog before their own handlers run, and a tap
-      // outside or Back just closes it: an unanswered switch-back comes back on
-      // the next return to Home.
-      onOpenChange={(open) => {
-        if (!open) setPrompt(null);
-      }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+    <TrueSheet
+      ref={sheet}
+      detents={['auto']}
+      cornerRadius={sheetRadius}
+      grabber
+      grabberOptions={{ topMargin: 8, color: mutedFgColor as string, adaptive: false }}
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}
+      // A swipe down or a tap outside just closes it: an unanswered switch-back
+      // comes back on the next return to Home.
+      onDidDismiss={() => {
+        open.current = false;
+        setPrompt(null);
+      }}
+      maxContentWidth={Platform.OS === 'android' ? 480 : undefined}>
+      {prompt ? (
+        <View className="bg-background items-center px-6 pt-9">
           {tile ? (
             <View
-              className="items-center pb-2"
+              className="pb-4"
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants">
-              <AppIconTile name={tile} size={72} />
+              <AppIconTile name={tile} size={84} />
             </View>
           ) : null}
-          <AlertDialogTitle>
+          <Text variant="h3" role="heading" className="text-center text-foreground">
             {suggest ? t('festive.promptTitle') : t('festive.switchBackTitle')}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
+          </Text>
+          <Text className="mt-2 text-center text-base text-muted-foreground">
             {suggest ? t('festive.promptMessage') : t('festive.switchBackMessage')}
             {closesApp ? `\n\n${t('appearance.changeAppIconMessage')}` : ''}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          {/* Labels can wrap at large text sizes; see backupHistory for the classes. */}
-          <AlertDialogCancel className="h-auto min-h-10 py-1.5" onPress={decline}>
-            <Text className="min-h-0 shrink py-0 text-center">
-              {suggest ? t('festive.notNow') : t('festive.keepIt')}
-            </Text>
-          </AlertDialogCancel>
-          <AlertDialogAction
-            className="h-auto min-h-10 border-[length:var(--theme-border-width)] py-1.5"
-            onPress={suggest ? takeALook : () => void switchBack()}>
-            <Text className="min-h-0 shrink border-0 py-0 text-center">
-              {suggest ? t('festive.takeALook') : t('festive.switchBack')}
-            </Text>
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Text>
+          <View className="mt-7 w-full gap-2">
+            {/* Labels can wrap at large text sizes. */}
+            <Button
+              variant="primary"
+              size="lg"
+              className="h-auto min-h-11 py-2.5"
+              onPress={() => void (suggest ? takeALook() : switchBack())}>
+              <Text className="text-center text-lg">
+                {suggest ? t('festive.takeALook') : t('festive.switchBack')}
+              </Text>
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              className="h-auto min-h-11 py-2.5"
+              onPress={decline}>
+              <Text className="text-center text-lg text-foreground">
+                {suggest ? t('festive.notNow') : t('festive.keepIt')}
+              </Text>
+            </Button>
+          </View>
+          <View className="h-2 pb-safe" />
+        </View>
+      ) : null}
+    </TrueSheet>
   );
 }
