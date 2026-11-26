@@ -50,10 +50,14 @@ function CaminoBackdrop({
   );
   // Clouds drift over 48 s each way and the light shimmers over 7 s; the bird
   // flock first crosses after 8 s, then every 10 s. All still at time 0.
+  // shortcut: the 14 s shimmer and the bird cycle don't divide the clock's 6 h
+  // wrap, so after 6 h on screen the shimmer jumps once and a flock mid-crossing
+  // vanishes for 8 s; give them wrap-dividing periods if that ever shows.
   const time = useForwardTime(preview);
   const drift = useDerivedValue(() => easeInOutSine(pingPong(time.value, 48)));
   const sway = useDerivedValue(() => easeInOutSine(pingPong(time.value, 7)));
-  const flight = useDerivedValue(() => delayedCycle(time.value, 8, 10));
+  // Night shows no birds, so keep the flock parked off-canvas.
+  const flight = useDerivedValue(() => (night ? -1 : delayedCycle(time.value, 8, 10)));
 
   const uniforms = useDerivedValue(() => ({
     size: [Math.max(1, width), Math.max(1, height)],
