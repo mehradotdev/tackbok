@@ -75,10 +75,10 @@ export function FestivePrompt() {
 
   /** Closes the sheet. A present still pending is cancelled without
    *  `onDidDismiss`, so the prompt is cleared here too. */
-  const close = async (animated = true) => {
+  const close = async () => {
     if (!open.current) return;
     open.current = false;
-    await sheet.current?.dismiss(animated).catch(() => {});
+    await sheet.current?.dismiss().catch(() => {});
     setPrompt(null);
   };
   // Home's first focus is the app opening; later ones are returns from elsewhere.
@@ -134,18 +134,6 @@ export function FestivePrompt() {
       open.current = false;
       setPrompt(null);
     });
-  }, [prompt]);
-
-  // The app lock's cover is a native modal, which can't present over a sheet:
-  // close the sheet as the app leaves the foreground so the cover can show.
-  useEffect(() => {
-    if (!prompt) return;
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active' && useSettingsStore.getState().biometricUnlockEnabled) {
-        void close(false);
-      }
-    });
-    return () => subscription.remove();
   }, [prompt]);
 
   const takeALook = async () => {
