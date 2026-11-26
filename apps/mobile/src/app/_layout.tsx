@@ -184,7 +184,7 @@ export default function Layout() {
   }, []);
   const finishSplash = useCallback(() => setSplashMode(null), []);
   // The app mounts under the story only once its first frame is up, so mounting
-  // it does not hold back that frame (slow on Android). The story's 1.7 s before
+  // it does not hold back that frame (slow on Android). The story's 2 s before
   // its fade covers the mount; the short Reduce Motion fade would not, so the
   // app mounts with it. Until the mode is decided the native splash is up.
   const [splashStarted, setSplashStarted] = useState(false);

@@ -56,11 +56,12 @@ export const SPLASH_TIMELINES: Record<Exclude<SplashMode, 'none'>, SplashTimelin
   // Moves from the first frame: a still logo here would read as a pause after
   // the native splash, which already showed it.
   story: {
-    duration: 1900,
+    duration: 2250,
     fold: { close: [0, 470], open: [590, 1080] },
     beat: [1080, 1300],
-    zoom: [1300, 1820],
-    fadeOut: [1720, 1900],
+    // The heart filling the screen is the part people watch; keep it unhurried.
+    zoom: [1300, 2150],
+    fadeOut: [2030, 2250],
   },
   fade: {
     duration: 250,
