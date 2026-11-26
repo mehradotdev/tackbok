@@ -31,6 +31,7 @@ let mockFocusEffect: (() => void | (() => void)) | null = null;
 
 jest.mock('react-native', () => ({
   View: 'View',
+  ScrollView: 'ScrollView',
   Platform: { OS: 'ios' },
   AppState: { currentState: 'active' },
 }));
@@ -39,7 +40,11 @@ let mockSheetOpen = false;
 jest.mock('@lodev09/react-native-true-sheet', () => {
   const { forwardRef, useImperativeHandle } = jest.requireActual('react');
   const TrueSheet = forwardRef(function TrueSheet(
-    props: { children: React.ReactNode; onDidDismiss: () => void },
+    props: {
+      children: React.ReactNode;
+      footer: React.ReactNode;
+      onDidDismiss: () => void;
+    },
     ref: React.Ref<unknown>,
   ) {
     useImperativeHandle(ref, () => ({
@@ -52,7 +57,7 @@ jest.mock('@lodev09/react-native-true-sheet', () => {
         props.onDidDismiss();
       },
     }));
-    return props.children ?? null;
+    return [props.children, props.footer];
   });
   return { TrueSheet };
 });

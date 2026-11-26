@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, View } from 'react-native';
+import {
+  AppState,
+  Platform,
+  ScrollView,
+  View,
+  type ScrollViewInstance,
+} from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useCSSVariable } from 'uniwind';
@@ -54,6 +60,7 @@ export function FestivePrompt() {
   const router = useRouter();
   const { t } = useTranslation();
   const sheet = useRef<TrueSheet>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [prompt, setPrompt] = useState<Shown | null>(null);
   // One answer per showing: the buttons stay tappable while the sheet slides away.
   const answered = useRef(false);
@@ -66,11 +73,13 @@ export function FestivePrompt() {
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
-  /** Closes the sheet; `onDidDismiss` then clears the prompt. */
+  /** Closes the sheet. A present still pending is cancelled without
+   *  `onDidDismiss`, so the prompt is cleared here too. */
   const close = async () => {
     if (!open.current) return;
     open.current = false;
     await sheet.current?.dismiss().catch(() => {});
+    setPrompt(null);
   };
   // Home's first focus is the app opening; later ones are returns from elsewhere.
   const returned = useRef(false);
@@ -167,6 +176,30 @@ export function FestivePrompt() {
   const closesApp =
     prompt?.kind === 'switchBack' && prompt.icon && appIconChangeClosesApp;
 
+  const buttons = prompt ? (
+    <View className="bg-background w-full gap-2 px-6 pb-2 pt-5">
+      {/* Labels can wrap at large text sizes. */}
+      <Button
+        variant="primary"
+        size="lg"
+        className="h-auto min-h-11 py-2.5"
+        onPress={() => void (suggest ? takeALook() : switchBack())}>
+        <Text className="text-center text-lg">
+          {suggest ? t('festive.takeALook') : t('festive.switchBack')}
+        </Text>
+      </Button>
+      <Button
+        variant="ghost"
+        size="lg"
+        className="h-auto min-h-11 py-2.5"
+        onPress={decline}>
+        <Text className="text-center text-lg text-foreground">
+          {suggest ? t('festive.notNow') : t('festive.keepIt')}
+        </Text>
+      </Button>
+    </View>
+  ) : undefined;
+
   return (
     <TrueSheet
       ref={sheet}
@@ -175,6 +208,13 @@ export function FestivePrompt() {
       grabber
       grabberOptions={{ topMargin: 8, color: mutedFgColor as string, adaptive: false }}
       backgroundStyle={{ backgroundColor: backgroundColor as string }}
+      // The buttons float in the footer, which takes the bottom inset, so they stay
+      // in reach in landscape or at large text sizes; the text scrolls above them.
+      scrollableRef={scrollRef}
+      scrollableOptions={{ contentInsetAdjustment: 'footer' }}
+      footer={buttons}
+      footerOptions={{ position: 'absolute' }}
+      footerStyle={{ backgroundColor: backgroundColor as string }}
       // A swipe down or a tap outside just closes it: an unanswered switch-back
       // comes back on the next return to Home.
       onDidDismiss={() => {
@@ -182,47 +222,27 @@ export function FestivePrompt() {
         setPrompt(null);
       }}
       maxContentWidth={Platform.OS === 'android' ? 480 : undefined}>
-      {prompt ? (
-        <View className="bg-background items-center px-6 pt-9">
-          {tile ? (
-            <View
-              className="pb-4"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants">
-              <AppIconTile name={tile} size={84} />
-            </View>
-          ) : null}
-          <Text variant="h3" role="heading" className="text-center text-foreground">
-            {suggest ? t('festive.promptTitle') : t('festive.switchBackTitle')}
-          </Text>
-          <Text className="mt-2 text-center text-base text-muted-foreground">
-            {suggest ? t('festive.promptMessage') : t('festive.switchBackMessage')}
-            {closesApp ? `\n\n${t('appearance.changeAppIconMessage')}` : ''}
-          </Text>
-          <View className="mt-7 w-full gap-2">
-            {/* Labels can wrap at large text sizes. */}
-            <Button
-              variant="primary"
-              size="lg"
-              className="h-auto min-h-11 py-2.5"
-              onPress={() => void (suggest ? takeALook() : switchBack())}>
-              <Text className="text-center text-lg">
-                {suggest ? t('festive.takeALook') : t('festive.switchBack')}
-              </Text>
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              className="h-auto min-h-11 py-2.5"
-              onPress={decline}>
-              <Text className="text-center text-lg text-foreground">
-                {suggest ? t('festive.notNow') : t('festive.keepIt')}
-              </Text>
-            </Button>
+      <ScrollView ref={scrollRef} className="bg-background">
+        {prompt ? (
+          <View className="items-center px-6 pt-9">
+            {tile ? (
+              <View
+                className="pb-4"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants">
+                <AppIconTile name={tile} size={84} />
+              </View>
+            ) : null}
+            <Text variant="h3" role="heading" className="text-center text-foreground">
+              {suggest ? t('festive.promptTitle') : t('festive.switchBackTitle')}
+            </Text>
+            <Text className="mt-2 text-center text-base text-muted-foreground">
+              {suggest ? t('festive.promptMessage') : t('festive.switchBackMessage')}
+              {closesApp ? `\n\n${t('appearance.changeAppIconMessage')}` : ''}
+            </Text>
           </View>
-          <View className="h-2 pb-safe" />
-        </View>
-      ) : null}
+        ) : null}
+      </ScrollView>
     </TrueSheet>
   );
 }
