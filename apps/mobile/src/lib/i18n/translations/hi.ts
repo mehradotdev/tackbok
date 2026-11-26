@@ -36,6 +36,7 @@ export const hi = {
   'common.unknownError': 'अज्ञात त्रुटि',
   'common.retry': 'फिर से कोशिश करें',
   'search.searchGratitudeLogs': 'प्रविष्टियाँ खोजें...',
+  'search.search': 'खोजें',
   'search.startTypingToSearchYourGratitudeLogs': 'अपनी प्रविष्टियाँ खोजने के लिए टाइप करें',
   'search.searchFailed': 'खोज विफल रही',
   'search.noResults': 'कोई परिणाम नहीं',

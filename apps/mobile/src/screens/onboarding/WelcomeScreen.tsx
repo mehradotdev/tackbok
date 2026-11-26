@@ -329,7 +329,7 @@ export default function OnboardingWelcomeScreen() {
                   role="radio"
                   accessibilityRole="radio"
                   accessibilityLabel={t(SIZE_LABELS[size])}
-                  accessibilityState={{ selected: isActive }}
+                  accessibilityState={{ checked: isActive }}
                   className={cn(
                     'flex-1 flex-col items-center justify-center rounded-lg py-2.5',
                     isActive

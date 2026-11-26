@@ -45,6 +45,7 @@ export const zhTW: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': '搜尋紀錄…',
+  'search.search': '搜尋',
   'search.startTypingToSearchYourGratitudeLogs': '輸入文字以搜尋紀錄',
   'search.searchFailed': '搜尋失敗',
   'search.noResults': '無搜尋結果',

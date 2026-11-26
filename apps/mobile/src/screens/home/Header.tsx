@@ -170,7 +170,11 @@ export const Header: React.FC<IHeaderProps> = ({
         <HeaderMotion {...motion} index={0}>
           {/* Search Button */}
           <View ref={searchTargetRef} collapsable={false}>
-            <Button className="p-1" onPress={onSearchPress} variant="ghost">
+            <Button
+              className="p-1"
+              onPress={onSearchPress}
+              variant="ghost"
+              accessibilityLabel={t('search.search')}>
               <Icon as={Search} className="text-primary-foreground" />
             </Button>
           </View>

@@ -45,6 +45,7 @@ export const he: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'חיפוש ברשומות…',
+  'search.search': 'חיפוש',
   'search.startTypingToSearchYourGratitudeLogs': 'אפשר להקליד כדי לחפש ברשומות',
   'search.searchFailed': 'החיפוש נכשל',
   'search.noResults': 'אין תוצאות',

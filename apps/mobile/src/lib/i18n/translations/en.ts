@@ -44,6 +44,7 @@ export const en = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'Search entries…',
+  'search.search': 'Search',
   'search.startTypingToSearchYourGratitudeLogs': 'Type to search your entries',
   'search.searchFailed': 'Search failed',
   'search.noResults': 'No results',

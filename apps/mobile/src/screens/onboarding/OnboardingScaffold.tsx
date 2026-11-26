@@ -3,6 +3,7 @@ import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNavigationState } from 'expo-router/react-navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -66,11 +67,14 @@ export function OnboardingScaffold({
         {step !== undefined && (
           <View
             className="flex-row items-center gap-1.5"
+            // One element for screen readers; iOS skips a labelled View otherwise.
+            accessible
             accessibilityRole="progressbar"
             accessibilityLabel={t('onboarding.stepCurrentOfTotal', {
               current: step,
               total: ONBOARDING_STEP_COUNT,
-            })}>
+            })}
+            accessibilityValue={{ min: 1, max: ONBOARDING_STEP_COUNT, now: step }}>
             {Array.from({ length: ONBOARDING_STEP_COUNT }, (_, index) => (
               <View
                 key={index}
@@ -99,15 +103,18 @@ export function OnboardingScaffold({
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="flex-grow px-6 pb-4"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        {children}
-      </ScrollView>
+      {/* The keyboard (the name field) lifts the footer instead of covering Continue. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="flex-grow px-6 pb-4"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          {children}
+        </ScrollView>
 
-      {footer && <View className="px-6 pb-2 pt-2">{footer}</View>}
+        {footer && <View className="px-6 pb-2 pt-2">{footer}</View>}
+      </KeyboardAvoidingView>
 
       {overlays}
     </SafeAreaView>

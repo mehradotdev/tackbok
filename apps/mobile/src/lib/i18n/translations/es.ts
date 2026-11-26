@@ -36,6 +36,7 @@ export const es = {
   'common.unknownError': 'Error desconocido',
   'common.retry': 'Reintentar',
   'search.searchGratitudeLogs': 'Buscar entradas…',
+  'search.search': 'Buscar',
   'search.startTypingToSearchYourGratitudeLogs': 'Escribe para buscar tus entradas',
   'search.searchFailed': 'La búsqueda falló',
   'search.noResults': 'Sin resultados',

@@ -36,6 +36,7 @@ export const sv = {
   'common.unknownError': 'Okänt fel',
   'common.retry': 'Försök igen',
   'search.searchGratitudeLogs': 'Sök poster...',
+  'search.search': 'Sök',
   'search.startTypingToSearchYourGratitudeLogs': 'Skriv för att söka i dina poster',
   'search.searchFailed': 'Sökningen misslyckades',
   'search.noResults': 'Inga resultat',
