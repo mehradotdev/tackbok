@@ -1,5 +1,5 @@
 import { AppState } from 'react-native';
-import { seasonalDay } from '~/lib/seasonal/events';
+import { activeSeasonalEvent, seasonalDay } from '~/lib/seasonal/events';
 
 // Each opening of the app (a cold start, or a return from the background) may
 // play one special-day celebration on the home screen. Coming back to home from
@@ -22,7 +22,9 @@ AppState.addEventListener('change', (next) => {
  * The caller checks the "Festive touches" setting and Reduce Motion.
  */
 export function claimCelebration(now = new Date()) {
-  if (claimed === opening || !seasonalDay(now)) return false;
+  // The festive scenes are winter themes: only that event's special days count.
+  const winter = activeSeasonalEvent(now)?.id === 'winter-holidays';
+  if (claimed === opening || !winter || !seasonalDay(now)) return false;
   claimed = opening;
   return true;
 }
