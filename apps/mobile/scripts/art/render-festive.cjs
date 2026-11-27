@@ -1,4 +1,4 @@
-// Render the Pine Night and Velvet shader scenes at phone, iPad, landscape and
+// Render the Christmas and New Year shader scenes at phone, iPad, landscape and
 // picker sizes, still and mid-celebration, and report body-text contrast against
 // the background pixels. Both scenes keep small bright subjects (the moon, tree
 // lights, flutes, garland bulbs), so contrast is reported, not enforced: the
@@ -34,9 +34,9 @@ for (const ext of ['.ts', '.tsx'])
   headless = require(root + '/node_modules/react-native-skia/lib/commonjs/headless');
   Skia = headless.getSkiaExports().Skia;
   const backdrops = root + '/apps/mobile/src/components/backdrops/';
-  const pine = require(backdrops + 'pine-night-shader.ts');
-  const velvet = require(backdrops + 'velvet-shader.ts');
-  const { THEME_DEFINITIONS, PINE_NIGHT_PALETTE, VELVET_PALETTE } = require(
+  const pine = require(backdrops + 'christmas-shader.ts');
+  const newYear = require(backdrops + 'new-year-shader.ts');
+  const { THEME_DEFINITIONS, CHRISTMAS_PALETTE, NEW_YEAR_PALETTE } = require(
     root + '/apps/mobile/src/lib/theme/theme-tokens.ts',
   );
   const fx = {};
@@ -44,10 +44,10 @@ for (const ext of ['.ts', '.tsx'])
     PINE_SCENE: pine.PINE_SCENE,
     PINE_LIGHTS: pine.PINE_LIGHTS,
     PINE_SNOW: pine.PINE_SNOW,
-    VELVET_SCENE: velvet.VELVET_SCENE,
-    VELVET_LIGHTS: velvet.VELVET_LIGHTS,
-    VELVET_CLOCK: velvet.VELVET_CLOCK,
-    VELVET_CONFETTI: velvet.VELVET_CONFETTI,
+    NEW_YEAR_SCENE: newYear.NEW_YEAR_SCENE,
+    NEW_YEAR_LIGHTS: newYear.NEW_YEAR_LIGHTS,
+    NEW_YEAR_CLOCK: newYear.NEW_YEAR_CLOCK,
+    NEW_YEAR_CONFETTI: newYear.NEW_YEAR_CONFETTI,
   })) {
     fx[name] = Skia.RuntimeEffect.Make(source);
     if (!fx[name]) throw Error(name + ' failed to compile');
@@ -66,8 +66,8 @@ for (const ext of ['.ts', '.tsx'])
       { ...region, blendMode },
       e(headless.Shader, { source: effect, uniforms }),
     );
-  const p = tokens('pine-night');
-  const v = tokens('velvet');
+  const p = tokens('christmas');
+  const v = tokens('new-year');
 
   for (const [size, width, height] of [
     ['phone', 390, 790],
@@ -83,7 +83,7 @@ for (const ext of ['.ts', '.tsx'])
     ]) {
       const scenes = [
         {
-          name: 'pine-night',
+          name: 'christmas',
           foreground: p['--color-foreground'],
           tree: [
             layer(
@@ -91,10 +91,10 @@ for (const ext of ['.ts', '.tsx'])
               {
                 size: [width, height],
                 sky: rgb(p['--color-background']),
-                snow: rgb(PINE_NIGHT_PALETTE.snow),
-                pine: rgb(PINE_NIGHT_PALETTE.pine),
-                warm: rgb(PINE_NIGHT_PALETTE.warm),
-                berry: rgb(PINE_NIGHT_PALETTE.berry),
+                snow: rgb(CHRISTMAS_PALETTE.snow),
+                pine: rgb(CHRISTMAS_PALETTE.pine),
+                warm: rgb(CHRISTMAS_PALETTE.warm),
+                berry: rgb(CHRISTMAS_PALETTE.berry),
                 ink: rgb(p['--color-foreground']),
               },
               full,
@@ -105,9 +105,9 @@ for (const ext of ['.ts', '.tsx'])
                 size: [width, height],
                 time,
                 party,
-                snow: rgb(PINE_NIGHT_PALETTE.snow),
-                warm: rgb(PINE_NIGHT_PALETTE.warm),
-                berry: rgb(PINE_NIGHT_PALETTE.berry),
+                snow: rgb(CHRISTMAS_PALETTE.snow),
+                warm: rgb(CHRISTMAS_PALETTE.warm),
+                berry: rgb(CHRISTMAS_PALETTE.berry),
               },
               full,
               'plus',
@@ -116,38 +116,38 @@ for (const ext of ['.ts', '.tsx'])
           ],
         },
         {
-          name: 'velvet',
+          name: 'new-year',
           foreground: v['--color-foreground'],
           tree: [
             layer(
-              fx.VELVET_SCENE,
+              fx.NEW_YEAR_SCENE,
               {
                 size: [width, height],
-                wine: rgb(VELVET_PALETTE.wine),
-                rose: rgb(VELVET_PALETTE.rose),
-                gold: rgb(VELVET_PALETTE.gold),
-                glow: rgb(VELVET_PALETTE.glow),
+                wine: rgb(NEW_YEAR_PALETTE.wine),
+                rose: rgb(NEW_YEAR_PALETTE.rose),
+                gold: rgb(NEW_YEAR_PALETTE.gold),
+                glow: rgb(NEW_YEAR_PALETTE.glow),
               },
               full,
             ),
-            layer(fx.VELVET_LIGHTS, { size: [width, height], time }, full, 'plus'),
+            layer(fx.NEW_YEAR_LIGHTS, { size: [width, height], time }, full, 'plus'),
             layer(
-              fx.VELVET_CLOCK,
+              fx.NEW_YEAR_CLOCK,
               {
                 size: [width, height],
                 time,
                 clock: party < 0 ? [23, 58, 30] : [0, 0, 12],
-                wine: rgb(VELVET_PALETTE.wine),
-                gold: rgb(VELVET_PALETTE.gold),
+                wine: rgb(NEW_YEAR_PALETTE.wine),
+                gold: rgb(NEW_YEAR_PALETTE.gold),
               },
-              velvet.velvetClockRegion(width, height),
+              newYear.newYearClockRegion(width, height),
             ),
             layer(
-              fx.VELVET_CONFETTI,
+              fx.NEW_YEAR_CONFETTI,
               {
                 size: [width, height],
                 party,
-                gold: rgb(VELVET_PALETTE.gold),
+                gold: rgb(NEW_YEAR_PALETTE.gold),
               },
               full,
             ),

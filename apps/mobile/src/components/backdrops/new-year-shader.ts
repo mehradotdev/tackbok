@@ -1,10 +1,10 @@
 /**
- * Velvet: burgundy velvet drapes with coloured fairy-light garlands and glass
+ * New Year: burgundy velvet drapes with coloured fairy-light garlands and glass
  * baubles, and a mantel with a bracket clock and two champagne flutes.
- * VELVET_SCENE is detailed (folds, pile, baubles, clock case), so it is drawn
- * once into a texture. Cheap layers animate on top: VELVET_LIGHTS (blinking
- * bulbs, added with `plus`), VELVET_CLOCK (hands at the real local time, the
- * pendulum, rising bubbles) and VELVET_CONFETTI (the special-day celebration).
+ * NEW_YEAR_SCENE is detailed (folds, pile, baubles, clock case), so it is drawn
+ * once into a texture. Cheap layers animate on top: NEW_YEAR_LIGHTS (blinking
+ * bulbs, added with `plus`), NEW_YEAR_CLOCK (hands at the real local time, the
+ * pendulum, rising bubbles) and NEW_YEAR_CONFETTI (the special-day celebration).
  */
 const SHARED = `
 uniform float2 size;
@@ -58,7 +58,7 @@ float bowlHalfWidth(float y) {
 }
 `;
 
-export const VELVET_SCENE = `
+export const NEW_YEAR_SCENE = `
 uniform float3 wine;    // shadowed velvet
 uniform float3 rose;    // velvet sheen
 uniform float3 gold;    // wire, trims, brass
@@ -115,7 +115,7 @@ half4 main(float2 xy) {
     col += gold * 0.05 * (1.0 - smoothstep(0.8, 1.0, d));
   }
 
-  // Garland wires, with the bulbs unlit; VELVET_LIGHTS adds their glow.
+  // Garland wires, with the bulbs unlit; NEW_YEAR_LIGHTS adds their glow.
   float pitch = 15.0 * scale;
   for (int k = 0; k < 3; k++) {
     float gy = garlandY(k, xy.x, scale);
@@ -203,7 +203,7 @@ half4 main(float2 xy) {
     float3 c = wood * (0.85 + 0.35 * side) * (0.85 + 0.3 * fbm(float2(xy.x / (3.0 * scale), xy.y / (30.0 * scale))));
     c = mix(c, gold * (0.7 + 0.3 * side), 1.0 - smoothstep(0.8 * scale, 1.8 * scale, abs(caseD + 5.0 * scale)));
     c = mix(c, gold * 0.8, 1.0 - smoothstep(0.5 * scale, 1.5 * scale, -caseD));
-    // The pendulum window's gilt frame; VELVET_CLOCK draws inside it.
+    // The pendulum window's gilt frame; NEW_YEAR_CLOCK draws inside it.
     float2 wq = cq - float2(0.0, 112.0 * scale);
     float win = max(abs(wq.x) - 26.0 * scale, abs(wq.y) - 26.0 * scale);
     c = mix(c, gold * 0.75, 1.0 - smoothstep(0.6 * scale, 1.4 * scale, abs(win)));
@@ -233,7 +233,7 @@ half4 main(float2 xy) {
 }
 `;
 
-export const VELVET_LIGHTS = `
+export const NEW_YEAR_LIGHTS = `
 uniform float time;
 ${SHARED}
 half4 main(float2 xy) {
@@ -254,7 +254,7 @@ half4 main(float2 xy) {
 }
 `;
 
-export const VELVET_CLOCK = `
+export const NEW_YEAR_CLOCK = `
 uniform float time;
 uniform float3 clock;   // local hours, minutes, seconds; seconds < 0 hides the second hand
 uniform float3 wine;
@@ -323,7 +323,7 @@ half4 main(float2 xy) {
 }
 `;
 
-export const VELVET_CONFETTI = `
+export const NEW_YEAR_CONFETTI = `
 uniform float party;    // seconds into the special-day confetti; < 0 when off
 uniform float3 gold;
 ${SHARED}
@@ -356,13 +356,13 @@ half4 main(float2 xy) {
 `;
 
 /** Seconds the confetti needs to clear a phone screen at the slowest fall speed. */
-export const VELVET_CONFETTI_SECONDS = 11;
+export const NEW_YEAR_CONFETTI_SECONDS = 11;
 
 /**
- * The part of the screen VELVET_CLOCK draws on (the flutes and the clock), in
+ * The part of the screen NEW_YEAR_CLOCK draws on (the flutes and the clock), in
  * points; mirrors clockX, caseTopY and fluteX in the shader.
  */
-export function velvetClockRegion(width: number, height: number) {
+export function newYearClockRegion(width: number, height: number) {
   const scale = Math.min(width / 390, height / 700);
   const clockX = width - 132 * scale;
   const shelf = height - 64 * scale;

@@ -41,7 +41,7 @@ describe('festivePromptFor: the suggestion', () => {
   it('respects "Festive touches" and an already festive look', () => {
     const now = day(2026, 12, 10);
     expect(festivePromptFor(now, { ...usual, festiveTouchesEnabled: false })).toBeNull();
-    expect(festivePromptFor(now, { ...usual, theme: 'velvet' })).toBeNull();
+    expect(festivePromptFor(now, { ...usual, theme: 'new-year' })).toBeNull();
     expect(festivePromptFor(now, { ...usual, icon: 'Christmas' })).toBeNull();
   });
 });
@@ -66,7 +66,7 @@ describe('festivePromptFor: the switch-back', () => {
       icon: 'Sage',
       offerFrom: new Date(2027, 0, 2).getTime(),
     });
-    const both = festive({ theme: 'pine-night', icon: 'Christmas' });
+    const both = festive({ theme: 'christmas', icon: 'Christmas' });
     expect(festivePromptFor(day(2027, 1, 1, 23), both)).toBeNull();
     expect(festivePromptFor(day(2027, 1, 2, 0), both)).toEqual({
       kind: 'switchBack',
@@ -81,7 +81,7 @@ describe('festivePromptFor: the switch-back', () => {
       theme: null,
       icon: 'Sage',
     });
-    expect(festivePromptFor(day(2027, 1, 4), festive({ theme: 'velvet' }))).toEqual({
+    expect(festivePromptFor(day(2027, 1, 4), festive({ theme: 'new-year' }))).toEqual({
       kind: 'switchBack',
       theme: 'ocean',
       icon: null,

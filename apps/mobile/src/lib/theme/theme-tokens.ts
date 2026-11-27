@@ -596,12 +596,12 @@ export const THEME_DEFINITIONS = [
     },
   },
   {
-    id: 'pine-night',
-    name: 'Pine Night',
+    id: 'christmas',
+    name: 'Christmas',
     description: 'Snow falling on a moonlit pine valley',
     variant: 'dark',
     enableTimelineBorders: false,
-    backdropId: 'pine-night',
+    backdropId: 'christmas',
     defaultTitleFontId: 'baskervville',
     bodyFontPackId: 'inter',
     tokens: {
@@ -631,12 +631,12 @@ export const THEME_DEFINITIONS = [
     },
   },
   {
-    id: 'velvet',
-    name: 'Velvet',
+    id: 'new-year',
+    name: 'New Year',
     description: 'Velvet drapes, fairy lights and a mantel clock',
     variant: 'dark',
     enableTimelineBorders: false,
-    backdropId: 'velvet',
+    backdropId: 'new-year',
     defaultTitleFontId: 'cinzel',
     bodyFontPackId: 'inter',
     tokens: {
@@ -1114,14 +1114,14 @@ export const HIGA_TEXT_CONTRAST = 4.7;
 export const BEA_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
-export const PINE_NIGHT_PALETTE = {
+export const CHRISTMAS_PALETTE = {
   snow: '#8aa3b4',
   pine: '#0b1a17',
   warm: '#f2c46b',
   berry: '#d4434f',
 } as const;
 
-export const VELVET_PALETTE = {
+export const NEW_YEAR_PALETTE = {
   wine: '#3a1220',
   rose: '#c0607a',
   gold: '#d6a84e',

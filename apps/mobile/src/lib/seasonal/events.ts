@@ -82,7 +82,7 @@ export const SEASONAL_EVENTS: readonly SeasonalEvent[] = [
       },
     ],
     suggestion: {
-      themes: ['pine-night', 'velvet'],
+      themes: ['christmas', 'new-year'],
       icon: 'Christmas',
       until: [12, 26],
       switchBackFrom: [1, 2],

@@ -1,5 +1,5 @@
 /**
- * Pine Night: a moonlit snowy valley of firs with one decorated tree.
+ * Christmas: a moonlit snowy valley of firs with one decorated tree.
  * PINE_SCENE is detailed (layered hills, drifts, tiered firs), so it is drawn
  * once into a texture. Two cheap layers animate on top: PINE_LIGHTS (twinkling
  * stars, blinking tree lights and the special-day fireworks, added with `plus`)

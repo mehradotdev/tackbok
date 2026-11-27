@@ -506,9 +506,9 @@
     }
 
     /* ═══════════════════════════════════════════
-       PINE-NIGHT — Snow falling on a moonlit pine valley
+       CHRISTMAS — Snow falling on a moonlit pine valley
        ═══════════════════════════════════════════ */
-    @variant pine-night {
+    @variant christmas {
       --color-background: #0c1b22;
       --color-foreground: #e8efe9;
       --color-card: #132830;
@@ -540,9 +540,9 @@
     }
 
     /* ═══════════════════════════════════════════
-       VELVET — Velvet drapes, fairy lights and a mantel clock
+       NEW-YEAR — Velvet drapes, fairy lights and a mantel clock
        ═══════════════════════════════════════════ */
-    @variant velvet {
+    @variant new-year {
       --color-background: #2c0d17;
       --color-foreground: #f3e6d8;
       --color-card: #3a1521;
