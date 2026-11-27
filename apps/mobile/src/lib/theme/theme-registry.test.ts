@@ -128,6 +128,7 @@ describe('Theme Registry', () => {
     'giuseppe',
     'kristen',
     'higa',
+    'bea',
     'pine-night',
     'velvet',
   ])('%s provides readable text on its solid surfaces', (id) => {
