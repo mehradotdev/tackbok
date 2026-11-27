@@ -1,6 +1,7 @@
-// Render the Denise, Giuseppe, Kristen and Higa shader scenes at phone/iPad/
-// landscape/picker sizes and check body-text contrast against every background
-// pixel. Denise and Higa must stay at or above 4.5:1 and Kristen at its
+// Render the Denise, Giuseppe, Kristen, Higa and Bea shader scenes at phone/
+// iPad/landscape/picker sizes and check body-text contrast against every
+// background pixel. Denise, Higa and Bea must stay at or above 4.5:1 (Bea
+// outside beaLanternBox, whose glass glows on purpose) and Kristen at its
 // KRISTEN_CONTRAST floor;
 // Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is reported only,
 // because the owner kept it as is (2026-11-26). It also checks that Kristen's
@@ -41,6 +42,7 @@ for (const ext of ['.ts', '.tsx'])
     ...require(backdrops + 'giuseppe-shader.ts'),
     ...require(backdrops + 'kristen-shader.ts'),
     ...require(backdrops + 'higa-shader.ts'),
+    ...require(backdrops + 'bea-shader.ts'),
   };
   const {
     THEME_DEFINITIONS,
@@ -49,6 +51,7 @@ for (const ext of ['.ts', '.tsx'])
     KRISTEN_PALETTE,
     KRISTEN_CONTRAST,
     HIGA_TEXT_CONTRAST,
+    BEA_TEXT_CONTRAST,
   } = require(root + '/apps/mobile/src/lib/theme/theme-tokens.ts');
   const fx = {};
   for (const name of [
@@ -61,6 +64,10 @@ for (const ext of ['.ts', '.tsx'])
     'KRISTEN_MIST',
     'KRISTEN_LIFE',
     'HIGA_SCENE',
+    'BEA_SCENE',
+    'BEA_MIST',
+    'BEA_LIGHT',
+    'BEA_LANTERN',
   ]) {
     fx[name] = Skia.RuntimeEffect.Make(shaders[name]);
     if (!fx[name]) throw Error(name + ' failed to compile');
@@ -92,6 +99,14 @@ for (const ext of ['.ts', '.tsx'])
       const g = tokens('giuseppe');
       const k = tokens('kristen');
       const h = tokens('higa');
+      const b = tokens('bea');
+      const lantern = shaders.beaLanternBox(width, height);
+      const beaColors = {
+        size: [width, height],
+        bg: rgb(b['--color-background']),
+        ink: rgb(b['--color-foreground']),
+        ceilRatio: BEA_TEXT_CONTRAST,
+      };
       const lifeBand = shaders.kristenLifeBand(width, height);
       const scenes = [
         {
@@ -248,6 +263,37 @@ for (const ext of ['.ts', '.tsx'])
             ),
           ],
         },
+        {
+          name: 'bea',
+          foreground: b['--color-foreground'],
+          minimum: 4.5,
+          exclude: lantern,
+          tree: [
+            layer(fx.BEA_SCENE, beaColors, 0, 0, width, height),
+            layer(
+              fx.BEA_MIST,
+              { size: [width, height], time },
+              0,
+              height * 0.7,
+              width,
+              height * 0.3,
+            ),
+            layer(fx.BEA_LIGHT, { ...beaColors, time }, 0, 0, width, height, 'plus'),
+            layer(
+              fx.BEA_LANTERN,
+              {
+                size: [width, height],
+                time,
+                ink: beaColors.ink,
+                ceilRatio: BEA_TEXT_CONTRAST,
+              },
+              lantern.x,
+              lantern.y,
+              lantern.width,
+              lantern.height,
+            ),
+          ],
+        },
       ];
       for (const scene of scenes) {
         const surface = headless.makeOffscreenSurface(width, height);
@@ -260,8 +306,17 @@ for (const ext of ['.ts', '.tsx'])
         const pixels = await image.readPixels();
         const text = luminance(...rgb(scene.foreground).map((v) => Math.round(v * 255)));
         let lowest = Infinity;
+        const skip = scene.exclude;
         for (let y = 0; y < height; y++)
           for (let x = 0; x < width; x++) {
+            if (
+              skip &&
+              x >= skip.x &&
+              x < skip.x + skip.width &&
+              y >= skip.y &&
+              y < skip.y + skip.height
+            )
+              continue;
             const i = (y * width + x) * 4;
             const bg = luminance(pixels[i], pixels[i + 1], pixels[i + 2]);
             const ratio = (Math.max(bg, text) + 0.05) / (Math.min(bg, text) + 0.05);

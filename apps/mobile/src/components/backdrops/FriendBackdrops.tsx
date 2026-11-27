@@ -14,12 +14,14 @@ import {
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 import {
+  BEA_TEXT_CONTRAST,
   DENISE_PALETTE,
   GIUSEPPE_PALETTE,
   HIGA_TEXT_CONTRAST,
   KRISTEN_CONTRAST,
   KRISTEN_PALETTE,
 } from '~/lib/theme/theme-tokens';
+import { BEA_LANTERN, BEA_LIGHT, BEA_MIST, BEA_SCENE, beaLanternBox } from './bea-shader';
 import { DENISE_MIST, DENISE_SCENE } from './denise-shader';
 import { GIUSEPPE_BOKEH, GIUSEPPE_CAIRN, GIUSEPPE_LAKE } from './giuseppe-shader';
 import { HIGA_SCENE } from './higa-shader';
@@ -46,6 +48,10 @@ const kristenScene = Skia.RuntimeEffect.Make(KRISTEN_SCENE);
 const kristenMist = Skia.RuntimeEffect.Make(KRISTEN_MIST);
 const kristenLife = Skia.RuntimeEffect.Make(KRISTEN_LIFE);
 const higaScene = Skia.RuntimeEffect.Make(HIGA_SCENE);
+const beaScene = Skia.RuntimeEffect.Make(BEA_SCENE);
+const beaMist = Skia.RuntimeEffect.Make(BEA_MIST);
+const beaLight = Skia.RuntimeEffect.Make(BEA_LIGHT);
+const beaLantern = Skia.RuntimeEffect.Make(BEA_LANTERN);
 
 /** Seconds of drift before the motion eases back; slow enough to feel ambient. */
 const CYCLE = 60;
@@ -310,6 +316,67 @@ function HigaScene({ width, height, preview }: Size & { preview: boolean }) {
       {higaScene && (
         <Rect x={0} y={0} width={width} height={height}>
           <Shader source={higaScene} uniforms={uniforms} />
+        </Rect>
+      )}
+    </Canvas>
+  );
+}
+
+export function BeaBackdrop({ preview = false }: { preview?: boolean }) {
+  return (
+    <MeasuredHost>{(size) => <BeaScene {...size} preview={preview} />}</MeasuredHost>
+  );
+}
+
+function BeaScene({ width, height, preview }: Size & { preview: boolean }) {
+  const [background, foreground] = useCSSVariable([
+    '--color-background',
+    '--color-foreground',
+  ]);
+  // The lantern's swing and the fireflies' loops must resume where they paused.
+  const time = useForwardTime(preview);
+  const bg = typeof background === 'string' ? background : '#16211a';
+  const ink = typeof foreground === 'string' ? foreground : '#d7e3d2';
+  const scene = useMemo(
+    () => ({
+      size: [width, height],
+      bg: rgb(bg),
+      ink: rgb(ink),
+      ceilRatio: BEA_TEXT_CONTRAST,
+    }),
+    [width, height, bg, ink],
+  );
+  const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
+  const lanternBox = useMemo(() => beaLanternBox(width, height), [width, height]);
+  const texture = useShaderTexture(beaScene, scene, full, PixelRatio.get());
+  const mist = useDerivedValue(() => ({ size: scene.size, time: time.value }));
+  const light = useDerivedValue(() => ({ ...scene, time: time.value }));
+  const lantern = useDerivedValue(() => ({
+    size: scene.size,
+    time: time.value,
+    ink: scene.ink,
+    ceilRatio: scene.ceilRatio,
+  }));
+
+  return (
+    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* The theme colour shows until the texture is ready, or if a shader fails. */}
+      <Rect x={0} y={0} width={width} height={height} color={bg} />
+      <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
+      {beaMist && (
+        // The mist rises from 0.70 of the height (mistBand in bea-shader.ts).
+        <Rect x={0} y={height * 0.7} width={width} height={height * 0.3}>
+          <Shader source={beaMist} uniforms={mist} />
+        </Rect>
+      )}
+      {beaLight && (
+        <Rect x={0} y={0} width={width} height={height} blendMode="plus">
+          <Shader source={beaLight} uniforms={light} />
+        </Rect>
+      )}
+      {beaLantern && (
+        <Rect {...lanternBox}>
+          <Shader source={beaLantern} uniforms={lantern} />
         </Rect>
       )}
     </Canvas>

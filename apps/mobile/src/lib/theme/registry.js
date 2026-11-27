@@ -109,7 +109,7 @@ export const THEMES = [
     "description": "Forest dusk/brass lamplight",
     "variant": "dark",
     "enableTimelineBorders": false,
-    "backdropId": "botanical",
+    "backdropId": "bea",
     "defaultTitleFontId": "baskervville"
   },
   {

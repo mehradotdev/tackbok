@@ -86,15 +86,14 @@ function buildFrond(
 }
 
 /**
- * The Clemens/Bea backdrop scene. Mounted only via `ThemeBackdrop`, which
+ * The Clemens backdrop scene. Mounted only via `ThemeBackdrop`, which
  * owns the which-theme-gets-which-backdrop decision.
  *
  * Google Keep-style composition: flat shapes in a few tones of the live theme
  * tokens, each element anchored to a screen edge so the scene reflows with any
  * width — rolling hills along the bottom, a fern fan rising bottom-right, a
  * leaf cluster bottom-left, a sprig hanging (and gently swaying) from the top
- * right, brass berries as accents. Token-driven, so the same component paints
- * daylight sage under Clemens and moonlit green under Bea.
+ * right, brass berries as accents, all in Clemens's daylight sage tokens.
  */
 export function BotanicalBackdrop({ preview = false }: { preview?: boolean }) {
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });

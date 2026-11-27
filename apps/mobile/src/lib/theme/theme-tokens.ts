@@ -356,7 +356,7 @@ export const THEME_DEFINITIONS = [
     description: 'Forest dusk/brass lamplight',
     variant: 'dark',
     enableTimelineBorders: false,
-    backdropId: 'botanical',
+    backdropId: 'bea',
     defaultTitleFontId: 'baskervville',
     bodyFontPackId: 'inter',
     tokens: {
@@ -1107,6 +1107,10 @@ export const KRISTEN_CONTRAST = { wall: 0.3, forest: 0.3, floor: 4.6 } as const;
  *  blob's brightest (the owner's choice, 2026-11-27); target the muted colour
  *  or lighten it if prompts need AA over the art. */
 export const HIGA_TEXT_CONTRAST = 4.7;
+
+/** Body-text contrast Bea's forest keeps against the foreground, with a soft
+ *  knee like Higa's; only the lantern glass glows above it. */
+export const BEA_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
 export const PINE_NIGHT_PALETTE = {

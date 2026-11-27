@@ -170,15 +170,17 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
-### Denise, Giuseppe, Kristen and Higa
+### Denise, Giuseppe, Kristen, Higa and Bea
 
-`FriendBackdrops.tsx` renders four shader scenes: Denise's misty blue ridges
+`FriendBackdrops.tsx` renders five shader scenes: Denise's misty blue ridges
 (light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora), Kristen's
 sheer granite wall, in the spirit of El Capitan, above a misty pine valley
-(light, Figtree) and Higa's neon blobs drifting behind frosted glass (dark,
-Bagel Fat One, with a magenta header bar). The detailed layers
-(`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are
-expensive, so each is drawn once into a texture with `useTexture`.
+(light, Figtree), Higa's neon blobs drifting behind frosted glass (dark,
+Bagel Fat One, with a magenta header bar) and Bea's forest at dusk, where a
+brass lantern hangs from a branch and fireflies blink (dark, Baskervville).
+The detailed layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`,
+`KRISTEN_SCENE`, `BEA_SCENE`) are expensive, so each is drawn once into a
+texture with `useTexture`.
 Giuseppe's cairn texture covers only its corner.
 Only cheap overlays animate per frame: Denise's fog wisps, Giuseppe's additive
 bokeh, Kristen's valley mist, and Kristen's hiker (waves for about five
@@ -187,7 +189,10 @@ hawk share the wall's geometry with the scene through `GEOMETRY` in
 `kristen-shader.ts`, and `kristenLifeBand` keeps their overlay to a strip
 above the rim. Higa has no expensive layer: `HIGA_SCENE` draws six soft blobs
 on slow Lissajous loops (periods of 16 to 40 s, all dividing the clock's 6 h
-wrap) and runs per frame. Motion runs on `useForwardTime` from
+wrap) and runs per frame. Bea animates three cheap layers over its texture:
+the ground mist (`BEA_MIST`), the lamplight and fireflies (`BEA_LIGHT`, added
+with blend mode `plus`) and the swaying lantern (`BEA_LANTERN`, drawn only
+inside `beaLanternBox`). Motion runs on `useForwardTime` from
 `scene-kit.tsx` and stops when the screen loses focus or the app goes to the
 background; previews and
 Reduce Motion show still scenes. The theme background colour is painted first,
@@ -202,13 +207,18 @@ Higa works the other way, as a dark theme: its scene rolls any pixel brighter
 than `HIGA_TEXT_CONTRAST` (4.7:1) against the foreground down toward it, with a
 soft knee so bright blobs keep soft edges. Its muted prompt text is not
 covered and drops to about 3.4:1 at a blob's brightest (the owner's choice).
+Bea keeps `BEA_TEXT_CONTRAST` (4.7:1) the same way. Its light layer cannot
+read the scene below it, so it ceils against the brightest the scene can be
+there (the sky under the densest mist); darker pixels stay darker. Only the
+lantern glass glows above the ceiling (the owner's choice), so text crossing
+it drops below 4.5:1 for a moment.
 Giuseppe has no such lift (the owner kept it as is): its lit cairn reaches
 about 2:1 and the sun glow on the lake about 3:1.
 
 Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
-all the shaders and render the four scenes at phone, iPad, landscape and
+all the shaders and render the five scenes at phone, iPad, landscape and
 picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise,
-Kristen or Higa drops below 4.5:1 (or below a lower Kristen `floor`; it checks
+Kristen, Higa or Bea (outside `beaLanternBox`) drops below 4.5:1 (or below a lower Kristen `floor`; it checks
 `--color-foreground` only), or if Kristen's hiker or hawk strays outside
 `kristenLifeBand`. Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (about 15
 minutes on an idle Mac, much longer when other jobs compete for the CPU); it
