@@ -30,6 +30,11 @@ const TITLE_FONTS = [
     "id": "baskervville",
     "label": "Baskervville",
     "fontFamily": "Baskervville_700Bold"
+  },
+  {
+    "id": "bagelfatone",
+    "label": "Bagel Fat One",
+    "fontFamily": "BagelFatOne_400Regular"
   }
 ];
 
@@ -151,6 +156,15 @@ const THEMES = [
     "enableTimelineBorders": false,
     "backdropId": "kristen",
     "defaultTitleFontId": "figtree"
+  },
+  {
+    "id": "higa",
+    "name": "Higa",
+    "description": "Neon blobs drifting behind frosted glass",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "higa",
+    "defaultTitleFontId": "bagelfatone"
   },
   {
     "id": "pine-night",

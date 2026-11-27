@@ -33,7 +33,7 @@ loads the patched copies from assets/fonts/ (see src/lib/theme/fonts.ts).
 
 ## Licensing
 
-All six faces are SIL OFL 1.1, which requires every redistributed copy —
+All seven faces are SIL OFL 1.1, which requires every redistributed copy —
 modified or not — to carry its copyright notice and the license text. The
 script writes a single combined assets/fonts/LICENSE.txt (per-font
 copyright notices + the shared OFL body). Only Lora declares a Reserved
@@ -84,6 +84,7 @@ INK_SAMPLE = (
 # (package-relative source, output name, internal rename or None)
 # Rename tuple: (family, subfamily) — applied to name IDs 1/3/4/6/16/17.
 FONTS = [
+    ("bagel-fat-one/400Regular/BagelFatOne_400Regular.ttf", "BagelFatOne_400Regular.ttf", None),
     ("baskervville/700Bold/Baskervville_700Bold.ttf", "Baskervville_700Bold.ttf", None),
     ("figtree/700Bold/Figtree_700Bold.ttf", "Figtree_700Bold.ttf", None),
     ("cinzel/700Bold/Cinzel_700Bold.ttf", "Cinzel_700Bold.ttf", None),

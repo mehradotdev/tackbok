@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.29.10",
+    "@expo-google-fonts/bagel-fat-one": "^0.4.0",
     "@expo-google-fonts/baskervville": "^0.4.1",
     "@expo-google-fonts/cinzel": "^0.4.2",
     "@expo-google-fonts/figtree": "^0.4.1",

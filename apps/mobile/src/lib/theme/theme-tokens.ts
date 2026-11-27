@@ -34,6 +34,11 @@ export const TITLE_FONTS = [
     label: 'Baskervville',
     fontFamily: 'Baskervville_700Bold',
   },
+  {
+    id: 'bagelfatone',
+    label: 'Bagel Fat One',
+    fontFamily: 'BagelFatOne_400Regular',
+  },
 ] as const;
 
 export type TitleFontId = (typeof TITLE_FONTS)[number]['id'];
@@ -556,6 +561,41 @@ export const THEME_DEFINITIONS = [
     },
   },
   {
+    id: 'higa',
+    name: 'Higa',
+    description: 'Neon blobs drifting behind frosted glass',
+    variant: 'dark',
+    enableTimelineBorders: false,
+    backdropId: 'higa',
+    defaultTitleFontId: 'bagelfatone',
+    bodyFontPackId: 'inter',
+    tokens: {
+      '--color-background': '#170c27',
+      '--color-foreground': '#efe6fb',
+      '--color-card': '#24163b',
+      '--color-card-foreground': '#efe6fb',
+      '--color-popover': '#2a1a44',
+      '--color-popover-foreground': '#efe6fb',
+      '--color-primary': '#b000b0',
+      '--color-primary-foreground': '#ffffff',
+      '--color-secondary': '#2a1a44',
+      '--color-secondary-foreground': '#efe6fb',
+      '--color-muted': '#24163b',
+      '--color-muted-foreground': '#b9a8d4',
+      '--color-accent': '#3a2560',
+      '--color-accent-foreground': '#f3ecfc',
+      '--color-destructive': '#f59ab0',
+      '--color-destructive-foreground': '#2a0f1a',
+      '--color-border': '#3a2858',
+      '--color-input': '#24163b',
+      '--color-ring': '#e27ee6',
+      '--color-active-overlay': 'rgba(239, 230, 251, 0.1)',
+      '--theme-radius': '12px',
+      '--theme-border-width': '1px',
+      '--theme-shadow': '0 10px 15px 0 rgba(0, 0, 0, 0.4)',
+    },
+  },
+  {
     id: 'pine-night',
     name: 'Pine Night',
     description: 'Snow falling on a moonlit pine valley',
@@ -1058,6 +1098,10 @@ export const KRISTEN_PALETTE = {
  * streaks and `forest` the pines (0 soft .. about 2); `floor` is the body-text
  * contrast the scene keeps (1 = none). */
 export const KRISTEN_CONTRAST = { wall: 0.3, forest: 0.3, floor: 4.6 } as const;
+
+/** Body-text contrast Higa's blobs keep against the foreground (the scene's
+ *  grain and dither take about 0.1 off, so the floor measured is 4.75:1). */
+export const HIGA_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
 export const PINE_NIGHT_PALETTE = {

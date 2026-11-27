@@ -1,6 +1,7 @@
-// Render the Denise, Giuseppe and Kristen shader scenes at phone/iPad/landscape/
-// picker sizes and check body-text contrast against every background pixel.
-// Denise must stay at or above 4.5:1 and Kristen at its KRISTEN_CONTRAST floor;
+// Render the Denise, Giuseppe, Kristen and Higa shader scenes at phone/iPad/
+// landscape/picker sizes and check body-text contrast against every background
+// pixel. Denise and Higa must stay at or above 4.5:1 and Kristen at its
+// KRISTEN_CONTRAST floor;
 // Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is reported only,
 // because the owner kept it as is (2026-11-26). It also checks that Kristen's
 // hiker and hawk stay inside the strip their overlay is clipped to.
@@ -39,6 +40,7 @@ for (const ext of ['.ts', '.tsx'])
     ...require(backdrops + 'denise-shader.ts'),
     ...require(backdrops + 'giuseppe-shader.ts'),
     ...require(backdrops + 'kristen-shader.ts'),
+    ...require(backdrops + 'higa-shader.ts'),
   };
   const {
     THEME_DEFINITIONS,
@@ -46,6 +48,7 @@ for (const ext of ['.ts', '.tsx'])
     GIUSEPPE_PALETTE,
     KRISTEN_PALETTE,
     KRISTEN_CONTRAST,
+    HIGA_TEXT_CONTRAST,
   } = require(root + '/apps/mobile/src/lib/theme/theme-tokens.ts');
   const fx = {};
   for (const name of [
@@ -57,6 +60,7 @@ for (const ext of ['.ts', '.tsx'])
     'KRISTEN_SCENE',
     'KRISTEN_MIST',
     'KRISTEN_LIFE',
+    'HIGA_SCENE',
   ]) {
     fx[name] = Skia.RuntimeEffect.Make(shaders[name]);
     if (!fx[name]) throw Error(name + ' failed to compile');
@@ -87,6 +91,7 @@ for (const ext of ['.ts', '.tsx'])
       const d = tokens('denise');
       const g = tokens('giuseppe');
       const k = tokens('kristen');
+      const h = tokens('higa');
       const lifeBand = shaders.kristenLifeBand(width, height);
       const scenes = [
         {
@@ -219,6 +224,27 @@ for (const ext of ['.ts', '.tsx'])
               lifeBand.y,
               lifeBand.width,
               lifeBand.height,
+            ),
+          ],
+        },
+        {
+          name: 'higa',
+          foreground: h['--color-foreground'],
+          minimum: 4.5,
+          tree: [
+            layer(
+              fx.HIGA_SCENE,
+              {
+                size: [width, height],
+                time,
+                bg: rgb(h['--color-background']),
+                ink: rgb(h['--color-foreground']),
+                ceilRatio: HIGA_TEXT_CONTRAST,
+              },
+              0,
+              0,
+              width,
+              height,
             ),
           ],
         },

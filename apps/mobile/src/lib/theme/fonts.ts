@@ -14,6 +14,7 @@ import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono/700Bold
 // descenders at heading line heights — see HEADING_FONT_METRICS in
 // ./typography.ts. Their @expo-google-fonts packages stay installed as the
 // patch script's source of truth; don't import the title faces from them.
+const BagelFatOne_400Regular: number = require('../../../assets/fonts/BagelFatOne_400Regular.ttf');
 const Baskervville_700Bold: number = require('../../../assets/fonts/Baskervville_700Bold.ttf');
 const Figtree_700Bold: number = require('../../../assets/fonts/Figtree_700Bold.ttf');
 const Cinzel_700Bold: number = require('../../../assets/fonts/Cinzel_700Bold.ttf');
@@ -22,6 +23,7 @@ const Lora_700Bold: number = require('../../../assets/fonts/Lora_700Bold.ttf');
 const SpaceMono_700Bold: number = require('../../../assets/fonts/SpaceMono_700Bold.ttf');
 
 export const APP_FONT_ASSETS = {
+  BagelFatOne_400Regular,
   Baskervville_700Bold,
   Figtree_700Bold,
   Cinzel_700Bold,
