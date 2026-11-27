@@ -18,10 +18,10 @@ import { CHRISTMAS_PALETTE, NEW_YEAR_PALETTE } from '~/lib/theme/theme-tokens';
 import type { BackdropProps } from './ThemeBackdrop';
 import { claimCelebration } from './celebration';
 import {
-  PINE_FIREWORKS_SECONDS,
-  PINE_LIGHTS,
-  PINE_SCENE,
-  PINE_SNOW,
+  CHRISTMAS_FIREWORKS_SECONDS,
+  CHRISTMAS_LIGHTS,
+  CHRISTMAS_SCENE,
+  CHRISTMAS_SNOW,
 } from './christmas-shader';
 import {
   MeasuredHost,
@@ -32,18 +32,21 @@ import {
   type Size,
 } from './scene-kit';
 import {
+  NEW_YEAR_BAUBLES,
   NEW_YEAR_CLOCK,
   NEW_YEAR_CONFETTI,
   NEW_YEAR_CONFETTI_SECONDS,
   NEW_YEAR_LIGHTS,
   NEW_YEAR_SCENE,
+  newYearBaubleRegion,
   newYearClockRegion,
 } from './new-year-shader';
 
-const pineScene = Skia.RuntimeEffect.Make(PINE_SCENE);
-const pineLights = Skia.RuntimeEffect.Make(PINE_LIGHTS);
-const pineSnow = Skia.RuntimeEffect.Make(PINE_SNOW);
+const christmasScene = Skia.RuntimeEffect.Make(CHRISTMAS_SCENE);
+const christmasLights = Skia.RuntimeEffect.Make(CHRISTMAS_LIGHTS);
+const christmasSnow = Skia.RuntimeEffect.Make(CHRISTMAS_SNOW);
 const newYearScene = Skia.RuntimeEffect.Make(NEW_YEAR_SCENE);
+const newYearBaubles = Skia.RuntimeEffect.Make(NEW_YEAR_BAUBLES);
 const newYearLights = Skia.RuntimeEffect.Make(NEW_YEAR_LIGHTS);
 const newYearClock = Skia.RuntimeEffect.Make(NEW_YEAR_CLOCK);
 const newYearConfetti = Skia.RuntimeEffect.Make(NEW_YEAR_CONFETTI);
@@ -166,9 +169,9 @@ function ChristmasScene({ width, height, preview, celebrate }: SceneProps) {
     [width, height, sky, ink],
   );
   const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
-  const texture = useShaderTexture(pineScene, scene, full, PixelRatio.get());
+  const texture = useShaderTexture(christmasScene, scene, full, PixelRatio.get());
   const time = useForwardTime(preview);
-  const { party } = useCelebration(celebrate && !preview, PINE_FIREWORKS_SECONDS);
+  const { party } = useCelebration(celebrate && !preview, CHRISTMAS_FIREWORKS_SECONDS);
   const lights = useDerivedValue(() => ({
     size: scene.size,
     time: time.value,
@@ -184,14 +187,14 @@ function ChristmasScene({ width, height, preview, celebrate }: SceneProps) {
       {/* The theme colour shows until the texture is ready, or if the shader fails. */}
       <Rect x={0} y={0} width={width} height={height} color={sky} />
       <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
-      {pineLights && (
+      {christmasLights && (
         <Rect x={0} y={0} width={width} height={height} blendMode="plus">
-          <Shader source={pineLights} uniforms={lights} />
+          <Shader source={christmasLights} uniforms={lights} />
         </Rect>
       )}
-      {pineSnow && (
+      {christmasSnow && (
         <Rect x={0} y={0} width={width} height={height}>
-          <Shader source={pineSnow} uniforms={snowfall} />
+          <Shader source={christmasSnow} uniforms={snowfall} />
         </Rect>
       )}
     </Canvas>
@@ -229,13 +232,24 @@ function NewYearScene({ width, height, preview, celebrate }: SceneProps) {
     return { y, height: Math.min(height, Math.ceil(height * 0.34 + 68 * scale)) - y };
   }, [width, height]);
   const mantel = useMemo(() => newYearClockRegion(width, height), [width, height]);
+  const swaying = useMemo(() => newYearBaubleRegion(width, height), [width, height]);
   const time = useForwardTime(preview);
+  // Steady lights and still baubles under Reduce Motion and in previews.
+  const reducedMotion = useReducedMotion();
+  const still = preview || reducedMotion ? 1 : 0;
   const clock = useLocalClock(preview);
   const { party, playing } = useCelebration(
     celebrate && !preview,
     NEW_YEAR_CONFETTI_SECONDS,
   );
-  const lights = useDerivedValue(() => ({ size: scene.size, time: time.value }));
+  const lights = useDerivedValue(() => ({ size: scene.size, time: time.value, still }));
+  const baubles = useDerivedValue(() => ({
+    size: scene.size,
+    time: time.value,
+    still,
+    gold: scene.gold,
+    glow: scene.glow,
+  }));
   const hands = useDerivedValue(() => ({
     size: scene.size,
     time: time.value,
@@ -254,6 +268,11 @@ function NewYearScene({ width, height, preview, celebrate }: SceneProps) {
       {/* The theme colour shows until the texture is ready, or if the shader fails. */}
       <Rect x={0} y={0} width={width} height={height} color={fallback} />
       <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
+      {newYearBaubles && (
+        <Rect {...swaying}>
+          <Shader source={newYearBaubles} uniforms={baubles} />
+        </Rect>
+      )}
       {newYearLights && (
         <Rect x={0} y={band.y} width={width} height={band.height} blendMode="plus">
           <Shader source={newYearLights} uniforms={lights} />

@@ -34,17 +34,18 @@ for (const ext of ['.ts', '.tsx'])
   headless = require(root + '/node_modules/react-native-skia/lib/commonjs/headless');
   Skia = headless.getSkiaExports().Skia;
   const backdrops = root + '/apps/mobile/src/components/backdrops/';
-  const pine = require(backdrops + 'christmas-shader.ts');
+  const christmas = require(backdrops + 'christmas-shader.ts');
   const newYear = require(backdrops + 'new-year-shader.ts');
   const { THEME_DEFINITIONS, CHRISTMAS_PALETTE, NEW_YEAR_PALETTE } = require(
     root + '/apps/mobile/src/lib/theme/theme-tokens.ts',
   );
   const fx = {};
   for (const [name, source] of Object.entries({
-    PINE_SCENE: pine.PINE_SCENE,
-    PINE_LIGHTS: pine.PINE_LIGHTS,
-    PINE_SNOW: pine.PINE_SNOW,
+    CHRISTMAS_SCENE: christmas.CHRISTMAS_SCENE,
+    CHRISTMAS_LIGHTS: christmas.CHRISTMAS_LIGHTS,
+    CHRISTMAS_SNOW: christmas.CHRISTMAS_SNOW,
     NEW_YEAR_SCENE: newYear.NEW_YEAR_SCENE,
+    NEW_YEAR_BAUBLES: newYear.NEW_YEAR_BAUBLES,
     NEW_YEAR_LIGHTS: newYear.NEW_YEAR_LIGHTS,
     NEW_YEAR_CLOCK: newYear.NEW_YEAR_CLOCK,
     NEW_YEAR_CONFETTI: newYear.NEW_YEAR_CONFETTI,
@@ -87,7 +88,7 @@ for (const ext of ['.ts', '.tsx'])
           foreground: p['--color-foreground'],
           tree: [
             layer(
-              fx.PINE_SCENE,
+              fx.CHRISTMAS_SCENE,
               {
                 size: [width, height],
                 sky: rgb(p['--color-background']),
@@ -100,7 +101,7 @@ for (const ext of ['.ts', '.tsx'])
               full,
             ),
             layer(
-              fx.PINE_LIGHTS,
+              fx.CHRISTMAS_LIGHTS,
               {
                 size: [width, height],
                 time,
@@ -112,7 +113,7 @@ for (const ext of ['.ts', '.tsx'])
               full,
               'plus',
             ),
-            layer(fx.PINE_SNOW, { size: [width, height], time }, full),
+            layer(fx.CHRISTMAS_SNOW, { size: [width, height], time }, full),
           ],
         },
         {
@@ -130,7 +131,23 @@ for (const ext of ['.ts', '.tsx'])
               },
               full,
             ),
-            layer(fx.NEW_YEAR_LIGHTS, { size: [width, height], time }, full, 'plus'),
+            layer(
+              fx.NEW_YEAR_BAUBLES,
+              {
+                size: [width, height],
+                time,
+                still: 0,
+                gold: rgb(NEW_YEAR_PALETTE.gold),
+                glow: rgb(NEW_YEAR_PALETTE.glow),
+              },
+              newYear.newYearBaubleRegion(width, height),
+            ),
+            layer(
+              fx.NEW_YEAR_LIGHTS,
+              { size: [width, height], time, still: 0 },
+              full,
+              'plus',
+            ),
             layer(
               fx.NEW_YEAR_CLOCK,
               {

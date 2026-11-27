@@ -97,16 +97,20 @@ uniform float3 warm;
 uniform float3 stoneA;
 uniform float3 stoneB;
 ${NOISE}
-// Stones from the base up: centre (x, y as fractions of width), radii (pt), tilt, seed.
-// x is measured from the right edge so the cairn hugs the corner on any width.
+// Stones from the base up: centre (x as a fraction of a 390 pt width from the
+// right edge, y in pt above the base), radii (pt). The boulder sits 0.30 of the
+// real width from the right, so the cairn hugs the corner on any width; the
+// stones above keep their offsets in points, so the stack scales as one piece.
+// The heights rest each stone 1.5 pt into the smooth middle of the one below
+// (solved offline from the outline below: superellipse, tilt, flat underside).
 float4 stoneShape(int i) {
   if (i == 0) return float4(0.30, 0.0, 128.0, 60.0);   // boulder the cairn stands on
-  if (i == 1) return float4(0.27, 76.0, 78.0, 27.0);
-  if (i == 2) return float4(0.31, 121.0, 55.0, 19.0);
-  if (i == 3) return float4(0.265, 156.0, 52.0, 17.0);
-  if (i == 4) return float4(0.30, 187.0, 34.0, 15.0);
-  if (i == 5) return float4(0.28, 213.0, 31.0, 11.5);
-  return float4(0.292, 233.0, 17.0, 10.0);
+  if (i == 1) return float4(0.27, 78.0, 78.0, 27.0);
+  if (i == 2) return float4(0.31, 117.9, 55.0, 19.0);
+  if (i == 3) return float4(0.265, 149.0, 52.0, 17.0);
+  if (i == 4) return float4(0.30, 176.4, 34.0, 15.0);
+  if (i == 5) return float4(0.28, 198.1, 31.0, 11.5);
+  return float4(0.292, 214.9, 17.0, 10.0);
 }
 float2 stoneTilt(int i) {   // rotation (rad), colour mix toward grey
   if (i == 0) return float2(0.02, 0.85);
@@ -122,7 +126,7 @@ float2 stoneTilt(int i) {   // rotation (rad), colour mix toward grey
 float stoneDist(int i, float2 xy, float scale, float baseY, out float2 q, out float rr) {
   float4 s = stoneShape(i);
   float2 t = stoneTilt(i);
-  float2 c = float2(size.x - s.x * size.x, baseY - s.y * scale);
+  float2 c = float2(size.x * 0.70 - (s.x - 0.30) * 390.0 * scale, baseY - s.y * scale);
   float2 p = (xy - c) / scale;
   float cs = cos(t.x), sn = sin(t.x);
   p = float2(cs * p.x + sn * p.y, -sn * p.x + cs * p.y);
@@ -136,6 +140,9 @@ float stoneDist(int i, float2 xy, float scale, float baseY, out float2 q, out fl
   float wobble = (noise(dir * 1.3 + fi * 5.1) - 0.5) * 0.22
                + (noise(dir * 4.0 + fi * 2.7) - 0.5) * 0.07
                + (noise(dir * 11.0 + fi) - 0.5) * 0.02;
+  // Smooth where stones touch (the middle of each top and underside), so the
+  // stack rests the same on every GPU; the shoulders stay irregular.
+  wobble *= q.y < 0.0 ? smoothstep(0.35, 0.7, abs(q.x)) : smoothstep(0.5, 0.85, abs(q.x));
   wobble -= step(0.0, q.y) * 0.05 * q.y;   // resting underside sits flatter
   float R = 1.0 + wobble;
   rr = r / R;

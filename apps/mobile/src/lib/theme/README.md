@@ -234,8 +234,13 @@ subjects sit on the right, partly under the home screen's action dock, because t
 dock collapses on scroll and journal text sits on the left. Like the friend scenes,
 the detailed layer is drawn once into a texture (`scene-kit.tsx`); per frame only
 cheap overlays run: the Christmas theme's twinkling stars, tree lights and falling snow,
-and the New Year theme's blinking bulbs and clock. Its clock shows the real local time
-(no second hand under Reduce Motion or in previews).
+and the New Year theme's swaying baubles, blinking bulbs and clock. The bulbs blink
+like real fairy lights, by colour: red and yellow burn steadily, green and magenta
+take turns going on and off, and blue and orange chase along the string, each switch
+with a short fade. The rightmost bauble on each garland sways on its thread, slowly
+and slightly, each with its own period. Under Reduce Motion and in previews the bulbs
+burn steadily and the baubles hang still. The clock shows the real local time (no
+second hand under Reduce Motion or in previews).
 
 On 24, 25 and 31 Dec and 1 Jan, the home screen plays a celebration once per
 opening of the app (a cold start or a return from the background, not a return
@@ -243,11 +248,11 @@ from an entry): about 7 s of fireworks in the Christmas theme and 11 s of confet
 the New Year theme. It is skipped under Reduce Motion or when "Festive touches" is off.
 `celebration.ts` decides when.
 
-The Christmas theme lifts snow that would drop below 4.5:1 against `--color-foreground`,
-except the moon. The New Year theme keeps dark drapes and a dark dial; small bright details
-(bulbs, flutes, the moon, tree lights) stay under 4.5:1 by design. Run
+The Christmas theme dims snow and the hazy moon that would drop below 4.5:1 against
+`--color-foreground`. The New Year theme keeps dark drapes and a dark dial; small bright
+details (bulbs, flutes, tree lights, the star) stay under 4.5:1 by design. Run
 `node scripts/art/render-festive.cjs` from the mobile directory to compile all
-seven shaders and render both scenes, still and mid-celebration, at phone, iPad,
+eight shaders and render both scenes, still and mid-celebration, at phone, iPad,
 landscape and picker sizes in `/tmp/festive-previews`. It reports the lowest
 contrast and the share of pixels under 4.5:1 (about 2–3%, up to 4% mid-confetti). It takes about 8 minutes.
 
