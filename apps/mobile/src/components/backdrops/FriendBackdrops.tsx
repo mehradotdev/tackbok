@@ -177,7 +177,7 @@ function GiuseppeScene({ width, height, preview }: Size & { preview: boolean }) 
   );
   const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
   // The cairn stands in the bottom-right corner (see stoneShape in the shader:
-  // the boulder reaches 0.70 × width − 150 pt, the top stone 250 pt up); bake only that.
+  // the boulder reaches 0.70 × width − 150 pt, the top stone about 225 pt up); bake only that.
   const corner = useMemo(() => {
     const scale = Math.min(width / 390, height / 700);
     const x = Math.max(0, Math.floor(width * 0.7 - 175 * scale));

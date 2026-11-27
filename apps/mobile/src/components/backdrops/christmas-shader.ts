@@ -134,16 +134,18 @@ half4 main(float2 xy) {
   // A hazy moon: a soft-edged disc behind a wisp of cloud, no brighter than
   // the readability ceiling below, so text over it stays readable.
   float ceilLum = (lumOf(ink) + 0.05) / 4.6 - 0.05;
-  float3 moonCol = float3(0.88, 0.93, 0.98);
-  float lo = 0.0, hi = 1.0;   // scale the moon down to the ceiling, keeping its craters
-  for (int s = 0; s < 10; s++) { float m = 0.5 * (lo + hi); if (lumOf(moonCol * m) > ceilLum) hi = m; else lo = m; }
-  moonCol *= lo;
+  float lo = 0.0, hi = 1.0;
   float2 moon = float2(0.2 * size.x, 0.25 * size.y);
   float md = length(xy - moon) / scale;
   col = mix(col, mix(col, snow, 0.5), 0.35 * exp(-md * md / 4200.0));
-  float disc = 1.0 - smoothstep(12.5, 18.0, md);
-  float crater = 0.1 * fbm((xy - moon) / (5.0 * scale));
-  col = mix(col, moonCol * (1.0 - crater), disc);
+  if (md < 18.0) {
+    // Scale the moon down to the ceiling, keeping its craters; only on the disc.
+    float3 moonCol = float3(0.88, 0.93, 0.98);
+    for (int s = 0; s < 10; s++) { float m = 0.5 * (lo + hi); if (lumOf(moonCol * m) > ceilLum) hi = m; else lo = m; }
+    float disc = 1.0 - smoothstep(12.5, 18.0, md);
+    float crater = 0.1 * fbm((xy - moon) / (5.0 * scale));
+    col = mix(col, moonCol * lo * (1.0 - crater), disc);
+  }
   float2 wp = (xy - moon) / scale;
   float wisp = smoothstep(0.42, 0.75, fbm(float2(wp.x / 24.0 + 3.0, wp.y / 4.5)))
              * exp(-(wp.y - 5.0) * (wp.y - 5.0) / 50.0) * exp(-wp.x * wp.x / 2500.0);

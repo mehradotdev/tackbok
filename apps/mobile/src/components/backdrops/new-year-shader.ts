@@ -390,8 +390,9 @@ half4 main(float2 xy) {
   for (int i = 0; i < 2; i++) {
     float2 q = fluteFrame(i, xy, scale);
     if (q.y > BOWL_TOP + 14.0 && q.y < BOWL_BOTTOM && abs(q.x) < bowlHalfWidth(q.y) - 1.0) {
-      // The rise wraps after 64 cells, and their hashes repeat with it.
-      float2 bc = float2(q.x, q.y + mod(time * 9.0, 2.6 * 64.0));
+      // The rise wraps after 64 cells, and their hashes repeat with it. One
+      // wrap takes 18 s, which divides the 6 h clock wrap, so bubbles never jump.
+      float2 bc = float2(q.x, q.y + mod(time * (2.6 * 64.0 / 18.0), 2.6 * 64.0));
       float2 id = floor(bc / 2.6);
       float on = step(0.86, hash2(float2(id.x, mod(id.y, 64.0)) + float(i) * 7.0));
       float a = on * (1.0 - smoothstep(0.12, 0.3, length(fract(bc / 2.6) - 0.5))) * 0.5;

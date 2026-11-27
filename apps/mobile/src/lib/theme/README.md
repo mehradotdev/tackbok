@@ -249,12 +249,15 @@ the New Year theme. It is skipped under Reduce Motion or when "Festive touches" 
 `celebration.ts` decides when.
 
 The Christmas theme dims snow and the hazy moon that would drop below 4.5:1 against
-`--color-foreground`. The New Year theme keeps dark drapes and a dark dial; small bright
-details (bulbs, flutes, tree lights, the star) stay under 4.5:1 by design. Run
+`--color-foreground`. The New Year theme keeps dark drapes and a dark dial. Small bright
+details in both scenes (tree lights, the star, garland bulbs, flutes) stay under
+4.5:1 by design. Run
 `node scripts/art/render-festive.cjs` from the mobile directory to compile all
 eight shaders and render both scenes, still and mid-celebration, at phone, iPad,
 landscape and picker sizes in `/tmp/festive-previews`. It reports the lowest
-contrast and the share of pixels under 4.5:1 (about 2–3%, up to 4% mid-confetti). It takes about 8 minutes.
+contrast and the share of pixels under 4.5:1 (about 2–3%, up to 4% mid-confetti),
+and fails if a swaying New Year bauble leaves the region its overlay is clipped to.
+It takes about 8 minutes.
 
 ## How `src/global.css` Is Managed
 

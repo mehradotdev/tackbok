@@ -2,7 +2,8 @@
 // picker sizes, still and mid-celebration, and report body-text contrast against
 // the background pixels. Both scenes keep small bright subjects (the moon, tree
 // lights, flutes, garland bulbs), so contrast is reported, not enforced: the
-// lowest ratio and the share of pixels under 4.5:1.
+// lowest ratio and the share of pixels under 4.5:1. It fails if a swaying New
+// Year bauble leaves the region its overlay is clipped to.
 const fs = require('fs'),
   path = require('path'),
   Module = require('module');
@@ -69,6 +70,7 @@ for (const ext of ['.ts', '.tsx'])
     );
   const p = tokens('christmas');
   const v = tokens('new-year');
+  let failed = false;
 
   for (const [size, width, height] of [
     ['phone', 390, 790],
@@ -77,10 +79,11 @@ for (const ext of ['.ts', '.tsx'])
     ['picker', 160, 210],
   ]) {
     const full = { x: 0, y: 0, width, height };
-    // Still (no celebration) and mid-celebration.
-    for (const [moment, time, party] of [
-      ['still', 0, -1],
-      ['party', 30, 3.3],
+    // Still (Reduce Motion and picker look: steady lights, no sway) and
+    // mid-celebration with the lights and baubles moving.
+    for (const [moment, time, party, still] of [
+      ['still', 0, -1, 1],
+      ['party', 30, 3.3, 0],
     ]) {
       const scenes = [
         {
@@ -136,7 +139,7 @@ for (const ext of ['.ts', '.tsx'])
               {
                 size: [width, height],
                 time,
-                still: 0,
+                still,
                 gold: rgb(NEW_YEAR_PALETTE.gold),
                 glow: rgb(NEW_YEAR_PALETTE.glow),
               },
@@ -144,7 +147,7 @@ for (const ext of ['.ts', '.tsx'])
             ),
             layer(
               fx.NEW_YEAR_LIGHTS,
-              { size: [width, height], time, still: 0 },
+              { size: [width, height], time, still },
               full,
               'plus',
             ),
@@ -198,7 +201,51 @@ for (const ext of ['.ts', '.tsx'])
         surface.dispose();
       }
     }
+    // The swaying baubles must fit the region their overlay is clipped to:
+    // draw them over the whole canvas through every sway period (5, 6 and 8 s)
+    // and look for bauble pixels outside newYearBaubleRegion.
+    const region = newYear.newYearBaubleRegion(width, height);
+    let outside = 0,
+      inside = 0;
+    for (let t = 0; t < 24; t += 0.5) {
+      const surface = headless.makeOffscreenSurface(width, height);
+      const image = await headless.drawOffscreen(
+        surface,
+        layer(
+          fx.NEW_YEAR_BAUBLES,
+          {
+            size: [width, height],
+            time: t,
+            still: 0,
+            gold: rgb(NEW_YEAR_PALETTE.gold),
+            glow: rgb(NEW_YEAR_PALETTE.glow),
+          },
+          full,
+        ),
+      );
+      const pixels = await image.readPixels();
+      for (let y = 0; y < height; y++)
+        for (let x = 0; x < width; x++) {
+          if (pixels[(y * width + x) * 4 + 3] === 0) continue;
+          const within =
+            x >= region.x &&
+            x < region.x + region.width &&
+            y >= region.y &&
+            y < region.y + region.height;
+          if (within) inside++;
+          else outside++;
+        }
+      image.dispose();
+      surface.dispose();
+    }
+    const contained = outside === 0 && inside > 0;
+    failed ||= !contained;
+    console.log(
+      `${contained ? 'ok  ' : 'FAIL'} new-year-${size} bauble region: ` +
+        `${outside} bauble pixels outside, ${inside} inside`,
+    );
   }
+  if (failed) process.exit(1);
 })().catch((error) => {
   console.error(error);
   process.exit(1);

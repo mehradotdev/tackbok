@@ -99,10 +99,11 @@ uniform float3 stoneB;
 ${NOISE}
 // Stones from the base up: centre (x as a fraction of a 390 pt width from the
 // right edge, y in pt above the base), radii (pt). The boulder sits 0.30 of the
-// real width from the right, so the cairn hugs the corner on any width; the
-// stones above keep their offsets in points, so the stack scales as one piece.
-// The heights rest each stone 1.5 pt into the smooth middle of the one below
-// (solved offline from the outline below: superellipse, tilt, flat underside).
+// real width from the right, so it stays to the right on any width; the stones
+// above keep their offsets in points, so the stack scales as one piece.
+// The heights sink each stone at least 1.5 pt into the one below across the
+// middle half of both, deeper at the centre (solved offline from the outline
+// below: superellipse, tilt, flat underside), so no sky shows between them.
 float4 stoneShape(int i) {
   if (i == 0) return float4(0.30, 0.0, 128.0, 60.0);   // boulder the cairn stands on
   if (i == 1) return float4(0.27, 78.0, 78.0, 27.0);
