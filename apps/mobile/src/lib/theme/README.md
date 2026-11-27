@@ -200,16 +200,17 @@ tunes Kristen: `wall` deepens the granite's shading and streaks, `forest` the
 pines, and `floor` is the contrast kept for body text (1 turns the lift off).
 Higa works the other way, as a dark theme: its scene rolls any pixel brighter
 than `HIGA_TEXT_CONTRAST` (4.7:1) against the foreground down toward it, with a
-soft knee so bright blobs keep soft edges. Giuseppe has no such
-lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
-on the lake about 3:1.
+soft knee so bright blobs keep soft edges. Its muted prompt text is not
+covered and drops to about 3.4:1 at a blob's brightest (the owner's choice).
+Giuseppe has no such lift (the owner kept it as is): its lit cairn reaches
+about 2:1 and the sun glow on the lake about 3:1.
 
 Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
 all the shaders and render the four scenes at phone, iPad, landscape and
 picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise,
-Kristen or Higa drops below 4.5:1 (or below a lower Kristen `floor`), or if Kristen's
-hiker or hawk strays outside `kristenLifeBand`. Giuseppe's lowest contrast is
-only reported. The headless renderer is CPU-only and slow (about 15
+Kristen or Higa drops below 4.5:1 (or below a lower Kristen `floor`; it checks
+`--color-foreground` only), or if Kristen's hiker or hawk strays outside
+`kristenLifeBand`. Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (about 15
 minutes on an idle Mac, much longer when other jobs compete for the CPU); it
 says nothing about GPU cost.
 
