@@ -64,7 +64,9 @@ INK_PAD_EM = 0.02
 
 # Ink is measured over glyphs that plausibly appear in headings. Headings
 # are English/Latin in this app (Arabic/Hebrew/CJK locales render title
-# fonts via system fallback fonts, which keep their own metrics).
+# fonts via system fallback fonts, which keep their own metrics). Bagel Fat
+# One is the exception: it draws Hangul itself, and that ink (-0.09..0.82
+# em) fits inside its patched Latin extents.
 #
 # Deliberately excluded:
 # - tall symbols (@ | { } [ ] $ # % / \\): some faces draw these far above

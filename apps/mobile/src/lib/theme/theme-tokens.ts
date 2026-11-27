@@ -1099,8 +1099,11 @@ export const KRISTEN_PALETTE = {
  * contrast the scene keeps (1 = none). */
 export const KRISTEN_CONTRAST = { wall: 0.3, forest: 0.3, floor: 4.6 } as const;
 
-/** Body-text contrast Higa's blobs keep against the foreground (the scene's
- *  grain and dither take about 0.1 off, so the floor measured is 4.75:1). */
+/** Body-text contrast Higa's blobs keep against the foreground. The soft knee
+ *  only approaches this ceiling (render-friends measures about 4.74:1 at
+ *  worst); the 0.2 margin above 4.5:1 absorbs the fine dither the shader adds
+ *  after the ceiling. Muted prompt text is not covered and drops to about
+ *  3.4:1 at a blob's brightest (the owner's choice, 2026-11-27). */
 export const HIGA_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */

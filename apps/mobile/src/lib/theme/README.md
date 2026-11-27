@@ -176,9 +176,10 @@ performance or battery use.
 (light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora), Kristen's
 sheer granite wall, in the spirit of El Capitan, above a misty pine valley
 (light, Figtree) and Higa's neon blobs drifting behind frosted glass (dark,
-Bagel Fat One, with a magenta header bar). The detailed layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`,
-`GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are expensive, so each is drawn once into a
-texture with `useTexture`. Giuseppe's cairn texture covers only its corner.
+Bagel Fat One, with a magenta header bar). The detailed layers
+(`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are
+expensive, so each is drawn once into a texture with `useTexture`.
+Giuseppe's cairn texture covers only its corner.
 Only cheap overlays animate per frame: Denise's fog wisps, Giuseppe's additive
 bokeh, Kristen's valley mist, and Kristen's hiker (waves for about five
 seconds, rests for four) and hawk (one slow loop every 36 s). The hiker and
@@ -186,8 +187,9 @@ hawk share the wall's geometry with the scene through `GEOMETRY` in
 `kristen-shader.ts`, and `kristenLifeBand` keeps their overlay to a strip
 above the rim. Higa has no expensive layer: `HIGA_SCENE` draws six soft blobs
 on slow Lissajous loops (periods of 16 to 40 s, all dividing the clock's 6 h
-wrap) and runs per frame. Motion runs on `useForwardTime` from `scene-kit.tsx` and stops
-when the screen loses focus or the app goes to the background; previews and
+wrap) and runs per frame. Motion runs on `useForwardTime` from
+`scene-kit.tsx` and stops when the screen loses focus or the app goes to the
+background; previews and
 Reduce Motion show still scenes. The theme background colour is painted first,
 so a failed shader degrades to a plain theme.
 
