@@ -1,17 +1,17 @@
 // This file is generated from src/lib/theme/theme-tokens.ts. Do not edit by hand.
 
-export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono' | 'baskervville';
+export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono' | 'baskervville' | 'bagelfatone';
 
-export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'bea' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'pine-night' | 'velvet' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'naini' | 'sakura' | 'slate' | 'kela' | 'lavender';
+export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'bea' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'pine-night' | 'velvet' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'naini' | 'sakura' | 'slate' | 'kela' | 'lavender';
 
 export type ThemeVariant = 'light' | 'dark';
 
-export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'pine-night' | 'velvet';
+export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'pine-night' | 'velvet';
 
 export interface TitleFontConfig {
   id: TitleFontId;
   label: string;
-  fontFamily: 'Figtree_700Bold' | 'Lora_700Bold' | 'GloriaHallelujah_400Regular' | 'Cinzel_700Bold' | 'SpaceMono_700Bold' | 'Baskervville_700Bold';
+  fontFamily: 'Figtree_700Bold' | 'Lora_700Bold' | 'GloriaHallelujah_400Regular' | 'Cinzel_700Bold' | 'SpaceMono_700Bold' | 'Baskervville_700Bold' | 'BagelFatOne_400Regular';
 }
 
 export interface ThemeConfig {

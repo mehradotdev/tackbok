@@ -18,6 +18,7 @@
       "version": "2.0.0",
       "dependencies": {
         "@babel/runtime": "^7.29.10",
+        "@expo-google-fonts/bagel-fat-one": "^0.4.0",
         "@expo-google-fonts/baskervville": "^0.4.1",
         "@expo-google-fonts/cinzel": "^0.4.2",
         "@expo-google-fonts/figtree": "^0.4.1",
@@ -550,6 +551,8 @@
     "@eslint/object-schema": ["@eslint/object-schema@2.1.7", "", {}, "sha512-VtAOaymWVfZcmZbp6E2mympDIHvyjXs/12LqWYjVw6qjrfF+VK+fyG33kChz3nnK+SU5/NeHOqrTEHS8sXO3OA=="],
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.4.1", "", { "dependencies": { "@eslint/core": "^0.17.0", "levn": "^0.4.1" } }, "sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA=="],
+
+    "@expo-google-fonts/bagel-fat-one": ["@expo-google-fonts/bagel-fat-one@0.4.0", "", {}, "sha512-f7JwE9QxBqReG9CnHzNcpM7mDVT1NErKKvbp06FTUSyDOd28Mu6PwIIfAa7JDLFwuj0r4C1uk9ui4SS+Mzj1aQ=="],
 
     "@expo-google-fonts/baskervville": ["@expo-google-fonts/baskervville@0.4.1", "", {}, "sha512-5G2eMGP14ZQofzA6d+XMtf4BvSzhbktkuzQgYU6OOB79rA4JASMzV6aU0ZqPL8G0cxBVG3inBDMEoth3IKT24g=="],
 

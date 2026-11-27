@@ -16,11 +16,13 @@ import { useCSSVariable } from 'uniwind';
 import {
   DENISE_PALETTE,
   GIUSEPPE_PALETTE,
+  HIGA_TEXT_CONTRAST,
   KRISTEN_CONTRAST,
   KRISTEN_PALETTE,
 } from '~/lib/theme/theme-tokens';
 import { DENISE_MIST, DENISE_SCENE } from './denise-shader';
 import { GIUSEPPE_BOKEH, GIUSEPPE_CAIRN, GIUSEPPE_LAKE } from './giuseppe-shader';
+import { HIGA_SCENE } from './higa-shader';
 import {
   KRISTEN_LIFE,
   KRISTEN_MIST,
@@ -43,6 +45,7 @@ const giuseppeBokeh = Skia.RuntimeEffect.Make(GIUSEPPE_BOKEH);
 const kristenScene = Skia.RuntimeEffect.Make(KRISTEN_SCENE);
 const kristenMist = Skia.RuntimeEffect.Make(KRISTEN_MIST);
 const kristenLife = Skia.RuntimeEffect.Make(KRISTEN_LIFE);
+const higaScene = Skia.RuntimeEffect.Make(HIGA_SCENE);
 
 /** Seconds of drift before the motion eases back; slow enough to feel ambient. */
 const CYCLE = 60;
@@ -268,6 +271,45 @@ function KristenScene({ width, height, preview }: Size & { preview: boolean }) {
       {kristenLife && (
         <Rect {...band}>
           <Shader source={kristenLife} uniforms={life} />
+        </Rect>
+      )}
+    </Canvas>
+  );
+}
+
+export function HigaBackdrop({ preview = false }: { preview?: boolean }) {
+  return (
+    <MeasuredHost>{(size) => <HigaScene {...size} preview={preview} />}</MeasuredHost>
+  );
+}
+
+function HigaScene({ width, height, preview }: Size & { preview: boolean }) {
+  const [background, foreground] = useCSSVariable([
+    '--color-background',
+    '--color-foreground',
+  ]);
+  // The blobs drift on loops that must resume where they paused.
+  const time = useForwardTime(preview);
+  const bg = typeof background === 'string' ? background : '#170c27';
+  const ink = typeof foreground === 'string' ? foreground : '#efe6fb';
+  const colors = useMemo(
+    () => ({
+      size: [width, height],
+      bg: rgb(bg),
+      ink: rgb(ink),
+      ceilRatio: HIGA_TEXT_CONTRAST,
+    }),
+    [width, height, bg, ink],
+  );
+  const uniforms = useDerivedValue(() => ({ ...colors, time: time.value }));
+
+  return (
+    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* The theme colour shows if the shader fails. */}
+      <Rect x={0} y={0} width={width} height={height} color={bg} />
+      {higaScene && (
+        <Rect x={0} y={0} width={width} height={height}>
+          <Shader source={higaScene} uniforms={uniforms} />
         </Rect>
       )}
     </Canvas>

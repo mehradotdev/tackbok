@@ -5,7 +5,12 @@ import type { BackdropId } from '~/lib/theme/registry';
 import { CaminoDayBackdrop, CaminoNightBackdrop } from './CaminoBackdrop';
 import { BotanicalBackdrop } from './BotanicalBackdrop';
 import { PineNightBackdrop, VelvetBackdrop } from './FestiveBackdrops';
-import { DeniseBackdrop, GiuseppeBackdrop, KristenBackdrop } from './FriendBackdrops';
+import {
+  DeniseBackdrop,
+  GiuseppeBackdrop,
+  HigaBackdrop,
+  KristenBackdrop,
+} from './FriendBackdrops';
 import { HelenaBackdrop, PoonamBackdrop } from './SkyBackdrop';
 import { ShiroBackdrop, ShadowBackdrop } from './PetBackdrop';
 
@@ -40,6 +45,7 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   denise: DeniseBackdrop,
   giuseppe: GiuseppeBackdrop,
   kristen: KristenBackdrop,
+  higa: HigaBackdrop,
   'pine-night': PineNightBackdrop,
   velvet: VelvetBackdrop,
 };

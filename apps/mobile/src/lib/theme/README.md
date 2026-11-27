@@ -170,21 +170,26 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
-### Denise, Giuseppe and Kristen
+### Denise, Giuseppe, Kristen and Higa
 
-`FriendBackdrops.tsx` renders three shader scenes: Denise's misty blue ridges
-(light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora) and Kristen's
+`FriendBackdrops.tsx` renders four shader scenes: Denise's misty blue ridges
+(light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora), Kristen's
 sheer granite wall, in the spirit of El Capitan, above a misty pine valley
-(light, Figtree). The detailed layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`,
-`GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are expensive, so each is drawn once into a
-texture with `useTexture`. Giuseppe's cairn texture covers only its corner.
+(light, Figtree) and Higa's neon blobs drifting behind frosted glass (dark,
+Bagel Fat One, with a magenta header bar). The detailed layers
+(`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are
+expensive, so each is drawn once into a texture with `useTexture`.
+Giuseppe's cairn texture covers only its corner.
 Only cheap overlays animate per frame: Denise's fog wisps, Giuseppe's additive
 bokeh, Kristen's valley mist, and Kristen's hiker (waves for about five
 seconds, rests for four) and hawk (one slow loop every 36 s). The hiker and
 hawk share the wall's geometry with the scene through `GEOMETRY` in
 `kristen-shader.ts`, and `kristenLifeBand` keeps their overlay to a strip
-above the rim. Motion runs on `useForwardTime` from `scene-kit.tsx` and stops
-when the screen loses focus or the app goes to the background; previews and
+above the rim. Higa has no expensive layer: `HIGA_SCENE` draws six soft blobs
+on slow Lissajous loops (periods of 16 to 40 s, all dividing the clock's 6 h
+wrap) and runs per frame. Motion runs on `useForwardTime` from
+`scene-kit.tsx` and stops when the screen loses focus or the app goes to the
+background; previews and
 Reduce Motion show still scenes. The theme background colour is painted first,
 so a failed shader degrades to a plain theme.
 
@@ -192,16 +197,20 @@ Journal text sits directly on the art. Denise's and Kristen's scenes lift any
 pixel darker than 4.5:1 against `--color-foreground` toward the mist, which is
 why Kristen's pines are pale and hazy. `KRISTEN_CONTRAST` in `theme-tokens.ts`
 tunes Kristen: `wall` deepens the granite's shading and streaks, `forest` the
-pines, and `floor` is the contrast kept for body text (1 turns the lift off). Giuseppe has no such
-lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
-on the lake about 3:1.
+pines, and `floor` is the contrast kept for body text (1 turns the lift off).
+Higa works the other way, as a dark theme: its scene rolls any pixel brighter
+than `HIGA_TEXT_CONTRAST` (4.7:1) against the foreground down toward it, with a
+soft knee so bright blobs keep soft edges. Its muted prompt text is not
+covered and drops to about 3.4:1 at a blob's brightest (the owner's choice).
+Giuseppe has no such lift (the owner kept it as is): its lit cairn reaches
+about 2:1 and the sun glow on the lake about 3:1.
 
 Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
-all the shaders and render the three scenes at phone, iPad, landscape and
-picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise or
-Kristen drops below 4.5:1 (or below a lower Kristen `floor`), or if Kristen's
-hiker or hawk strays outside `kristenLifeBand`. Giuseppe's lowest contrast is
-only reported. The headless renderer is CPU-only and slow (about 15
+all the shaders and render the four scenes at phone, iPad, landscape and
+picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise,
+Kristen or Higa drops below 4.5:1 (or below a lower Kristen `floor`; it checks
+`--color-foreground` only), or if Kristen's hiker or hawk strays outside
+`kristenLifeBand`. Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (about 15
 minutes on an idle Mac, much longer when other jobs compete for the CPU); it
 says nothing about GPU cost.
 
