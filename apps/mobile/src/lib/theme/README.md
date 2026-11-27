@@ -209,7 +209,8 @@ soft knee so bright blobs keep soft edges. Its muted prompt text is not
 covered and drops to about 3.4:1 at a blob's brightest (the owner's choice).
 Bea keeps `BEA_TEXT_CONTRAST` (4.7:1) the same way. Its light layer cannot
 read the scene below it, so it ceils against the brightest the scene can be
-there (the sky under the densest mist); darker pixels stay darker. Only the
+there (the sky or a hazy far trunk under the densest mist); darker pixels
+stay darker. Only the
 lantern glass glows above the ceiling (the owner's choice), so text crossing
 it drops below 4.5:1 for a moment.
 Giuseppe has no such lift (the owner kept it as is): its lit cairn reaches

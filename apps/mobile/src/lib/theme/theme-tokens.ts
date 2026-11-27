@@ -1109,7 +1109,8 @@ export const KRISTEN_CONTRAST = { wall: 0.3, forest: 0.3, floor: 4.6 } as const;
 export const HIGA_TEXT_CONTRAST = 4.7;
 
 /** Body-text contrast Bea's forest keeps against the foreground, with a soft
- *  knee like Higa's; only the lantern glass glows above it. */
+ *  knee like Higa's; only the lantern glass glows above it. Measured worst
+ *  outside the lantern: about 4.69:1 (render-friends plus a time sweep). */
 export const BEA_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
