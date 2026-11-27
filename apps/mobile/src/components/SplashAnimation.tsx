@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { StyleSheet, type LayoutChangeEvent } from 'react-native';
 import {
   Canvas,
   Fill,
@@ -77,8 +77,13 @@ const zoomEasing = Easing.inOut(Easing.cubic);
 
 interface SplashAnimationProps {
   mode: Exclude<SplashMode, 'none'>;
-  /** The frame matches the native splash; safe to hide it now. */
-  onReady: () => void;
+  /**
+   * The overlay covers the screen with the native splash frame (drawn by the
+   * plain logo view below the canvas); safe to hide the native splash now.
+   */
+  onCover: () => void;
+  /** The canvas has drawn its first frame and the animation is starting. */
+  onStart: () => void;
   onFinish: () => void;
   /**
    * Seasonal hook: Skia nodes drawn on the book in logo units (e.g. a hat).
@@ -93,7 +98,8 @@ interface SplashAnimationProps {
  */
 export function SplashAnimation({
   mode,
-  onReady,
+  onCover,
+  onStart,
   onFinish,
   decoration,
 }: SplashAnimationProps) {
@@ -103,8 +109,17 @@ export function SplashAnimation({
   const endColor = (themeBackground as string | undefined) ?? NATIVE_SPLASH_BACKGROUND;
   const time = useSharedValue(0);
   const timeline = SPLASH_TIMELINES[mode];
+  // Taps reach the app once the overlay starts fading, so a tap never lands
+  // on a control the user cannot see yet.
+  const [passThrough, setPassThrough] = useState(false);
+  const startFade = useCallback(() => {
+    setPassThrough(true);
+    // The fade mode has no zoom, so the app's own status bar comes back here.
+    revealSplash();
+  }, []);
 
-  // Let the first frame draw before the native splash goes away.
+  // Give the canvas two frames to draw before the animation moves, so it never
+  // starts mid-way. Until then the plain logo view shows the same frame.
   useEffect(() => {
     if (!size || drawn) return;
     let second = 0;
@@ -118,8 +133,8 @@ export function SplashAnimation({
   }, [size, drawn]);
 
   useEffect(() => {
-    if (drawn) onReady();
-  }, [drawn, onReady]);
+    if (drawn) onStart();
+  }, [drawn, onStart]);
 
   useEffect(() => {
     if (!drawn) return;
@@ -196,8 +211,14 @@ export function SplashAnimation({
   // Once the background is the theme's, the status bar can follow the theme.
   useAnimatedReaction(
     () => zoom.value >= 0.8,
-    (revealed, previous) => {
-      if (revealed && !previous) scheduleOnRN(revealSplash);
+    (isRevealed, previous) => {
+      if (isRevealed && !previous) scheduleOnRN(revealSplash);
+    },
+  );
+  useAnimatedReaction(
+    () => time.value > timeline.fadeOut[0],
+    (fading, previous) => {
+      if (fading && !previous) scheduleOnRN(startFade);
     },
   );
   const background = useDerivedValue(() =>
@@ -206,8 +227,19 @@ export function SplashAnimation({
   const bookOpacity = useDerivedValue(() =>
     interpolate(zoom.value, [0.65, 1], [1, 0], 'clamp'),
   );
+  // Android fades each layer on its own rather than as one image, so the plain
+  // splash frame under the canvas would show through as it fades. From the fade
+  // on, the layers under the canvas take the canvas's own end colour. (The
+  // Reduce Motion fade has no zoom: its canvas matches the plain frame.)
+  const pastZoom = useDerivedValue(
+    () => timeline.zoom !== undefined && time.value > timeline.fadeOut[0],
+  );
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(time.value, timeline.fadeOut, [1, 0], 'clamp'),
+    backgroundColor: pastZoom.value ? endColor : NATIVE_SPLASH_BACKGROUND,
+  }));
+  const plainFrameStyle = useAnimatedStyle(() => ({
+    opacity: pastZoom.value ? 0 : 1,
   }));
 
   const logo = useMemo(
@@ -219,6 +251,9 @@ export function SplashAnimation({
   );
 
   const onLayout = (event: LayoutChangeEvent) => {
+    // Laid out means on screen together with the plain logo view, which matches
+    // the native splash exactly, so the native splash can go right away.
+    onCover();
     const { width: w, height: h } = event.nativeEvent.layout;
     setSize((current) =>
       current?.width === w && current.height === h ? current : { width: w, height: h },
@@ -228,18 +263,15 @@ export function SplashAnimation({
   return (
     <Animated.View
       accessibilityViewIsModal
-      style={[
-        StyleSheet.absoluteFill,
-        { backgroundColor: NATIVE_SPLASH_BACKGROUND },
-        overlayStyle,
-      ]}
+      pointerEvents={passThrough ? 'none' : 'auto'}
+      style={[StyleSheet.absoluteFill, overlayStyle]}
       onLayout={onLayout}>
       {/* The native splash frame as a plain view, drawn with the first layout.
           Skia can paint a few frames later (on Android it draws on its own
           thread), so this keeps the hand-off seamless until it does. */}
-      <View style={[StyleSheet.absoluteFill, styles.center]}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.center, plainFrameStyle]}>
         <TackbokLogo size={NATIVE_SPLASH_LOGO_SIZE} color={NATIVE_SPLASH_LOGO_COLOR} />
-      </View>
+      </Animated.View>
       {size ? (
         <Canvas style={StyleSheet.absoluteFill}>
           <Fill color={background} />

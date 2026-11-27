@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { useCSSVariable } from 'uniwind';
 import { format, subDays, startOfDay } from 'date-fns';
 import { LegendList } from '@legendapp/list/react-native';
 import {
@@ -12,11 +14,11 @@ import {
 import { useTranslation } from '~/lib/i18n';
 import { gratitudeDockHeight } from './gratitude-dock-layout';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
-import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { Text } from '~/components/ui/text';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
+import { useSplashActive } from '~/lib/splash';
 import { CloudRestoreCard } from './CloudRestoreCard';
 import { ConflictNoticeCard } from './ConflictNoticeCard';
 import { SampleEntriesBanner } from './SampleEntriesBanner';
@@ -59,6 +61,10 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   const yesterdayMs = yesterday.getTime();
   const { data, error } = useEntriesGroupByDate();
   const tagMap = useTagMapping();
+  const [foregroundColor] = useCSSVariable(['--color-foreground']);
+  // Creating the backdrop's canvas during the launch animation stalls its zoom
+  // for 150–300 ms on slower Android phones, so the scene fades in after it.
+  const splashActive = useSplashActive((s) => s.active);
 
   // Track expanded state for each day group
   const [expandedDays, setExpandedDays] = useState<Set<number>>(
@@ -183,9 +189,17 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         </View>
       );
     }
+    // Home's header and dock stay usable while the timeline loads. The spinner
+    // appears only if loading takes a moment, so a quick load never flashes it.
     return (
-      <View className="flex-1 w-full bg-background">
-        <AppLoadingScreen modal />
+      <View className="flex-1 w-full items-center justify-center bg-background">
+        <Animated.View entering={FadeIn.delay(400)}>
+          <ActivityIndicator
+            size="large"
+            color={foregroundColor as string}
+            accessibilityLabel={t('dateEntries.loading')}
+          />
+        </Animated.View>
       </View>
     );
   }
@@ -194,7 +208,14 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     <View
       className="flex-1 bg-background w-full"
       onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}>
-      <ThemeBackdrop celebrate />
+      {!splashActive && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}>
+          <ThemeBackdrop celebrate />
+        </Animated.View>
+      )}
       <LegendList
         recycleItems={true}
         data={finalList}

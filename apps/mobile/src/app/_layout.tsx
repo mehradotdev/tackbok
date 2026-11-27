@@ -51,9 +51,9 @@ import {
 } from '~/lib/cloudSync/runtime';
 SplashScreen.preventAutoHideAsync();
 
-// Hide the native splash once the first JS screen (or the launch animation,
-// which starts on the same frame) has laid out, so the hand-off never shows a
-// bare window background.
+// Hide the native splash once the first JS screen (or the launch overlay, whose
+// plain logo matches the native splash until the animation starts) has laid
+// out, so the hand-off never shows a bare window background.
 let splashHidden = false;
 function hideSplash() {
   if (splashHidden) return;
@@ -183,7 +183,14 @@ export default function Layout() {
     };
   }, []);
   const finishSplash = useCallback(() => setSplashMode(null), []);
+  // The app mounts under the story only once its first frame is up, so mounting
+  // it does not hold back that frame (slow on Android). The story's 2 s before
+  // its fade covers the mount; the short Reduce Motion fade would not, so the
+  // app mounts with it. Until the mode is decided the native splash is up.
+  const [splashStarted, setSplashStarted] = useState(false);
+  const startSplash = useCallback(() => setSplashStarted(true), []);
   const splashActive = hasHydrated && splashMode !== null && !error;
+  const holdContent = splashActive && splashMode !== 'fade' && !splashStarted;
   useEffect(() => {
     if (splashMode !== null && !error) return;
     endSplash();
@@ -214,8 +221,12 @@ export default function Layout() {
       !devSetupReady ||
       (!fontsLoaded && !fontsError));
 
+  // Sync starts after the launch animation: its start-up work on the JS thread
+  // competes with the animation's frames on slower phones.
+  const launchAnimating = useSplashActive((s) => s.active);
   useEffect(() => {
     if (!success || !hasHydrated || !profileReady || !devSetupReady) return;
+    if (launchAnimating) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -231,7 +242,7 @@ export default function Layout() {
       cancelled = true;
       cloudSyncRuntime.stop();
     };
-  }, [devSetupReady, hasHydrated, profileReady, success]);
+  }, [devSetupReady, hasHydrated, launchAnimating, profileReady, success]);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {
@@ -287,7 +298,11 @@ export default function Layout() {
   // finishes underneath it.
   return (
     <View className="flex-1">
-      {isBootstrapLoading ? (
+      {holdContent ? (
+        <View className="flex-1" {...contentA11y}>
+          <AppStatusBar style={barStyle} />
+        </View>
+      ) : isBootstrapLoading ? (
         <View className="flex-1" onLayout={onContentLayout} {...contentA11y}>
           <AppLoadingScreen />
         </View>
@@ -302,7 +317,12 @@ export default function Layout() {
       )}
       {/* Until the mode is decided the native splash itself holds the frame. */}
       {splashActive && splashMode ? (
-        <SplashAnimation mode={splashMode} onReady={hideSplash} onFinish={finishSplash} />
+        <SplashAnimation
+          mode={splashMode}
+          onCover={hideSplash}
+          onStart={startSplash}
+          onFinish={finishSplash}
+        />
       ) : null}
     </View>
   );
