@@ -1,10 +1,13 @@
 /**
- * Velvet: burgundy velvet drapes with coloured fairy-light garlands and glass
+ * New Year: burgundy velvet drapes with coloured fairy-light garlands and glass
  * baubles, and a mantel with a bracket clock and two champagne flutes.
- * VELVET_SCENE is detailed (folds, pile, baubles, clock case), so it is drawn
- * once into a texture. Cheap layers animate on top: VELVET_LIGHTS (blinking
- * bulbs, added with `plus`), VELVET_CLOCK (hands at the real local time, the
- * pendulum, rising bubbles) and VELVET_CONFETTI (the special-day celebration).
+ * NEW_YEAR_SCENE is detailed (folds, pile, baubles, clock case), so it is drawn
+ * once into a texture. Cheap layers animate on top: NEW_YEAR_BAUBLES (the
+ * three rightmost baubles, swaying on their threads), NEW_YEAR_LIGHTS (bulbs
+ * blinking like real fairy lights, added with `plus`), NEW_YEAR_CLOCK (hands at
+ * the real local time, the pendulum, rising bubbles) and NEW_YEAR_CONFETTI (the
+ * special-day celebration). Under Reduce Motion and in previews the lights burn
+ * steadily and the baubles hang still.
  */
 const SHARED = `
 uniform float2 size;
@@ -23,6 +26,16 @@ float3 lightCol(float h) {
   return float3(1.00, 0.55, 0.22);
 }
 
+// The colour group lightCol picks for h: 0 red .. 5 orange.
+float lightGroup(float h) {
+  if (h < 0.17) return 0.0;
+  if (h < 0.34) return 1.0;
+  if (h < 0.51) return 2.0;
+  if (h < 0.68) return 3.0;
+  if (h < 0.84) return 4.0;
+  return 5.0;
+}
+
 float segDist(float2 p, float2 a, float2 b) {
   float2 pa = p - a, ba = b - a;
   return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0));
@@ -34,6 +47,15 @@ float garlandY(int k, float x, float scale) {
   float span = size.x / (1.5 + fk);
   float u = fract(x / span + fk * 0.37);
   return size.y * (0.17 + fk * 0.085) + (34.0 + fk * 8.0) * scale * 4.0 * u * (1.0 - u);
+}
+
+// Bauble j of garland k: hook (x, y on the wire), thread length and radius, in
+// pixels. The rightmost of each garland (j == 3) sways in NEW_YEAR_BAUBLES.
+float4 bauble(int k, int j, float scale) {
+  float id = float(k * 4 + j);
+  float bx = (0.08 + 0.84 * (float(j) + hash(id * 5.1)) / 4.0) * size.x;
+  return float4(bx, garlandY(k, bx, scale), (18.0 + 70.0 * hash(id * 2.3)) * scale,
+                (8.0 + 5.0 * hash(id * 8.7)) * scale);
 }
 
 // The mantel and what stands on it. The clock sits at the left edge of the home
@@ -58,12 +80,45 @@ float bowlHalfWidth(float y) {
 }
 `;
 
-export const VELVET_SCENE = `
+/** A glass bauble on its thread, turned by `angle` about its hook, as a
+ *  premultiplied colour over transparent. Needs the gold and glow uniforms. */
+const BAUBLE = `
+float4 drawBauble(float2 xy, float4 b, float id, float angle, float scale) {
+  float4 acc = float4(0.0);
+  float cs = cos(angle), sn = sin(angle);
+  float2 p = xy - b.xy;
+  float2 q = float2(cs * p.x + sn * p.y, -sn * p.x + cs * p.y);   // hook frame, thread along +y
+  float len = b.z, r = b.w;
+  if (q.y > 0.0 && q.y < len) {
+    float a = (1.0 - smoothstep(0.2 * scale, 0.7 * scale, abs(q.x))) * 0.8;
+    acc = float4(gold * 0.5 * a, a) + acc * (1.0 - a);
+  }
+  float2 qc = (q - float2(0.0, len)) / scale;
+  if (abs(qc.x) < 2.6 && qc.y > -2.5 && qc.y < 1.0) {
+    acc = float4(gold * (0.7 + 0.3 * step(0.0, -qc.x)) * 0.95, 0.95) + acc * 0.05;
+  }
+  // The ball is round, so only its centre turns; the key light stays put.
+  float2 c = b.xy + float2(-sn, cs) * (len + r);
+  float d = length(xy - c) / r;
+  if (d < 1.0) {
+    float3 key = normalize(float3(-0.5, -0.6, 0.6));
+    float3 nn = float3((xy - c) / r, sqrt(max(1.0 - d * d, 0.0)));
+    float3 ball = lightCol(hash(id * 3.9 + 0.5)) * (0.18 + 0.55 * max(dot(nn, key), 0.0))
+                + glow * 0.25 * pow(1.0 - nn.z, 3.0);
+    ball += float3(0.9) * pow(max(dot(reflect(float3(0.0, 0.0, -1.0), nn), key), 0.0), 40.0);
+    float a = 1.0 - smoothstep(0.92, 1.0, d);
+    acc = float4(ball * a, a) + acc * (1.0 - a);
+  }
+  return acc;
+}
+`;
+
+export const NEW_YEAR_SCENE = `
 uniform float3 wine;    // shadowed velvet
 uniform float3 rose;    // velvet sheen
 uniform float3 gold;    // wire, trims, brass
 uniform float3 glow;    // warm light from the bulbs
-${SHARED}
+${SHARED}${BAUBLE}
 float noise(float2 p) {
   float2 i = floor(p), f = fract(p);
   f = f * f * (3.0 - 2.0 * f);
@@ -115,7 +170,7 @@ half4 main(float2 xy) {
     col += gold * 0.05 * (1.0 - smoothstep(0.8, 1.0, d));
   }
 
-  // Garland wires, with the bulbs unlit; VELVET_LIGHTS adds their glow.
+  // Garland wires, with the bulbs unlit; NEW_YEAR_LIGHTS adds their glow.
   float pitch = 15.0 * scale;
   for (int k = 0; k < 3; k++) {
     float gy = garlandY(k, xy.x, scale);
@@ -128,27 +183,12 @@ half4 main(float2 xy) {
     col = mix(col, bc * 0.45, 1.0 - smoothstep(1.3, 2.1, d));
   }
 
-  // Glass baubles on threads, hanging from the garlands.
-  float3 key = normalize(float3(-0.5, -0.6, 0.6));
+  // Glass baubles on threads, hanging from the garlands (the swaying ones are
+  // drawn by NEW_YEAR_BAUBLES).
   for (int k = 0; k < 3; k++) {
-    for (int j = 0; j < 4; j++) {
-      float id = float(k * 4 + j);
-      float bx = (0.08 + 0.84 * (float(j) + hash(id * 5.1)) / 4.0) * size.x;
-      float top = garlandY(k, bx, scale);
-      float r = (8.0 + 5.0 * hash(id * 8.7)) * scale;
-      float2 c = float2(bx, top + (18.0 + 70.0 * hash(id * 2.3)) * scale + r);
-      if (xy.y > top && xy.y < c.y - r)
-        col = mix(col, gold * 0.5, (1.0 - smoothstep(0.2 * scale, 0.7 * scale, abs(xy.x - bx))) * 0.8);
-      float2 q = (xy - (c - float2(0.0, r))) / scale;
-      if (abs(q.x) < 2.6 && q.y > -2.5 && q.y < 1.0) col = mix(col, gold * (0.7 + 0.3 * step(0.0, -q.x)), 0.95);
-      float d = length(xy - c) / r;
-      if (d < 1.0) {
-        float3 nn = float3((xy - c) / r, sqrt(max(1.0 - d * d, 0.0)));
-        float3 ball = lightCol(hash(id * 3.9 + 0.5)) * (0.18 + 0.55 * max(dot(nn, key), 0.0))
-                    + glow * 0.25 * pow(1.0 - nn.z, 3.0);
-        ball += float3(0.9) * pow(max(dot(reflect(float3(0.0, 0.0, -1.0), nn), key), 0.0), 40.0);
-        col = mix(col, ball, 1.0 - smoothstep(0.92, 1.0, d));
-      }
+    for (int j = 0; j < 3; j++) {
+      float4 bb = drawBauble(xy, bauble(k, j, scale), float(k * 4 + j), 0.0, scale);
+      col = col * (1.0 - bb.a) + bb.rgb;
     }
   }
 
@@ -203,7 +243,7 @@ half4 main(float2 xy) {
     float3 c = wood * (0.85 + 0.35 * side) * (0.85 + 0.3 * fbm(float2(xy.x / (3.0 * scale), xy.y / (30.0 * scale))));
     c = mix(c, gold * (0.7 + 0.3 * side), 1.0 - smoothstep(0.8 * scale, 1.8 * scale, abs(caseD + 5.0 * scale)));
     c = mix(c, gold * 0.8, 1.0 - smoothstep(0.5 * scale, 1.5 * scale, -caseD));
-    // The pendulum window's gilt frame; VELVET_CLOCK draws inside it.
+    // The pendulum window's gilt frame; NEW_YEAR_CLOCK draws inside it.
     float2 wq = cq - float2(0.0, 112.0 * scale);
     float win = max(abs(wq.x) - 26.0 * scale, abs(wq.y) - 26.0 * scale);
     c = mix(c, gold * 0.75, 1.0 - smoothstep(0.6 * scale, 1.4 * scale, abs(win)));
@@ -233,9 +273,46 @@ half4 main(float2 xy) {
 }
 `;
 
-export const VELVET_LIGHTS = `
+/** The rightmost bauble of each garland, swaying on its thread: a small, slow
+ *  pendulum about its hook, each with its own period and phase. */
+export const NEW_YEAR_BAUBLES = `
 uniform float time;
+uniform float still;    // 1 under Reduce Motion and in previews: no sway
+uniform float3 gold;
+uniform float3 glow;
+${SHARED}${BAUBLE}
+half4 main(float2 xy) {
+  float scale = sceneScale();
+  float4 acc = float4(0.0);
+  for (int k = 0; k < 3; k++) {
+    float fk = float(k);
+    float period = k == 0 ? 5.0 : (k == 1 ? 6.0 : 8.0);
+    float angle = (1.0 - still) * 0.06 * sin(time * 6.2831853 / period + fk * 2.1);
+    float4 bb = drawBauble(xy, bauble(k, 3, scale), fk * 4.0 + 3.0, angle, scale);
+    acc = bb + acc * (1.0 - bb.a);
+  }
+  return half4(acc);
+}
+`;
+
+export const NEW_YEAR_LIGHTS = `
+uniform float time;
+uniform float still;    // 1 under Reduce Motion and in previews: all bulbs steady
 ${SHARED}
+// On for the first duty of each cycle, with a gentle fade at each switch.
+float onOff(float ph, float duty, float fade) {
+  return smoothstep(0.0, fade, ph) * (1.0 - smoothstep(duty, duty + fade, ph));
+}
+
+// How lit a bulb of colour group g at index bi is: red and yellow burn steadily,
+// green and magenta take turns going on and off, and blue and orange chase
+// along the string. Every period divides the forward clock's 6 h wrap.
+float bulbOn(float g, float bi, float t) {
+  if (still > 0.5 || g == 0.0 || g == 3.0) return 1.0;
+  if (g == 1.0 || g == 4.0) return onOff(fract(t / 4.0 + (g == 4.0 ? 0.5 : 0.0)), 0.5, 0.05);
+  return onOff(fract(t / 3.0 - bi * 0.08 + (g == 5.0 ? 0.5 : 0.0)), 0.5, 0.06);
+}
+
 half4 main(float2 xy) {
   float scale = sceneScale();
   float pitch = 15.0 * scale;
@@ -245,16 +322,18 @@ half4 main(float2 xy) {
     float d = length(xy - float2(bi * pitch, garlandY(k, bi * pitch, scale) + 2.5 * scale)) / scale;
     if (d > 12.0) continue;
     float seed = bi * 1.7 + float(k) * 23.0;
-    float on = 0.25 + 0.75 * smoothstep(-0.3, 0.8, sin(time * (0.6 + hash(seed) * 1.6) + hash(seed + 4.0) * 6.28));
-    float3 bc = lightCol(hash(seed + 9.0));
-    add += bc * (0.2 + 0.65 * on) * (1.0 - smoothstep(1.3, 2.1, d)) + bc * 0.45 * on * exp(-d * d / 26.0);
+    float h = hash(seed + 9.0);
+    float on = bulbOn(lightGroup(h), bi, time);
+    float3 bc = lightCol(h);
+    add += bc * (0.05 + 0.8 * on) * (1.0 - smoothstep(1.3, 2.1, d)) + bc * 0.45 * on * exp(-d * d / 26.0);
   }
-  // Drawn with the plus blend mode, so this light adds to the scene below.
-  return half4(half3(add), 0.0);
+  // Drawn with the plus blend mode, so this light adds to the scene below; alpha
+  // 1 keeps the colour valid premultiplied over the opaque scene.
+  return half4(half3(add), 1.0);
 }
 `;
 
-export const VELVET_CLOCK = `
+export const NEW_YEAR_CLOCK = `
 uniform float time;
 uniform float3 clock;   // local hours, minutes, seconds; seconds < 0 hides the second hand
 uniform float3 wine;
@@ -311,8 +390,9 @@ half4 main(float2 xy) {
   for (int i = 0; i < 2; i++) {
     float2 q = fluteFrame(i, xy, scale);
     if (q.y > BOWL_TOP + 14.0 && q.y < BOWL_BOTTOM && abs(q.x) < bowlHalfWidth(q.y) - 1.0) {
-      // The rise wraps after 64 cells, and their hashes repeat with it.
-      float2 bc = float2(q.x, q.y + mod(time * 9.0, 2.6 * 64.0));
+      // The rise wraps after 64 cells, and their hashes repeat with it. One
+      // wrap takes 18 s, which divides the 6 h clock wrap, so bubbles never jump.
+      float2 bc = float2(q.x, q.y + mod(time * (2.6 * 64.0 / 18.0), 2.6 * 64.0));
       float2 id = floor(bc / 2.6);
       float on = step(0.86, hash2(float2(id.x, mod(id.y, 64.0)) + float(i) * 7.0));
       float a = on * (1.0 - smoothstep(0.12, 0.3, length(fract(bc / 2.6) - 0.5))) * 0.5;
@@ -323,7 +403,7 @@ half4 main(float2 xy) {
 }
 `;
 
-export const VELVET_CONFETTI = `
+export const NEW_YEAR_CONFETTI = `
 uniform float party;    // seconds into the special-day confetti; < 0 when off
 uniform float3 gold;
 ${SHARED}
@@ -356,13 +436,30 @@ half4 main(float2 xy) {
 `;
 
 /** Seconds the confetti needs to clear a phone screen at the slowest fall speed. */
-export const VELVET_CONFETTI_SECONDS = 11;
+export const NEW_YEAR_CONFETTI_SECONDS = 11;
 
 /**
- * The part of the screen VELVET_CLOCK draws on (the flutes and the clock), in
+ * The part of the screen NEW_YEAR_BAUBLES draws on, in points: the right of the
+ * garlands down to the lowest a bauble can hang (wire sag 50, thread 88 and a
+ * 13 pt ball, scaled), plus room for the sway. Mirrors bauble() in the shader.
+ */
+export function newYearBaubleRegion(width: number, height: number) {
+  const scale = Math.min(width / 390, height / 700);
+  const x = Math.max(0, Math.floor(width * 0.71 - 26 * scale));
+  const y = Math.max(0, Math.floor(height * 0.17 - 2 * scale));
+  return {
+    x,
+    y,
+    width: width - x,
+    height: Math.min(height, Math.ceil(height * 0.34 + 168 * scale)) - y,
+  };
+}
+
+/**
+ * The part of the screen NEW_YEAR_CLOCK draws on (the flutes and the clock), in
  * points; mirrors clockX, caseTopY and fluteX in the shader.
  */
-export function velvetClockRegion(width: number, height: number) {
+export function newYearClockRegion(width: number, height: number) {
   const scale = Math.min(width / 390, height / 700);
   const clockX = width - 132 * scale;
   const shelf = height - 64 * scale;

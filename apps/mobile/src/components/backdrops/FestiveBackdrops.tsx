@@ -14,15 +14,15 @@ import { useCSSVariable } from 'uniwind';
 import { useAppLockStore } from '~/lib/appLock';
 import { useSettingsStore } from '~/lib/settings';
 import { useSplashActive } from '~/lib/splash';
-import { PINE_NIGHT_PALETTE, VELVET_PALETTE } from '~/lib/theme/theme-tokens';
+import { CHRISTMAS_PALETTE, NEW_YEAR_PALETTE } from '~/lib/theme/theme-tokens';
 import type { BackdropProps } from './ThemeBackdrop';
 import { claimCelebration } from './celebration';
 import {
-  PINE_FIREWORKS_SECONDS,
-  PINE_LIGHTS,
-  PINE_SCENE,
-  PINE_SNOW,
-} from './pine-night-shader';
+  CHRISTMAS_FIREWORKS_SECONDS,
+  CHRISTMAS_LIGHTS,
+  CHRISTMAS_SCENE,
+  CHRISTMAS_SNOW,
+} from './christmas-shader';
 import {
   MeasuredHost,
   rgb,
@@ -32,21 +32,24 @@ import {
   type Size,
 } from './scene-kit';
 import {
-  VELVET_CLOCK,
-  VELVET_CONFETTI,
-  VELVET_CONFETTI_SECONDS,
-  VELVET_LIGHTS,
-  VELVET_SCENE,
-  velvetClockRegion,
-} from './velvet-shader';
+  NEW_YEAR_BAUBLES,
+  NEW_YEAR_CLOCK,
+  NEW_YEAR_CONFETTI,
+  NEW_YEAR_CONFETTI_SECONDS,
+  NEW_YEAR_LIGHTS,
+  NEW_YEAR_SCENE,
+  newYearBaubleRegion,
+  newYearClockRegion,
+} from './new-year-shader';
 
-const pineScene = Skia.RuntimeEffect.Make(PINE_SCENE);
-const pineLights = Skia.RuntimeEffect.Make(PINE_LIGHTS);
-const pineSnow = Skia.RuntimeEffect.Make(PINE_SNOW);
-const velvetScene = Skia.RuntimeEffect.Make(VELVET_SCENE);
-const velvetLights = Skia.RuntimeEffect.Make(VELVET_LIGHTS);
-const velvetClock = Skia.RuntimeEffect.Make(VELVET_CLOCK);
-const velvetConfetti = Skia.RuntimeEffect.Make(VELVET_CONFETTI);
+const christmasScene = Skia.RuntimeEffect.Make(CHRISTMAS_SCENE);
+const christmasLights = Skia.RuntimeEffect.Make(CHRISTMAS_LIGHTS);
+const christmasSnow = Skia.RuntimeEffect.Make(CHRISTMAS_SNOW);
+const newYearScene = Skia.RuntimeEffect.Make(NEW_YEAR_SCENE);
+const newYearBaubles = Skia.RuntimeEffect.Make(NEW_YEAR_BAUBLES);
+const newYearLights = Skia.RuntimeEffect.Make(NEW_YEAR_LIGHTS);
+const newYearClock = Skia.RuntimeEffect.Make(NEW_YEAR_CLOCK);
+const newYearConfetti = Skia.RuntimeEffect.Make(NEW_YEAR_CONFETTI);
 
 type SceneProps = Size & { preview: boolean; celebrate: boolean };
 
@@ -115,7 +118,7 @@ const readClock = (now: Date, seconds: boolean) => [
   seconds ? now.getSeconds() : -1,
 ];
 
-/** The real local time for Velvet's clock: hours, minutes, seconds (-1 hides the
+/** The real local time for New Year's clock: hours, minutes, seconds (-1 hides the
  *  second hand, which stays still for previews and Reduce Motion). */
 function useLocalClock(preview: boolean) {
   const reducedMotion = useReducedMotion();
@@ -138,15 +141,15 @@ function useLocalClock(preview: boolean) {
   return clock;
 }
 
-export function PineNightBackdrop({ preview = false, celebrate = false }: BackdropProps) {
+export function ChristmasBackdrop({ preview = false, celebrate = false }: BackdropProps) {
   return (
     <MeasuredHost>
-      {(size) => <PineNightScene {...size} preview={preview} celebrate={celebrate} />}
+      {(size) => <ChristmasScene {...size} preview={preview} celebrate={celebrate} />}
     </MeasuredHost>
   );
 }
 
-function PineNightScene({ width, height, preview, celebrate }: SceneProps) {
+function ChristmasScene({ width, height, preview, celebrate }: SceneProps) {
   const [background, foreground] = useCSSVariable([
     '--color-background',
     '--color-foreground',
@@ -157,18 +160,18 @@ function PineNightScene({ width, height, preview, celebrate }: SceneProps) {
     () => ({
       size: [width, height],
       sky: rgb(sky),
-      snow: rgb(PINE_NIGHT_PALETTE.snow),
-      pine: rgb(PINE_NIGHT_PALETTE.pine),
-      warm: rgb(PINE_NIGHT_PALETTE.warm),
-      berry: rgb(PINE_NIGHT_PALETTE.berry),
+      snow: rgb(CHRISTMAS_PALETTE.snow),
+      pine: rgb(CHRISTMAS_PALETTE.pine),
+      warm: rgb(CHRISTMAS_PALETTE.warm),
+      berry: rgb(CHRISTMAS_PALETTE.berry),
       ink: rgb(ink),
     }),
     [width, height, sky, ink],
   );
   const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
-  const texture = useShaderTexture(pineScene, scene, full, PixelRatio.get());
+  const texture = useShaderTexture(christmasScene, scene, full, PixelRatio.get());
   const time = useForwardTime(preview);
-  const { party } = useCelebration(celebrate && !preview, PINE_FIREWORKS_SECONDS);
+  const { party } = useCelebration(celebrate && !preview, CHRISTMAS_FIREWORKS_SECONDS);
   const lights = useDerivedValue(() => ({
     size: scene.size,
     time: time.value,
@@ -184,43 +187,43 @@ function PineNightScene({ width, height, preview, celebrate }: SceneProps) {
       {/* The theme colour shows until the texture is ready, or if the shader fails. */}
       <Rect x={0} y={0} width={width} height={height} color={sky} />
       <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
-      {pineLights && (
+      {christmasLights && (
         <Rect x={0} y={0} width={width} height={height} blendMode="plus">
-          <Shader source={pineLights} uniforms={lights} />
+          <Shader source={christmasLights} uniforms={lights} />
         </Rect>
       )}
-      {pineSnow && (
+      {christmasSnow && (
         <Rect x={0} y={0} width={width} height={height}>
-          <Shader source={pineSnow} uniforms={snowfall} />
+          <Shader source={christmasSnow} uniforms={snowfall} />
         </Rect>
       )}
     </Canvas>
   );
 }
 
-export function VelvetBackdrop({ preview = false, celebrate = false }: BackdropProps) {
+export function NewYearBackdrop({ preview = false, celebrate = false }: BackdropProps) {
   return (
     <MeasuredHost>
-      {(size) => <VelvetScene {...size} preview={preview} celebrate={celebrate} />}
+      {(size) => <NewYearScene {...size} preview={preview} celebrate={celebrate} />}
     </MeasuredHost>
   );
 }
 
-function VelvetScene({ width, height, preview, celebrate }: SceneProps) {
+function NewYearScene({ width, height, preview, celebrate }: SceneProps) {
   const background = useCSSVariable('--color-background');
-  const fallback = typeof background === 'string' ? background : VELVET_PALETTE.wine;
+  const fallback = typeof background === 'string' ? background : NEW_YEAR_PALETTE.wine;
   const scene = useMemo(
     () => ({
       size: [width, height],
-      wine: rgb(VELVET_PALETTE.wine),
-      rose: rgb(VELVET_PALETTE.rose),
-      gold: rgb(VELVET_PALETTE.gold),
-      glow: rgb(VELVET_PALETTE.glow),
+      wine: rgb(NEW_YEAR_PALETTE.wine),
+      rose: rgb(NEW_YEAR_PALETTE.rose),
+      gold: rgb(NEW_YEAR_PALETTE.gold),
+      glow: rgb(NEW_YEAR_PALETTE.glow),
     }),
     [width, height],
   );
   const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
-  const texture = useShaderTexture(velvetScene, scene, full, PixelRatio.get());
+  const texture = useShaderTexture(newYearScene, scene, full, PixelRatio.get());
   // The garlands hang from 17% to 34% of the height. The lowest sags 50 pt
   // (scaled), its bulbs hang 2.5 pt below the wire, and their glow reaches 12 pt.
   const band = useMemo(() => {
@@ -228,14 +231,25 @@ function VelvetScene({ width, height, preview, celebrate }: SceneProps) {
     const y = Math.max(0, Math.floor(height * 0.17 - 14 * scale));
     return { y, height: Math.min(height, Math.ceil(height * 0.34 + 68 * scale)) - y };
   }, [width, height]);
-  const mantel = useMemo(() => velvetClockRegion(width, height), [width, height]);
+  const mantel = useMemo(() => newYearClockRegion(width, height), [width, height]);
+  const swaying = useMemo(() => newYearBaubleRegion(width, height), [width, height]);
   const time = useForwardTime(preview);
+  // Steady lights and still baubles under Reduce Motion and in previews.
+  const reducedMotion = useReducedMotion();
+  const still = preview || reducedMotion ? 1 : 0;
   const clock = useLocalClock(preview);
   const { party, playing } = useCelebration(
     celebrate && !preview,
-    VELVET_CONFETTI_SECONDS,
+    NEW_YEAR_CONFETTI_SECONDS,
   );
-  const lights = useDerivedValue(() => ({ size: scene.size, time: time.value }));
+  const lights = useDerivedValue(() => ({ size: scene.size, time: time.value, still }));
+  const baubles = useDerivedValue(() => ({
+    size: scene.size,
+    time: time.value,
+    still,
+    gold: scene.gold,
+    glow: scene.glow,
+  }));
   const hands = useDerivedValue(() => ({
     size: scene.size,
     time: time.value,
@@ -254,19 +268,24 @@ function VelvetScene({ width, height, preview, celebrate }: SceneProps) {
       {/* The theme colour shows until the texture is ready, or if the shader fails. */}
       <Rect x={0} y={0} width={width} height={height} color={fallback} />
       <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
-      {velvetLights && (
+      {newYearBaubles && (
+        <Rect {...swaying}>
+          <Shader source={newYearBaubles} uniforms={baubles} />
+        </Rect>
+      )}
+      {newYearLights && (
         <Rect x={0} y={band.y} width={width} height={band.height} blendMode="plus">
-          <Shader source={velvetLights} uniforms={lights} />
+          <Shader source={newYearLights} uniforms={lights} />
         </Rect>
       )}
-      {velvetClock && (
+      {newYearClock && (
         <Rect {...mantel}>
-          <Shader source={velvetClock} uniforms={hands} />
+          <Shader source={newYearClock} uniforms={hands} />
         </Rect>
       )}
-      {velvetConfetti && playing && (
+      {newYearConfetti && playing && (
         <Rect x={0} y={0} width={width} height={height}>
-          <Shader source={velvetConfetti} uniforms={confetti} />
+          <Shader source={newYearConfetti} uniforms={confetti} />
         </Rect>
       )}
     </Canvas>

@@ -1,9 +1,9 @@
 /**
- * Pine Night: a moonlit snowy valley of firs with one decorated tree.
- * PINE_SCENE is detailed (layered hills, drifts, tiered firs), so it is drawn
- * once into a texture. Two cheap layers animate on top: PINE_LIGHTS (twinkling
+ * Christmas: a moonlit snowy valley of firs with one decorated tree.
+ * CHRISTMAS_SCENE is detailed (layered hills, drifts, tiered firs), so it is drawn
+ * once into a texture. Two cheap layers animate on top: CHRISTMAS_LIGHTS (twinkling
  * stars, blinking tree lights and the special-day fireworks, added with `plus`)
- * and PINE_SNOW (falling flakes, drawn over everything).
+ * and CHRISTMAS_SNOW (falling flakes, drawn over everything).
  */
 const SHARED = `
 uniform float2 size;
@@ -49,7 +49,7 @@ float3 bulb(int i, float scale) {
 }
 `;
 
-export const PINE_SCENE = `
+export const CHRISTMAS_SCENE = `
 uniform float3 sky;     // theme background: the top of the sky
 uniform float3 snow;    // moonlit snow, the brightest landscape tone
 uniform float3 pine;    // fir silhouettes
@@ -131,13 +131,25 @@ half4 main(float2 xy) {
   // Sky: deep pine-blue, a little lighter toward the horizon.
   float3 horizonCol = mix(sky, snow, 0.22);
   float3 col = mix(sky, horizonCol, smoothstep(0.15, 0.62, uv.y));
-  // Moon and halo.
+  // A hazy moon: a soft-edged disc behind a wisp of cloud, no brighter than
+  // the readability ceiling below, so text over it stays readable.
+  float ceilLum = (lumOf(ink) + 0.05) / 4.6 - 0.05;
+  float lo = 0.0, hi = 1.0;
   float2 moon = float2(0.2 * size.x, 0.25 * size.y);
   float md = length(xy - moon) / scale;
   col = mix(col, mix(col, snow, 0.5), 0.35 * exp(-md * md / 4200.0));
-  float disc = 1.0 - smoothstep(15.0, 16.5, md);
-  float crater = 0.06 * fbm((xy - moon) / (5.0 * scale));
-  col = mix(col, float3(0.92, 0.94, 0.95) - crater, disc);
+  if (md < 18.0) {
+    // Scale the moon down to the ceiling, keeping its craters; only on the disc.
+    float3 moonCol = float3(0.88, 0.93, 0.98);
+    for (int s = 0; s < 10; s++) { float m = 0.5 * (lo + hi); if (lumOf(moonCol * m) > ceilLum) hi = m; else lo = m; }
+    float disc = 1.0 - smoothstep(12.5, 18.0, md);
+    float crater = 0.1 * fbm((xy - moon) / (5.0 * scale));
+    col = mix(col, moonCol * lo * (1.0 - crater), disc);
+  }
+  float2 wp = (xy - moon) / scale;
+  float wisp = smoothstep(0.42, 0.75, fbm(float2(wp.x / 24.0 + 3.0, wp.y / 4.5)))
+             * exp(-(wp.y - 5.0) * (wp.y - 5.0) / 50.0) * exp(-wp.x * wp.x / 2500.0);
+  col = mix(col, mix(sky, snow, 0.3), 0.7 * wisp);
   // Thin clouds across the moon.
   float cl = fbm(float2(uv.x * 3.0, uv.y * 14.0));
   col = mix(col, mix(sky, snow, 0.35), 0.35 * smoothstep(0.55, 0.85, cl) * (1.0 - smoothstep(0.18, 0.42, uv.y)));
@@ -164,10 +176,9 @@ half4 main(float2 xy) {
     col = mix(col, mix(firCol, firSnow, f.y), f.x);
   }
 
-  // Readability ceiling: keep the snow dark enough for 4.5:1 body text (the moon is exempt).
-  float ceilLum = (lumOf(ink) + 0.05) / 4.6 - 0.05;
-  if (disc < 0.5 && lumOf(col) > ceilLum) {
-    float lo = 0.0, hi = 1.0;
+  // Readability ceiling: keep the snow and the moon dark enough for 4.5:1 body text.
+  if (lumOf(col) > ceilLum) {
+    lo = 0.0; hi = 1.0;
     for (int s = 0; s < 10; s++) { float m = 0.5 * (lo + hi); if (lumOf(col * m) > ceilLum) hi = m; else lo = m; }
     col *= lo;
   }
@@ -184,7 +195,7 @@ half4 main(float2 xy) {
               * smoothstep(0.35, 0.65, noise(xy / (2.5 * scale)));
     tcol = mix(tcol, snow * (0.75 + 0.2 * side), cap * 0.9);
     col = mix(col, tcol, tc);
-    // The lights, unlit; PINE_LIGHTS adds their glow.
+    // The lights, unlit; CHRISTMAS_LIGHTS adds their glow.
     for (int i = 0; i < 24; i++) {
       float3 b = bulb(i, scale);
       float d = length(xy - b.xy) / scale;
@@ -204,7 +215,7 @@ half4 main(float2 xy) {
 }
 `;
 
-export const PINE_LIGHTS = `
+export const CHRISTMAS_LIGHTS = `
 uniform float time;
 uniform float party;    // seconds into the special-day fireworks; < 0 when off
 uniform float3 snow;
@@ -301,12 +312,13 @@ half4 main(float2 xy) {
       }
     }
   }
-  // Drawn with the plus blend mode, so this light adds to the scene below.
-  return half4(half3(add), 0.0);
+  // Drawn with the plus blend mode, so this light adds to the scene below; alpha
+  // 1 keeps the colour valid premultiplied over the opaque scene.
+  return half4(half3(add), 1.0);
 }
 `;
 
-export const PINE_SNOW = `
+export const CHRISTMAS_SNOW = `
 uniform float time;
 ${SHARED}
 half4 main(float2 xy) {
@@ -336,4 +348,4 @@ half4 main(float2 xy) {
 `;
 
 /** Seconds of special-day fireworks (the last rocket has faded by then). */
-export const PINE_FIREWORKS_SECONDS = 7;
+export const CHRISTMAS_FIREWORKS_SECONDS = 7;

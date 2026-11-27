@@ -4,7 +4,7 @@ import { getThemeConfig } from '~/lib/theme/themes';
 import type { BackdropId } from '~/lib/theme/registry';
 import { CaminoDayBackdrop, CaminoNightBackdrop } from './CaminoBackdrop';
 import { BotanicalBackdrop } from './BotanicalBackdrop';
-import { PineNightBackdrop, VelvetBackdrop } from './FestiveBackdrops';
+import { ChristmasBackdrop, NewYearBackdrop } from './FestiveBackdrops';
 import {
   BeaBackdrop,
   DeniseBackdrop,
@@ -48,8 +48,8 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   kristen: KristenBackdrop,
   higa: HigaBackdrop,
   bea: BeaBackdrop,
-  'pine-night': PineNightBackdrop,
-  velvet: VelvetBackdrop,
+  christmas: ChristmasBackdrop,
+  'new-year': NewYearBackdrop,
 };
 
 /**

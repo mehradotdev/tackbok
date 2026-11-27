@@ -140,12 +140,12 @@ const lastSeason: FestiveSwitch = {
   icon: 'Sage',
   offerFrom: new Date(2027, 0, 2).getTime(),
 };
-async function inJanuaryOnPineNight() {
+async function inJanuaryWithTheChristmasTheme() {
   jest.setSystemTime(new Date(2027, 0, 3, 12));
   Object.assign(mockSettings, {
     festivePromptSeason: 'winter-holidays-2026',
     festiveSwitch: lastSeason,
-    theme: 'pine-night',
+    theme: 'christmas',
   });
   mockIcon.current = 'Christmas';
   await focus();
@@ -240,7 +240,7 @@ it('"Take a look" remembers the usual look and opens Appearance', async () => {
 });
 
 it('switches back in January, saving the theme before the icon closes the app', async () => {
-  await inJanuaryOnPineNight();
+  await inJanuaryWithTheChristmasTheme();
   expect(isOpen()).toBe(true);
   expect(labels()).toEqual(['festive.switchBack', 'festive.keepIt']);
   await press('yes');
@@ -260,7 +260,7 @@ it('restores only the theme when the icon is no longer festive', async () => {
   Object.assign(mockSettings, {
     festivePromptSeason: 'winter-holidays-2026',
     festiveSwitch: lastSeason,
-    theme: 'velvet',
+    theme: 'new-year',
   });
   await focus();
   leave();
@@ -284,7 +284,7 @@ it('skips a check that fires late, as the app reopens', async () => {
 });
 
 it('"Keep it" forgets the usual look; swiping the sheet away keeps the offer', async () => {
-  await inJanuaryOnPineNight();
+  await inJanuaryWithTheChristmasTheme();
   await swipeDown();
   expect(isOpen()).toBe(false);
   expect(mockSettings.festiveSwitch).toBe(lastSeason);

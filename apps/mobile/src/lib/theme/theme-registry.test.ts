@@ -129,8 +129,8 @@ describe('Theme Registry', () => {
     'kristen',
     'higa',
     'bea',
-    'pine-night',
-    'velvet',
+    'christmas',
+    'new-year',
   ])('%s provides readable text on its solid surfaces', (id) => {
     const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
     const variables = resolveThemeVariables(theme);
@@ -233,8 +233,8 @@ describe('Theme Registry', () => {
       'giuseppe',
       'kristen',
       'higa',
-      'pine-night',
-      'velvet',
+      'christmas',
+      'new-year',
       'bubblegum',
       'hecker',
       'peach',

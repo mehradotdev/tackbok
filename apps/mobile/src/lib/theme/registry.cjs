@@ -167,21 +167,21 @@ const THEMES = [
     "defaultTitleFontId": "bagelfatone"
   },
   {
-    "id": "pine-night",
-    "name": "Pine Night",
+    "id": "christmas",
+    "name": "Christmas",
     "description": "Snow falling on a moonlit pine valley",
     "variant": "dark",
     "enableTimelineBorders": false,
-    "backdropId": "pine-night",
+    "backdropId": "christmas",
     "defaultTitleFontId": "baskervville"
   },
   {
-    "id": "velvet",
-    "name": "Velvet",
+    "id": "new-year",
+    "name": "New Year",
     "description": "Velvet drapes, fairy lights and a mantel clock",
     "variant": "dark",
     "enableTimelineBorders": false,
-    "backdropId": "velvet",
+    "backdropId": "new-year",
     "defaultTitleFontId": "cinzel"
   },
   {
