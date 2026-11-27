@@ -356,7 +356,7 @@ export const THEME_DEFINITIONS = [
     description: 'Forest dusk/brass lamplight',
     variant: 'dark',
     enableTimelineBorders: false,
-    backdropId: 'botanical',
+    backdropId: 'bea',
     defaultTitleFontId: 'baskervville',
     bodyFontPackId: 'inter',
     tokens: {
@@ -366,7 +366,7 @@ export const THEME_DEFINITIONS = [
       '--color-card-foreground': '#d7e3d2',
       '--color-popover': '#233129',
       '--color-popover-foreground': '#d7e3d2',
-      '--color-primary': '#6c9260',
+      '--color-primary': '#57754d',
       '--color-primary-foreground': '#eef4e9',
       '--color-secondary': '#2a3a2e',
       '--color-secondary-foreground': '#d7e3d2',
@@ -374,7 +374,7 @@ export const THEME_DEFINITIONS = [
       '--color-muted-foreground': '#8ba18c',
       '--color-accent': '#6d5b32',
       '--color-accent-foreground': '#f0e9d6',
-      '--color-destructive': '#b5584a',
+      '--color-destructive': '#ae5447',
       '--color-destructive-foreground': '#f3f6ee',
       '--color-border': '#2f4033',
       '--color-input': '#2a3a2e',
@@ -1107,6 +1107,11 @@ export const KRISTEN_CONTRAST = { wall: 0.3, forest: 0.3, floor: 4.6 } as const;
  *  blob's brightest (the owner's choice, 2026-11-27); target the muted colour
  *  or lighten it if prompts need AA over the art. */
 export const HIGA_TEXT_CONTRAST = 4.7;
+
+/** Body-text contrast Bea's forest keeps against the foreground, with a soft
+ *  knee like Higa's; only the lantern glass glows above it. Measured worst
+ *  outside the lantern: about 4.69:1 (render-friends plus a time sweep). */
+export const BEA_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
 export const PINE_NIGHT_PALETTE = {

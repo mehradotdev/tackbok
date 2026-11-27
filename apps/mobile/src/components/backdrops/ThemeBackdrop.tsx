@@ -6,6 +6,7 @@ import { CaminoDayBackdrop, CaminoNightBackdrop } from './CaminoBackdrop';
 import { BotanicalBackdrop } from './BotanicalBackdrop';
 import { PineNightBackdrop, VelvetBackdrop } from './FestiveBackdrops';
 import {
+  BeaBackdrop,
   DeniseBackdrop,
   GiuseppeBackdrop,
   HigaBackdrop,
@@ -46,6 +47,7 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   giuseppe: GiuseppeBackdrop,
   kristen: KristenBackdrop,
   higa: HigaBackdrop,
+  bea: BeaBackdrop,
   'pine-night': PineNightBackdrop,
   velvet: VelvetBackdrop,
 };

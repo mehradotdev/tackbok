@@ -6,7 +6,7 @@ export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam
 
 export type ThemeVariant = 'light' | 'dark';
 
-export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'pine-night' | 'velvet';
+export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'bea' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'pine-night' | 'velvet';
 
 export interface TitleFontConfig {
   id: TitleFontId;
