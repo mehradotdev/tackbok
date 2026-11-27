@@ -39,6 +39,7 @@ import {
   deriveGratitudeTitle,
   normalizeOptionalText,
   readSafeZipBytes,
+  assertZipJsonBudget,
   readSafeZipJson,
   VALID_MOODS,
   writeImportedAudio,
@@ -388,6 +389,14 @@ function resolveGratitudeAppEntryAssets(
 export async function buildGratitudeAppPortablePayload(
   zip: ZipReader,
 ): Promise<GratitudeAppPortablePayload> {
+  assertZipJsonBudget(zip, [
+    GRATITUDE_APP_ENTRIES_PATH,
+    GRATITUDE_APP_ASSETS_PATH,
+    GRATITUDE_APP_PROMPTS_PATH,
+    GRATITUDE_APP_TAGS_PATH,
+    GRATITUDE_APP_RECORDINGS_PATH,
+    GRATITUDE_APP_CONFIG_PATH,
+  ]);
   const [
     gratitudeEntries,
     gratitudeAssets,

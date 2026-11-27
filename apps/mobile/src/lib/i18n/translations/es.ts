@@ -14,6 +14,10 @@ export const es = {
   'greeting.happyFriday': 'Feliz viernes',
   'greeting.happySaturday': 'Feliz sábado',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'Feliz Nochebuena',
+  'greeting.merryChristmas': 'Feliz Navidad',
+  'greeting.newYearsEve': 'Feliz fin de año',
+  'greeting.happyNewYear': 'Feliz Año Nuevo',
   'common.tackbok': 'Tackbok',
   'common.cancel': 'Cancelar',
   'common.done': 'Listo',
@@ -32,6 +36,7 @@ export const es = {
   'common.unknownError': 'Error desconocido',
   'common.retry': 'Reintentar',
   'search.searchGratitudeLogs': 'Buscar entradas…',
+  'search.search': 'Buscar',
   'search.startTypingToSearchYourGratitudeLogs': 'Escribe para buscar tus entradas',
   'search.searchFailed': 'La búsqueda falló',
   'search.noResults': 'Sin resultados',
@@ -279,9 +284,20 @@ export const es = {
   'appearance.firstDayOfWeekDescription':
     'Elige el día en que empiezan tus semanas en el calendario',
   'appearance.appIcon': 'Icono de la app',
+  'appearance.festiveTouches': 'Toques festivos',
+  'appearance.festiveTouchesDescription': 'Saludos y sugerencias para las fiestas',
   'appearance.changeAppIconTitle': '¿Cambiar el icono de la app?',
   'appearance.changeAppIconMessage': 'Tackbok se cerrará para aplicar el nuevo icono.',
   'appearance.changeIcon': 'Cambiar icono',
+  'festive.promptTitle': '¿Con ánimo festivo?',
+  'festive.promptMessage': 'Tackbok tiene un icono y un tema festivos para la temporada.',
+  'festive.takeALook': 'Echar un vistazo',
+  'festive.notNow': 'Ahora no',
+  'festive.switchBackTitle': '¿Volver a tu estilo de siempre?',
+  'festive.switchBackMessage':
+    'Vuelve al tema y al icono que tenías antes de las fiestas.',
+  'festive.switchBack': 'Volver',
+  'festive.keepIt': 'Mantener',
   'typography.typography': 'Tipografía',
   'typography.titleFont': 'Fuente del título',
   'typography.chooseAFontForTitlesAndHeadings':
@@ -370,7 +386,11 @@ export const es = {
     'Esto importará entradas desde un archivo CSV de la aplicación Presently. Se omitirán las entradas duplicadas.',
   'backup.backupExportedSuccessfully': 'Copia de seguridad exportada correctamente',
   'backup.exportFailed': 'Exportación fallida',
+  'backup.preparingBackup': 'Preparando la copia de seguridad…',
+  'backup.nothingToExport': 'Todavía no hay nada que exportar.',
   'backup.importFailed': 'Importación fallida',
+  'backup.importDataTooLarge':
+    'Esta copia de seguridad es demasiado grande para importarla.',
   'backup.restoringTackbokBackup': 'Restaurando la copia de seguridad de Tackbok',
   'backup.loadPresentlyExport': 'Cargar exportación de Presently',
   'backup.importJournalEntries': 'Importar entradas del diario',
@@ -567,7 +587,9 @@ export const es = {
   'onboarding.next': 'Próximo',
   'onboarding.stepCurrentOfTotal': 'Paso {current} de {total}',
   'onboarding.getStarted': 'empezar',
-  'onboarding.alreadyHaveAJournalImportIt': '¿Ya tienes un diario? importarlo',
+  'onboarding.alreadyHaveAJournalImportIt':
+    '¿Ya tienes un diario? Restáuralo o impórtalo',
+  'onboarding.welcome.version': 'Versión {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'Un lugar privado para tu agradecimiento. Gratis, sin conexión, tuyo.',
   'onboarding.importYourJournal': 'Importa tu diario',
@@ -614,6 +636,10 @@ export const es = {
   'onboarding.youreAllSet': '¡Ya estás listo!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Dos últimas cosas que puedes activar. Ambos son opcionales.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Tu nuevo icono aparecerá cuando salgas de Tackbok.',
+  'onboarding.finish.oneOptionalThing':
+    'Una última cosa que puedes activar. Es opcional.',
   'onboarding.addExampleEntries': 'Agregar entradas de ejemplo',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Algunas entradas de muestra muestran cómo funcionan las fotos, las notas de voz, los estados de ánimo y las etiquetas. Elimínelos en cualquier momento con un toque.',
@@ -929,6 +955,8 @@ export const es = {
   'cloud.progress.combiningChanges': 'Combinando cambios…',
   'cloud.progress.checkingDownload': 'Comprobando la descarga…',
   'cloud.progress.confirmingUpload': 'Confirmando la subida…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Comprobando las fotos y notas de voz subidas…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Subiendo fotos y notas de voz…',
   'cloud.progress.devicesChecked': '{done} de {count} dispositivos revisados',
   'cloud.progress.filesDownloaded': '{done} de {count} archivos descargados',
@@ -1026,7 +1054,7 @@ export const es = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Tu diario y su copia de seguridad se eliminaron en todas partes. Borra este dispositivo para terminar.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive.',
+    'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive. Toca «Reanudar eliminación» para volver a intentarlo. Si vuelve a detenerse, desconecta Google Drive en Tackbok en todos tus dispositivos y, en Google Drive en la web, abre Configuración › Administrar aplicaciones › Tackbok › Opciones y elimina los datos ocultos de la aplicación.',
   'cloud.skippedHeads.unreadable':
     'Tackbok no puede leer la copia de seguridad de uno o más de tus dispositivos, así que sus cambios no se incluyen. La sincronización sigue con tus otros dispositivos.',
   'cloud.skippedHeads.clockAhead':

@@ -237,12 +237,7 @@ function ProfileNameField({ name, onSave }: ProfileNameFieldProps) {
           onPress={commitEdit}
           hitSlop={6}
           className="p-1.5 rounded-full bg-primary/10">
-          <Icon
-            as={Check}
-            className="text-primary-foreground"
-            size={16}
-            strokeWidth={2.5}
-          />
+          <Icon as={Check} className="text-foreground" size={16} strokeWidth={2.5} />
         </Button>
       </View>
     );
@@ -323,16 +318,9 @@ function TriggerAvatar({
       <AvatarImage source={displayUri ? { uri: displayUri } : undefined} />
       <AvatarFallback className="bg-background/60">
         {initials ? (
-          <Text className="text-sm font-body-bold text-primary-foreground">
-            {initials}
-          </Text>
+          <Text className="text-sm font-body-bold text-foreground">{initials}</Text>
         ) : (
-          <Icon
-            as={User}
-            className="text-primary-foreground/70"
-            size={14}
-            strokeWidth={2}
-          />
+          <Icon as={User} className="text-foreground/70" size={14} strokeWidth={2} />
         )}
       </AvatarFallback>
     </Avatar>
@@ -376,28 +364,6 @@ function buildSupportBody(): string {
 }
 
 // ─── SettingsBottomSheet ──────────────────────────────────────────────────────
-
-function SettingsSheetContent({
-  scrollable,
-  scrollViewRef,
-  children,
-}: {
-  scrollable: boolean;
-  scrollViewRef: React.RefObject<ScrollViewInstance | null>;
-  children: React.ReactNode;
-}) {
-  if (!scrollable) return <>{children}</>;
-
-  return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={{ flex: 1 }}
-      nestedScrollEnabled
-      keyboardShouldPersistTaps="handled">
-      {children}
-    </ScrollView>
-  );
-}
 
 export function SettingsBottomSheet() {
   const router = useRouter();
@@ -571,10 +537,14 @@ export function SettingsBottomSheet() {
 
       <TrueSheet
         ref={sheet}
-        // Preserve the content-sized portrait layout. Landscape needs a bounded
-        // viewport with content that fills the selected detent.
+        // Portrait sizes to the content; 'auto' also caps the sheet at the
+        // screen and lets the plugged ScrollView scroll the rest (AX5 text).
+        // Landscape uses a bounded detent that the content fills.
         detents={isLandscape ? [0.85] : ['auto']}
-        scrollableRef={isLandscape ? scrollViewRef : undefined}
+        scrollableRef={scrollViewRef}
+        // The content pads its own bottom safe area (pb-safe), so the sheet
+        // must not add it again once the content can scroll.
+        scrollableOptions={{ contentInsetAdjustment: 'never' }}
         style={isLandscape ? { flex: 1 } : undefined}
         cornerRadius={sheetRadius}
         grabber={false}
@@ -583,7 +553,11 @@ export function SettingsBottomSheet() {
         // preferredContentSize + prefersPageSizing=NO, which turns the iPad
         // sheet into a narrow centered form sheet instead of a bottom sheet.
         maxContentWidth={Platform.OS === 'android' ? 400 : undefined}>
-        <SettingsSheetContent scrollable={isLandscape} scrollViewRef={scrollViewRef}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={isLandscape ? { flex: 1 } : undefined}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled">
           {/* Outer wrapper — clips the banner to match sheet corner radius */}
           <View
             style={{
@@ -656,7 +630,7 @@ export function SettingsBottomSheet() {
               <View className="h-2 pb-safe" />
             </ProfileSection>
           </View>
-        </SettingsSheetContent>
+        </ScrollView>
       </TrueSheet>
 
       {/* ── Photo options dialog: Update / Remove ── */}
@@ -678,10 +652,10 @@ export function SettingsBottomSheet() {
               <Icon as={Trash2} className="text-destructive-foreground" size={16} />
               <Text>{t('profile.removePhoto')}</Text>
             </AlertDialogDestructiveAction>
-            <Button onPress={handlePickNewPhoto}>
-              <Icon as={ImagePlus} className="text-primary-foreground" size={16} />
+            <AlertDialogAction onPress={handlePickNewPhoto}>
+              <Icon as={ImagePlus} className="text-background" size={16} />
               <Text>{t('profile.updatePhoto')}</Text>
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

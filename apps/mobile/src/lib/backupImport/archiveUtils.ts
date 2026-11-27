@@ -146,10 +146,63 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
 }
 
 /**
+ * The most JSON data (such as `entries.json`) an import reads: per file, and
+ * in total across the files one import reads at once. They are read, decoded
+ * and parsed whole, so a crafted or broken backup with gigabytes of them
+ * could run the phone out of memory. The cap must never strand a backup the
+ * app wrote itself: exports pretty-print about 0.9 KB per entry (a
+ * 10,000-entry `entries.json` is about 9 MB), so a journal at cloud sync's
+ * limits (100,000 entries, 48 MiB of text) writes about 140 MB. 200 MB
+ * leaves room above that. Both the stored and the unpacked sizes are
+ * capped; more stops the import with `ImportDataTooLargeError`.
+ * shortcut: whole-file JSON reads; stream-parse to lower or drop the cap.
+ */
+export const MAX_IMPORT_JSON_BYTES = 200 * 1000 * 1000;
+
+/** A backup data file over `MAX_IMPORT_JSON_BYTES`, refused before it is read. */
+export class ImportDataTooLargeError extends Error {
+  constructor(readonly path: string) {
+    super(
+      `Backup data file is larger than ${MAX_IMPORT_JSON_BYTES / 1000 / 1000} MB: ${path}`,
+    );
+    this.name = 'ImportDataTooLargeError';
+  }
+}
+
+/** Whether a ZIP entry's stored or unpacked size is over `limit`. */
+function isEntryOver(zip: ZipReader, path: string, limit: number): boolean {
+  const info = zip.getEntryInfo(path);
+  const cap = BigInt(limit);
+  return !!info && (info.uncompressedSize > cap || info.compressedSize > cap);
+}
+
+/**
+ * Throws `ImportDataTooLargeError` if the JSON files an import is about to
+ * read together are over `MAX_IMPORT_JSON_BYTES` in total (stored or
+ * unpacked). Missing files count as empty; reading them reports them.
+ */
+export function assertZipJsonBudget(zip: ZipReader, paths: readonly string[]): void {
+  let stored = 0n;
+  let unpacked = 0n;
+  for (const path of paths) {
+    const info = zip.getEntryInfo(assertSafeArchivePath(path));
+    stored += info?.compressedSize ?? 0n;
+    unpacked += info?.uncompressedSize ?? 0n;
+  }
+  const cap = BigInt(MAX_IMPORT_JSON_BYTES);
+  if (stored > cap || unpacked > cap) throw new ImportDataTooLargeError(paths.join(', '));
+}
+
+/**
  * Reads JSON from a ZIP entry after verifying the archive path is safe.
+ * Throws `ImportDataTooLargeError`, without reading, for an entry over
+ * `MAX_IMPORT_JSON_BYTES` (its stored or its unpacked size).
  */
 export async function readSafeZipJson<T>(zip: ZipReader, path: string): Promise<T> {
-  return zip.readEntryJson<T>(assertSafeArchivePath(path));
+  const safePath = assertSafeArchivePath(path);
+  if (isEntryOver(zip, safePath, MAX_IMPORT_JSON_BYTES))
+    throw new ImportDataTooLargeError(safePath);
+  return zip.readEntryJson<T>(safePath);
 }
 
 /**
@@ -183,9 +236,7 @@ export async function readSafeZipBytes(
   path: string,
 ): Promise<Uint8Array> {
   const safePath = assertSafeArchivePath(path);
-  const info = zip.getEntryInfo(safePath);
-  const cap = BigInt(MAX_IMPORT_ASSET_BYTES);
-  if (info && (info.uncompressedSize > cap || info.compressedSize > cap))
+  if (isEntryOver(zip, safePath, MAX_IMPORT_ASSET_BYTES))
     throw new ImportAssetTooLargeError(safePath);
   return zip.readEntryBytes(safePath);
 }

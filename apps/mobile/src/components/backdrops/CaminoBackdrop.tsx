@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import {
   Canvas,
   Circle,
@@ -11,21 +11,12 @@ import {
   Skia,
   vec,
 } from 'react-native-skia';
-import { useFocusEffect } from 'expo-router';
-import {
-  cancelAnimation,
-  Easing,
-  useDerivedValue,
-  useReducedMotion,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { useDerivedValue, useReducedMotion } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 import { CAMINO_SKY_SHADER } from './camino-sky-shader';
 import { CaminoLandscape } from './CaminoLandscape';
+import { delayedCycle, easeInOutSine, pingPong } from './loop-phase';
+import { useForwardTime } from './scene-kit';
 
 const skyEffect = Skia.RuntimeEffect.Make(CAMINO_SKY_SHADER);
 function rgb(color: string) {
@@ -57,62 +48,16 @@ function CaminoBackdrop({
     }),
     [background, accent, primary, foreground, night],
   );
-  const drift = useSharedValue(0);
-  const sway = useSharedValue(0);
-  const flight = useSharedValue(-1);
-
-  useFocusEffect(
-    useCallback(() => {
-      const stop = () => {
-        cancelAnimation(drift);
-        cancelAnimation(sway);
-        cancelAnimation(flight);
-      };
-      if (preview || reducedMotion) {
-        stop();
-        drift.value = 0;
-        sway.value = 0;
-        flight.value = -1;
-        return stop;
-      }
-      const start = () => {
-        stop();
-        drift.value = withRepeat(
-          withTiming(1, { duration: 48000, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
-        );
-        sway.value = withRepeat(
-          withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
-        );
-        if (!night) {
-          flight.value = -1;
-          flight.value = withDelay(
-            8000,
-            withRepeat(
-              withSequence(
-                withTiming(0, { duration: 0 }),
-                withTiming(1, { duration: 10000, easing: Easing.linear }),
-              ),
-              -1,
-              false,
-            ),
-          );
-        }
-      };
-      if (AppState.currentState === 'active') start();
-      const subscription = AppState.addEventListener('change', (state) => {
-        if (state === 'active') start();
-        else stop();
-      });
-      return () => {
-        subscription.remove();
-        stop();
-      };
-    }, [preview, reducedMotion, night, drift, sway, flight]),
-  );
+  // Clouds drift over 48 s each way and the light shimmers over 7 s; the bird
+  // flock first crosses after 8 s, then every 10 s. All still at time 0.
+  // shortcut: the 14 s shimmer and the bird cycle don't divide the clock's 6 h
+  // wrap, so after 6 h on screen the shimmer jumps once and a flock mid-crossing
+  // vanishes for 8 s; give them wrap-dividing periods if that ever shows.
+  const time = useForwardTime(preview);
+  const drift = useDerivedValue(() => easeInOutSine(pingPong(time.value, 48)));
+  const sway = useDerivedValue(() => easeInOutSine(pingPong(time.value, 7)));
+  // Night shows no birds, so keep the flock parked off-canvas.
+  const flight = useDerivedValue(() => (night ? -1 : delayedCycle(time.value, 8, 10)));
 
   const uniforms = useDerivedValue(() => ({
     size: [Math.max(1, width), Math.max(1, height)],

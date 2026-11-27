@@ -19,6 +19,10 @@ export const zhTW: Translations = {
   'greeting.happyFriday': '週五愉快',
   'greeting.happySaturday': '週六愉快',
   'greeting.withName': '{name}，{greeting}',
+  'greeting.christmasEve': '平安夜快樂',
+  'greeting.merryChristmas': '聖誕快樂',
+  'greeting.newYearsEve': '跨年夜快樂',
+  'greeting.happyNewYear': '新年快樂',
 
   // Common
   'common.tackbok': '塔克布克',
@@ -41,6 +45,7 @@ export const zhTW: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': '搜尋紀錄…',
+  'search.search': '搜尋',
   'search.startTypingToSearchYourGratitudeLogs': '輸入文字以搜尋紀錄',
   'search.searchFailed': '搜尋失敗',
   'search.noResults': '無搜尋結果',
@@ -295,9 +300,19 @@ export const zhTW: Translations = {
   'appearance.firstDayOfWeek': '每週的第一天',
   'appearance.firstDayOfWeekDescription': '選擇日曆中每週從哪一天開始',
   'appearance.appIcon': '應用程式圖示',
+  'appearance.festiveTouches': '節日點綴',
+  'appearance.festiveTouchesDescription': '節日問候與建議',
   'appearance.changeAppIconTitle': '變更應用程式圖示？',
   'appearance.changeAppIconMessage': '塔克布克將關閉以套用新圖示。',
   'appearance.changeIcon': '變更圖示',
+  'festive.promptTitle': '想要節日氣氛嗎？',
+  'festive.promptMessage': '塔克布克為這個節日季準備了節日圖示和主題。',
+  'festive.takeALook': '看一看',
+  'festive.notNow': '暫不',
+  'festive.switchBackTitle': '恢復平常的外觀？',
+  'festive.switchBackMessage': '切換回節日前使用的主題和圖示。',
+  'festive.switchBack': '切換回去',
+  'festive.keepIt': '保留',
 
   // Settings - Typography
   'typography.typography': '排版',
@@ -381,7 +396,10 @@ export const zhTW: Translations = {
     '這將從 Presently 應用程式的 CSV 檔案匯入紀錄。重複的紀錄將被略過。',
   'backup.backupExportedSuccessfully': '備份匯出成功',
   'backup.exportFailed': '匯出失敗',
+  'backup.preparingBackup': '正在準備備份…',
+  'backup.nothingToExport': '還沒有可匯出的內容。',
   'backup.importFailed': '匯入失敗',
+  'backup.importDataTooLarge': '此備份太大，無法匯入。',
   'backup.restoringTackbokBackup': '正在還原塔克布克備份',
   'backup.loadPresentlyExport': '載入 Presently 匯出資料',
   'backup.importJournalEntries': '匯入日記紀錄',
@@ -574,7 +592,8 @@ export const zhTW: Translations = {
   'onboarding.next': '下一步',
   'onboarding.stepCurrentOfTotal': '第 {current} 步，共 {total} 步',
   'onboarding.getStarted': '開始使用',
-  'onboarding.alreadyHaveAJournalImportIt': '已經有日記了？匯入它',
+  'onboarding.alreadyHaveAJournalImportIt': '已經有日記了？還原或匯入',
+  'onboarding.welcome.version': '版本 {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     '一個屬於你的感恩空間 — 免費、離線、完全屬於你。',
   'onboarding.importYourJournal': '匯入你的日記',
@@ -621,6 +640,8 @@ export const zhTW: Translations = {
   'onboarding.youreAllSet': '一切就緒！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     '最後還有兩項可以開啟 — 都是選用的。',
+  'onboarding.appIconAppearsAfterLeaving': '離開 Tackbok 後，新圖示就會出現。',
+  'onboarding.finish.oneOptionalThing': '最後還有一項可以開啟 — 是選用的。',
   'onboarding.addExampleEntries': '加入範例日記',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     '幾則範例日記會展示照片、語音筆記、心情和標籤的用法。隨時可以一鍵移除。',
@@ -913,6 +934,7 @@ export const zhTW: Translations = {
   'cloud.progress.combiningChanges': '正在合併變更…',
   'cloud.progress.checkingDownload': '正在檢查下載內容…',
   'cloud.progress.confirmingUpload': '正在確認上傳…',
+  'cloud.progress.checkingPhotosAndVoiceNotes': '正在檢查已上傳的照片和語音筆記…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': '正在上傳照片和語音筆記…',
   'cloud.progress.devicesChecked': '已檢查 {count} 台裝置中的 {done} 台',
   'cloud.progress.filesDownloaded': '已下載 {count} 個檔案中的 {done} 個',
@@ -1005,7 +1027,7 @@ export const zhTW: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     '你的日記及其備份已在所有地方刪除。請清除此裝置以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    '備份刪除未完成。部分內容可能仍在 Google Drive 中。',
+    '備份刪除未完成。部分內容可能仍在 Google Drive 中。點選「繼續刪除」重試。如果刪除仍然中斷，請先在你的所有裝置上中斷 Tackbok 的 Google Drive 連線，然後在網頁版 Google Drive 中開啟「設定 › 管理應用程式 › Tackbok › 選項」，刪除隱藏的應用程式資料。',
   'cloud.skippedHeads.unreadable':
     'Tackbok 無法讀取你的一部或多部裝置的備份，因此其中的變更未被納入。同步會繼續與你的其他裝置進行。',
   'cloud.skippedHeads.clockAhead':

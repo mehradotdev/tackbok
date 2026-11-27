@@ -92,7 +92,7 @@ export function MoodModal({ value, onChange }: IMoodModalProps) {
                     className={cn(
                       'text-sm mt-0',
                       isSelected
-                        ? 'text-primary-foreground font-body-semibold'
+                        ? 'text-foreground font-body-semibold'
                         : 'text-foreground/80',
                     )}>
                     {t(option.label)}

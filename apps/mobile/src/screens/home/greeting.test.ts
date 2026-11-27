@@ -99,6 +99,14 @@ it('randomly chooses a sleepy emoji only for good night', () => {
   }
 });
 
+it('uses a seasonal emoji set by day but keeps the sleepy ones at night', () => {
+  expect(chooseGreetingEmoji('greeting.goodMorning', () => 0, ['🎄', '⛄'])).toBe('🎄');
+  expect(chooseGreetingEmoji('greeting.goodNight', () => 0, ['🎄', '⛄'])).toBe('😪');
+  expect(chooseGreetingEmoji('greeting.goodMorning', () => 0, [])).toBe(
+    GREETING_EMOJIS[0],
+  );
+});
+
 it('preserves emoji sequences and combining accents', () => {
   expect(greetingUnits('A👩🏽‍💻e\u0301!')).toEqual(['A', '👩🏽‍💻', 'e\u0301', '!']);
 });

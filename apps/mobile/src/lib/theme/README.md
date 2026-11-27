@@ -170,6 +170,67 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
+### Denise, Giuseppe and Kristen
+
+`FriendBackdrops.tsx` renders three shader scenes: Denise's misty blue ridges
+(light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora) and Kristen's
+sheer granite wall, in the spirit of El Capitan, above a misty pine valley
+(light, Figtree). The detailed layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`,
+`GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are expensive, so each is drawn once into a
+texture with `useTexture`. Giuseppe's cairn texture covers only its corner.
+Only cheap overlays animate per frame: Denise's fog wisps, Giuseppe's additive
+bokeh, Kristen's valley mist, and Kristen's hiker (waves for about five
+seconds, rests for four) and hawk (one slow loop every 36 s). The hiker and
+hawk share the wall's geometry with the scene through `GEOMETRY` in
+`kristen-shader.ts`, and `kristenLifeBand` keeps their overlay to a strip
+above the rim. Motion runs on `useForwardTime` from `scene-kit.tsx` and stops
+when the screen loses focus or the app goes to the background; previews and
+Reduce Motion show still scenes. The theme background colour is painted first,
+so a failed shader degrades to a plain theme.
+
+Journal text sits directly on the art. Denise's and Kristen's scenes lift any
+pixel darker than 4.5:1 against `--color-foreground` toward the mist, which is
+why Kristen's pines are pale and hazy. `KRISTEN_CONTRAST` in `theme-tokens.ts`
+tunes Kristen: `wall` deepens the granite's shading and streaks, `forest` the
+pines, and `floor` is the contrast kept for body text (1 turns the lift off). Giuseppe has no such
+lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
+on the lake about 3:1.
+
+Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
+all the shaders and render the three scenes at phone, iPad, landscape and
+picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise or
+Kristen drops below 4.5:1 (or below a lower Kristen `floor`), or if Kristen's
+hiker or hawk strays outside `kristenLifeBand`. Giuseppe's lowest contrast is
+only reported. The headless renderer is CPU-only and slow (about 15
+minutes on an idle Mac, much longer when other jobs compete for the CPU); it
+says nothing about GPU cost.
+
+### Pine Night and Velvet (festive)
+
+`FestiveBackdrops.tsx` renders two dark festive scenes that anyone can pick:
+Pine Night (a decorated tree in a moonlit snowy valley) and Velvet (velvet drapes,
+garlands of coloured lights, and a mantel clock with champagne flutes). Their
+subjects sit on the right, partly under the home screen's action dock, because the
+dock collapses on scroll and journal text sits on the left. Like the friend scenes,
+the detailed layer is drawn once into a texture (`scene-kit.tsx`); per frame only
+cheap overlays run: Pine Night's twinkling stars, tree lights and falling snow,
+and Velvet's blinking bulbs and clock. Velvet's clock shows the real local time
+(no second hand under Reduce Motion or in previews).
+
+On 24, 25 and 31 Dec and 1 Jan, the home screen plays a celebration once per
+opening of the app (a cold start or a return from the background, not a return
+from an entry): about 7 s of fireworks in Pine Night and 11 s of confetti in
+Velvet. It is skipped under Reduce Motion or when "Festive touches" is off.
+`celebration.ts` decides when.
+
+Pine Night lifts snow that would drop below 4.5:1 against `--color-foreground`,
+except the moon. Velvet keeps dark drapes and a dark dial; small bright details
+(bulbs, flutes, the moon, tree lights) stay under 4.5:1 by design. Run
+`node scripts/art/render-festive.cjs` from the mobile directory to compile all
+seven shaders and render both scenes, still and mid-celebration, at phone, iPad,
+landscape and picker sizes in `/tmp/festive-previews`. It reports the lowest
+contrast and the share of pixels under 4.5:1 (about 2–3%, up to 4% mid-confetti). It takes about 8 minutes.
+
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

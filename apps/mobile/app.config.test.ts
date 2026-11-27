@@ -48,7 +48,7 @@ describe.each(['production', 'beta'])('iOS locales (%s)', (variant) => {
     );
     const icons: string[] = Array.isArray(iconsPlugin) ? iconsPlugin[1] : [];
     // Beta's default icon is Blueprint, so it also registers the Classic artwork.
-    expect(icons).toHaveLength(variant === 'beta' ? 8 : 7);
+    expect(icons).toHaveLength(variant === 'beta' ? 9 : 8);
     expect(icons.includes('Classic')).toBe(variant === 'beta');
     for (const name of icons) {
       for (const file of [

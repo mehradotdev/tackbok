@@ -11,6 +11,7 @@ import { Input } from '~/components/ui/input';
 import { Text } from '~/components/ui/text';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
+import { useNavigateOnce } from './useNavigateOnce';
 import { toast } from '~/components/ui/toast';
 
 export default function OnboardingNameScreen() {
@@ -21,21 +22,25 @@ export default function OnboardingNameScreen() {
   const [name, setName] = useState(() => useSettingsStore.getState().profileName ?? '');
 
   useOnboardingStepView('name');
+  const navigateOnce = useNavigateOnce();
 
-  const handleContinue = async () => {
-    try {
-      await setProfileName(name);
+  const handleContinue = () =>
+    navigateOnce(async () => {
+      try {
+        await setProfileName(name);
+      } catch (error) {
+        console.error('Failed to save onboarding profile name:', error);
+        toast.error(t('common.unknownError'));
+        return false;
+      }
       router.push('/onboarding/theme');
-    } catch (error) {
-      console.error('Failed to save onboarding profile name:', error);
-      toast.error(t('common.unknownError'));
-    }
-  };
+    });
 
-  const handleSkip = () => {
-    track('onboarding_skipped', { step: 'name' });
-    router.push('/onboarding/theme');
-  };
+  const handleSkip = () =>
+    navigateOnce(() => {
+      track('onboarding_skipped', { step: 'name' });
+      router.push('/onboarding/theme');
+    });
 
   return (
     <OnboardingScaffold
@@ -57,6 +62,8 @@ export default function OnboardingNameScreen() {
         <Input
           className="mt-8"
           placeholder={t('onboarding.yourNameOptional')}
+          // The placeholder goes quiet once a name is typed; the label stays.
+          accessibilityLabel={t('onboarding.yourNameOptional')}
           value={name}
           onChangeText={setName}
           autoComplete="name"

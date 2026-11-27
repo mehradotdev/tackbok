@@ -281,9 +281,11 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     vaultId: string,
     blobHashes: readonly string[],
     fresh = false,
+    answered?: () => void,
   ): Promise<Set<string>> {
     this.before('has-media');
     if (fresh) for (const blobHash of blobHashes) this.staleMedia.delete(blobHash);
+    for (let i = new Set(blobHashes).size; i > 0; i--) answered?.();
     return new Set(
       blobHashes.filter(
         (blobHash) =>

@@ -1,7 +1,10 @@
 import '../global.css';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as Notifications from 'expo-notifications';
+import { useReducedMotion } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
@@ -16,6 +19,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
+import { useAppIconStore } from '~/lib/appIcon';
 import { useProfileBootstrap } from '~/lib/settings/useProfileBootstrap';
 import { useTranslation, useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
@@ -29,6 +33,15 @@ import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
+import { SplashAnimation } from '~/components/SplashAnimation';
+import {
+  endSplash,
+  getSplashMode,
+  isLaunchFromLink,
+  useSplashActive,
+  useSplashIsDark,
+  type SplashMode,
+} from '~/lib/splash';
 // A no-op module outside beta bundles; see metro.config.js.
 import { DevSetupNavigation, useDevSetup } from '~/lib/devSetup';
 import {
@@ -38,14 +51,32 @@ import {
 } from '~/lib/cloudSync/runtime';
 SplashScreen.preventAutoHideAsync();
 
-// Hide the native splash once the first JS screen has laid out, so the hand-off
-// never shows a bare window background.
+// Hide the native splash once the first JS screen (or the launch overlay, whose
+// plain logo matches the native splash until the animation starts) has laid
+// out, so the hand-off never shows a bare window background.
 let splashHidden = false;
 function hideSplash() {
   if (splashHidden) return;
   splashHidden = true;
   void SplashScreen.hideAsync();
 }
+
+// A launch from a deep link or a reminder tap goes straight to its screen.
+// Started at bundle load so the answer is usually ready by hydration. If it is
+// slow, the animation starts anyway and stops as soon as a link turns up.
+const LAUNCH_CHECK_TIMEOUT_MS = 300;
+const openedFromLinkPromise: Promise<boolean> = Promise.all([
+  Linking.getInitialURL().catch(() => null),
+  Notifications.getLastNotificationResponseAsync().catch(() => null),
+]).then(([url, response]) =>
+  isLaunchFromLink(url, response?.notification.request.content.data),
+);
+const quickLaunchCheck: Promise<boolean> = Promise.race([
+  openedFromLinkPromise,
+  new Promise<boolean>((resolve) =>
+    setTimeout(() => resolve(false), LAUNCH_CHECK_TIMEOUT_MS),
+  ),
+]);
 
 // Prime Uniwind before React mounts to limit flash. At module load,
 // `useSettingsStore.getState().theme` is still the persist default (`DEFAULT_THEME_ID`)
@@ -81,6 +112,18 @@ function ReminderNavigationObserver() {
   return null;
 }
 
+// Android: an icon picked during onboarding switches only after onboarding,
+// once the user next leaves the app, so onboarding never closes it. A replay
+// or reset of onboarding cancels a switch still waiting from an earlier run.
+function PendingAppIconObserver() {
+  const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
+  const pending = useAppIconStore((s) => s.pending);
+  useEffect(() => {
+    void useAppIconStore.getState().syncPendingOnLeave(hasCompletedOnboarding);
+  }, [hasCompletedOnboarding, pending]);
+  return null;
+}
+
 // Maps route changes to standard $screen events (logical screen names only —
 // no raw paths/params). No-ops entirely while analytics is disabled.
 function ScreenViewObserver() {
@@ -103,6 +146,66 @@ export default function Layout() {
   const statusBarStyle = themeConfig.variant === 'dark' ? 'light' : 'dark';
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
+  const reduceMotion = useReducedMotion();
+  // undefined: not decided yet; null: the launch animation is done or skipped.
+  // A remount after it has finished (e.g. Fast Refresh) does not replay it.
+  const [splashMode, setSplashMode] = useState<
+    Exclude<SplashMode, 'none'> | null | undefined
+  >(() => (useSplashActive.getState().active ? undefined : null));
+  const appLockEnabled = useSettingsStore((s) => s.biometricUnlockEnabled);
+
+  useEffect(() => {
+    if (!hasHydrated || splashMode !== undefined) return;
+    let cancelled = false;
+    // With app lock on there is nothing to wait for: the lock skips the animation.
+    const launchCheck = appLockEnabled ? Promise.resolve(false) : quickLaunchCheck;
+    void launchCheck.then((openedFromLink) => {
+      if (cancelled) return;
+      const mode = getSplashMode({
+        appLockEnabled,
+        openedFromLink,
+        reduceMotion,
+      });
+      setSplashMode(mode === 'none' ? null : mode);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [appLockEnabled, hasHydrated, reduceMotion, splashMode]);
+  // A link that answers after the quick check still cuts the animation short.
+  useEffect(() => {
+    let mounted = true;
+    void openedFromLinkPromise.then((openedFromLink) => {
+      if (mounted && openedFromLink) setSplashMode(null);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  const finishSplash = useCallback(() => setSplashMode(null), []);
+  // The app mounts under the story only once its first frame is up, so mounting
+  // it does not hold back that frame (slow on Android). The story's 2 s before
+  // its fade covers the mount; the short Reduce Motion fade would not, so the
+  // app mounts with it. Until the mode is decided the native splash is up.
+  const [splashStarted, setSplashStarted] = useState(false);
+  const startSplash = useCallback(() => setSplashStarted(true), []);
+  const splashActive = hasHydrated && splashMode !== null && !error;
+  const holdContent = splashActive && splashMode !== 'fade' && !splashStarted;
+  useEffect(() => {
+    if (splashMode !== null && !error) return;
+    endSplash();
+    if (!hasHydrated) return;
+    // The content may have laid out while the animation owned the hand-off, and
+    // a later onLayout prop change fires no event; hide here so it never sticks.
+    const frame = requestAnimationFrame(hideSplash);
+    return () => cancelAnimationFrame(frame);
+  }, [error, hasHydrated, splashMode]);
+  // While the launch animation is on screen it decides when the native splash goes.
+  const onContentLayout = splashActive ? undefined : hideSplash;
+  // Light icons over the black splash, whatever the theme.
+  const barStyle = useSplashIsDark() ? 'light' : statusBarStyle;
+  // Screen readers stay on the overlay, not the app hidden under it.
+  const contentA11y = splashActive ? HIDDEN_FROM_A11Y : undefined;
 
   const [primaryColor, primaryForeground, backgroundColor] = useCSSVariable([
     '--color-primary',
@@ -118,8 +221,12 @@ export default function Layout() {
       !devSetupReady ||
       (!fontsLoaded && !fontsError));
 
+  // Sync starts after the launch animation: its start-up work on the JS thread
+  // competes with the animation's frames on slower phones.
+  const launchAnimating = useSplashActive((s) => s.active);
   useEffect(() => {
     if (!success || !hasHydrated || !profileReady || !devSetupReady) return;
+    if (launchAnimating) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -135,7 +242,7 @@ export default function Layout() {
       cancelled = true;
       cloudSyncRuntime.stop();
     };
-  }, [devSetupReady, hasHydrated, profileReady, success]);
+  }, [devSetupReady, hasHydrated, launchAnimating, profileReady, success]);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {
@@ -187,16 +294,60 @@ export default function Layout() {
     return null;
   }
 
-  if (isBootstrapLoading) {
-    return (
-      <View className="flex-1" onLayout={hideSplash}>
-        <AppLoadingScreen />
-      </View>
-    );
-  }
-
+  // One stable parent, so the launch animation keeps running when bootstrap
+  // finishes underneath it.
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplash}>
+    <View className="flex-1">
+      {holdContent ? (
+        <View className="flex-1" {...contentA11y}>
+          <AppStatusBar style={barStyle} />
+        </View>
+      ) : isBootstrapLoading ? (
+        <View className="flex-1" onLayout={onContentLayout} {...contentA11y}>
+          <AppLoadingScreen />
+        </View>
+      ) : (
+        <AppContent
+          onLayout={onContentLayout}
+          a11yProps={contentA11y}
+          statusBarStyle={barStyle}
+          primaryColor={primaryColor as string}
+          primaryForeground={primaryForeground as string}
+        />
+      )}
+      {/* Until the mode is decided the native splash itself holds the frame. */}
+      {splashActive && splashMode ? (
+        <SplashAnimation
+          mode={splashMode}
+          onCover={hideSplash}
+          onStart={startSplash}
+          onFinish={finishSplash}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+const HIDDEN_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
+
+function AppContent({
+  onLayout,
+  a11yProps,
+  statusBarStyle,
+  primaryColor,
+  primaryForeground,
+}: {
+  onLayout: (() => void) | undefined;
+  a11yProps: typeof HIDDEN_FROM_A11Y | undefined;
+  statusBarStyle: 'light' | 'dark';
+  primaryColor: string;
+  primaryForeground: string;
+}) {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout} {...a11yProps}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaListener
           onChange={({ insets }) => {
@@ -208,8 +359,8 @@ export default function Layout() {
                 screenOptions={{
                   headerShown: false,
                   headerTitleAlign: 'center',
-                  headerTintColor: primaryForeground as string,
-                  headerStyle: { backgroundColor: primaryColor as string },
+                  headerTintColor: primaryForeground,
+                  headerStyle: { backgroundColor: primaryColor },
                   headerTitleStyle: { fontWeight: 'bold' },
                   // iOS native-stack screens default to 'auto', which follows the system
                   // appearance and overrides <AppStatusBar>. Android keeps AppStatusBar as the
@@ -283,6 +434,7 @@ export default function Layout() {
                 />
               </Stack>
               <ReminderNavigationObserver />
+              <PendingAppIconObserver />
               <DevSetupNavigation />
               <ScreenViewObserver />
               <AchievementDialogHost />

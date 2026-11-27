@@ -6,6 +6,7 @@ import { useSettingsStore } from '~/lib/settings';
 import { getThemeConfig } from '~/lib/theme/themes';
 import { TackbokLogo } from '~/components/TackbokLogo';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
+import { useSplashActive, useSplashIsDark } from '~/lib/splash';
 
 /** Square logo — matches default in `TackbokLogo`; used for vertical centering math. */
 const LOADING_LOGO_SIZE = 108;
@@ -21,14 +22,18 @@ export interface AppLoadingScreenProps {
 
 /**
  * Shown while fonts load and DB migrations run (after the native splash has dismissed),
- * or while the gratitude timeline query is still loading.
+ * or while Insights loads its first data.
  * Matches header chrome (`bg-primary`) and logo treatment used on milestones (`--color-foreground`).
  */
 export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = false }) => {
   const theme = useSettingsStore((s) => s.theme);
   const themeConfig = getThemeConfig(theme);
   const [foregroundColor] = useCSSVariable(['--color-foreground']);
-  const statusBarStyle = themeConfig.variant === 'dark' ? 'light' : 'dark';
+  const splashActive = useSplashActive((s) => s.active);
+  // Light icons while the black launch splash is on top.
+  const splashIsDark = useSplashIsDark();
+  const statusBarStyle =
+    splashIsDark || themeConfig.variant === 'dark' ? 'light' : 'dark';
 
   const content = (
     <SafeAreaView
@@ -43,7 +48,10 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
         </View>
         <View
           className="absolute inset-x-0 items-center"
-          style={{ top: '50%', marginTop: LOADING_LOGO_SIZE / 2 + LOGO_TO_SPINNER_GAP }}>
+          style={{
+            top: '50%',
+            marginTop: LOADING_LOGO_SIZE / 2 + LOGO_TO_SPINNER_GAP,
+          }}>
           <ActivityIndicator size="large" color={foregroundColor as string} />
         </View>
       </View>
@@ -51,6 +59,8 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
   );
 
   if (modal) {
+    // The launch animation covers loading; a native modal would draw above it.
+    if (splashActive) return null;
     return (
       <Modal
         visible

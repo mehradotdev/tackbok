@@ -1028,6 +1028,136 @@ describe('GoogleDriveSnapshotProvider', () => {
     }
   });
 
+  describe('the upload stall floor, shared by parallel uploads (#264)', () => {
+    /** A body the 64 KB/s floor carries in exactly 100 s. */
+    const BODY_BYTES = 64 * 100_000;
+
+    /** Moves the monotonic clock without firing timers, like a paused JS thread. */
+    let pausedMs = 0;
+
+    async function withUploads(
+      run: (start: () => () => string, answer: (count: number) => void) => Promise<void>,
+    ) {
+      jest.useFakeTimers();
+      pausedMs = 0;
+      try {
+        const answers: ((value: DriveResponseLike) => void)[] = [];
+        const transport = new DriveTransport({
+          auth: new FakeAuth(),
+          state: new MemoryDriveProviderStateStore(),
+          // Never answers on its own, like an upload on a slow or dead link.
+          fetch: () => new Promise<DriveResponseLike>((resolve) => answers.push(resolve)),
+          sleep: async () => {},
+          random: () => 0,
+          now: () => Date.now(),
+          monotonicNow: () => Date.now() + pausedMs,
+        });
+        const start = () => {
+          let outcome = 'pending';
+          transport
+            .request(
+              vaultId,
+              'create',
+              'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+              { method: 'POST', body: new Uint8Array(BODY_BYTES) },
+              { idempotent: false },
+            )
+            .then(
+              () => (outcome = 'uploaded'),
+              (error: Error) => (outcome = error.message),
+            );
+          return () => outcome;
+        };
+        const answer = (count: number) => {
+          for (const resolve of answers.splice(0, count)) resolve(response(200));
+        };
+        await run(start, answer);
+      } finally {
+        jest.useRealTimers();
+      }
+    }
+    const timedOut = 'Google Drive request timed out';
+
+    test('a lone upload keeps the 60 s grace plus its body at the floor rate', () =>
+      withUploads(async (start) => {
+        const upload = start();
+        await jest.advanceTimersByTimeAsync(159_999);
+        expect(upload()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(1);
+        expect(upload()).toBe(timedOut);
+      }));
+
+    test('six uploads are judged on their combined rate, and a dead link still aborts them', () =>
+      withUploads(async (start) => {
+        const uploads = Array.from({ length: 6 }, start);
+        // Each would have timed out here under a per-request floor.
+        await jest.advanceTimersByTimeAsync(400_000);
+        expect(uploads.map((upload) => upload())).toEqual(Array(6).fill('pending'));
+        await jest.advanceTimersByTimeAsync(259_000);
+        expect(uploads.map((upload) => upload())).toEqual(Array(6).fill('pending'));
+        // 60 s grace plus all six bodies at the floor rate.
+        await jest.advanceTimersByTimeAsync(2_000);
+        expect(uploads.map((upload) => upload())).toEqual(Array(6).fill(timedOut));
+        // Timed-out uploads left the floor: a new one has it all again.
+        const next = start();
+        await jest.advanceTimersByTimeAsync(159_999);
+        expect(next()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(1);
+        expect(next()).toBe(timedOut);
+      }));
+
+    test('an upload left alone gets the whole floor again', () =>
+      withUploads(async (start, answer) => {
+        const [last, ...others] = Array.from({ length: 6 }, start).reverse();
+        await jest.advanceTimersByTimeAsync(30_000);
+        answer(5);
+        await jest.advanceTimersByTimeAsync(0);
+        expect(others.map((upload) => upload())).toEqual(Array(5).fill('uploaded'));
+        await jest.advanceTimersByTimeAsync(129_000);
+        expect(last()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(2_000);
+        expect(last()).toBe(timedOut);
+      }));
+
+    test('a dead upload left alone after the grace aborts within a minute of its share', () =>
+      withUploads(async (start, answer) => {
+        const [last, ...others] = Array.from({ length: 6 }, start).reverse();
+        // Grace, then 60 s of sixths: 10 s of its 100 s credited.
+        await jest.advanceTimersByTimeAsync(120_000);
+        answer(5);
+        await jest.advanceTimersByTimeAsync(0);
+        expect(others.map((upload) => upload())).toEqual(Array(5).fill('uploaded'));
+        // The other 90 s now run at the full floor: due at 210 s, not 660 s.
+        await jest.advanceTimersByTimeAsync(89_000);
+        expect(last()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(62_000);
+        expect(last()).toBe('Google Drive request timed out');
+      }));
+
+    test('a check delayed past the grace still counts the time since it ended', () =>
+      withUploads(async (start) => {
+        const upload = start();
+        await jest.advanceTimersByTimeAsync(30_000);
+        // The grace timer fires 200 s late: the body's 100 s are long gone.
+        pausedMs = 200_000;
+        await jest.advanceTimersByTimeAsync(30_000);
+        expect(upload()).toBe(timedOut);
+      }));
+
+    test('uploads that join later stretch an upload already in flight', () =>
+      withUploads(async (start) => {
+        const first = start();
+        // 60 s grace, then half its body's floor time alone.
+        await jest.advanceTimersByTimeAsync(110_000);
+        Array.from({ length: 5 }, start);
+        // The other half now runs at a sixth of the floor: 300 s more.
+        await jest.advanceTimersByTimeAsync(299_000);
+        expect(first()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(2_000);
+        expect(first()).toBe(timedOut);
+      }));
+  });
+
   test('a token refresh that fails after cancellation records no provider failure', async () => {
     const controller = new AbortController();
     let fetches = 0;
@@ -1689,6 +1819,69 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(
       [...server.files.values()].filter((file) => file.sha256Checksum === hash),
     ).toHaveLength(1);
+  });
+
+  test('existence checks run a few at a time; a stale hit is still not cached', async () => {
+    const server = new FakeDriveServer();
+    // 60 blobs on Drive (two search groups), plus one deleted file a lagging
+    // search still returns.
+    const stored = Array.from({ length: 60 }, (_, i) => {
+      const bytes = new TextEncoder().encode(`parallel-${i}`);
+      const hash = sha256Bytes(bytes);
+      server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+      return hash;
+    });
+    const ghostBytes = new TextEncoder().encode('parallel-ghost');
+    const ghostHash = sha256Bytes(ghostBytes);
+    const ghost = server.seed(
+      vaultId,
+      `media/${ghostHash.slice(0, 2)}/${ghostHash}`,
+      'media',
+      ghostBytes,
+    );
+    server.files.delete(ghost.id);
+    server.staleSearch.set(ghost.id, ghost);
+    const absent = 'f'.repeat(64);
+    const gate = { inFlight: 0, most: 0 };
+    const app = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async (url, init) => {
+        gate.inFlight += 1;
+        gate.most = Math.max(gate.most, gate.inFlight);
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          return await server.fetch(url, init);
+        } finally {
+          gate.inFlight -= 1;
+        }
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+    });
+    await app.listHeads(vaultId, true);
+    // As after an interrupted first backup: every blob is asked fresh.
+    let answered = 0;
+    const found = await app.hasMediaBatch(
+      vaultId,
+      [...stored, ghostHash, absent, stored[0]],
+      true,
+      () => (answered += 1),
+    );
+    expect(found).toEqual(new Set(stored));
+    expect(answered).toBe(62);
+    expect(gate.most).toBeGreaterThan(1);
+    expect(gate.most).toBeLessThanOrEqual(6);
+    // Each hit was checked by ID: the ghost was not cached as present, so a
+    // cached look still asks Drive and an upload is made again.
+    const searches = server.calls.length;
+    expect(await app.hasMediaBatch(vaultId, [ghostHash])).toEqual(new Set());
+    expect(server.calls.length).toBeGreaterThan(searches);
+    // The real ones were cached: a cached look asks Drive nothing.
+    const before = server.calls.length;
+    expect(await app.hasMediaBatch(vaultId, stored)).toEqual(new Set(stored));
+    expect(server.calls.length).toBe(before);
   });
 
   test('the change feed never leaves a removed or trashed media file cached', async () => {
@@ -2674,6 +2867,78 @@ describe('GoogleDriveSnapshotProvider', () => {
       remaining: 0,
     });
     await expect(app.listRevocations(vaultId)).resolves.toEqual(['backup-deleted']);
+    expect([...server.files.values()].map((file) => file.appProperties.tb_kind)).toEqual([
+      'revocation',
+    ]);
+  });
+
+  test('a purge deletes a few at a time and is not failed by a search that lags its deletes', async () => {
+    const server = new FakeDriveServer();
+    for (let i = 0; i < 20; i++) {
+      const bytes = new TextEncoder().encode(`purge-${i}`);
+      const hash = sha256Bytes(bytes);
+      server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+    }
+    const gate = { inFlight: 0, most: 0, lagging: true };
+    let created: StoredDriveFile | null = null;
+    let survivor: string | null = null;
+    const app = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async (url, init = {}) => {
+        const deleting = String(init.method) === 'DELETE';
+        const id = deleting
+          ? decodeURIComponent(new URL(url).pathname.split('/').pop()!)
+          : '';
+        const file = deleting ? server.files.get(id) : undefined;
+        gate.inFlight += 1;
+        gate.most = Math.max(gate.most, gate.inFlight);
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          // One delete answers success but the file survives: still counted.
+          if (deleting && !survivor) {
+            survivor = id;
+            return new Response(null, { status: 204 });
+          }
+          const result = await server.fetch(url, init);
+          // Drive's search still lists most deleted files for a while.
+          if (file && gate.lagging) server.staleSearch.set(file.id, file);
+          // Another device uploads during the purge.
+          if (deleting && !created) {
+            const bytes = new TextEncoder().encode('purge-late');
+            const hash = sha256Bytes(bytes);
+            created = server.seed(
+              vaultId,
+              `media/${hash.slice(0, 2)}/${hash}`,
+              'media',
+              bytes,
+            );
+          }
+          return result;
+        } finally {
+          gate.inFlight -= 1;
+        }
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+    });
+    await app.publishRevocation(vaultId, 'journal-deleted');
+    // The late upload and the survivor remain: the lagging search results were
+    // checked by ID.
+    await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
+      deleted: 20,
+      remaining: 2,
+    });
+    expect(gate.most).toBeGreaterThan(1);
+    expect(gate.most).toBeLessThanOrEqual(6);
+    // "Resume deletion" finishes: the late file and the survivor go, and the files the search
+    // still lists are deleted again (Drive answers 404) without counting.
+    gate.lagging = false;
+    await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
+      deleted: 21,
+      remaining: 0,
+    });
     expect([...server.files.values()].map((file) => file.appProperties.tb_kind)).toEqual([
       'revocation',
     ]);

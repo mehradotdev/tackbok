@@ -17,7 +17,10 @@ const BASE_RETRY_DELAY_MS = 1_000;
 const MAX_RETRY_DELAY_MS = 30_000;
 /** Bounds waiting for response headers and each later body read (inactivity). */
 const REQUEST_TIMEOUT_MS = 60_000;
-/** Uploads below this sustained rate (64 KB/s) are treated as stalled. */
+/**
+ * Uploads below this sustained rate (64 KB/s), combined across the uploads in
+ * flight, are treated as stalled (see `UploadFloor`).
+ */
 const MIN_UPLOAD_BYTES_PER_MS = 64;
 
 export interface DriveResponseLike {
@@ -63,6 +66,69 @@ function requestBodyBytes(body: unknown): number {
 }
 
 /**
+ * The upload stall floor, shared by the uploads in flight. Neither expo/fetch
+ * nor its native clients bound an upload or report its progress, so an upload
+ * is stalled once the floor rate could have carried its body, after the usual
+ * 60 s grace. While n uploads are in flight each is credited 1/n of the
+ * elapsed time (processor sharing): six parallel uploads on a slow uplink are
+ * judged on their combined rate, not each on the full floor (#264), and a dead
+ * connection still aborts once the floor could have carried every body in
+ * flight. A lone upload keeps the plain 60 s + bytes / floor deadline.
+ */
+class UploadFloor {
+  private inFlight = 0;
+  /** Floor time credited to each upload in flight, summed since creation. */
+  private credited = 0;
+  private at: number;
+
+  constructor(private readonly now: () => number) {
+    this.at = now();
+  }
+
+  private advance(): number {
+    const now = this.now();
+    if (this.inFlight > 0) this.credited += (now - this.at) / this.inFlight;
+    this.at = now;
+    return this.credited;
+  }
+
+  /**
+   * Starts one upload. `remaining` is the real time left before it counts as
+   * stalled if the number in flight stays as it is, capped at
+   * `REQUEST_TIMEOUT_MS` so uploads finishing elsewhere (more credit) are seen
+   * within a minute; `finish` must be called once its response headers arrive
+   * or it fails.
+   */
+  start(bodyBytes: number): { remaining: () => number; finish: () => void } {
+    this.advance();
+    this.inFlight += 1;
+    const started = this.now();
+    const due = bodyBytes / MIN_UPLOAD_BYTES_PER_MS;
+    let creditedAtGraceEnd: number | null = null;
+    let finished = false;
+    return {
+      remaining: () => {
+        const grace = REQUEST_TIMEOUT_MS - (this.now() - started);
+        if (grace > 0) return grace;
+        // A late first check (JS paused, timer delayed) still counts the time
+        // since the grace ended, as shared by the uploads in flight now.
+        creditedAtGraceEnd ??= this.advance() + grace / this.inFlight;
+        return Math.min(
+          REQUEST_TIMEOUT_MS,
+          Math.ceil((due - (this.advance() - creditedAtGraceEnd)) * this.inFlight),
+        );
+      },
+      finish: () => {
+        if (finished) return;
+        finished = true;
+        this.advance();
+        this.inFlight -= 1;
+      },
+    };
+  }
+}
+
+/**
  * One request's cancellation: the pass signal plus a deadline for each phase
  * (headers, then every body read). Either aborts the fetch, so expo/fetch
  * cancels the native request and errors its body stream. Listeners and timers
@@ -79,16 +145,29 @@ class RequestGuard {
     return this.controller.signal;
   }
 
-  /** Runs one phase. Rejects promptly on abort even if `work` never settles. */
-  phase<T>(work: () => Promise<T>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+  /**
+   * Runs one phase. Rejects promptly on abort even if `work` never settles.
+   * It times out after `REQUEST_TIMEOUT_MS`, or with `remaining`, once that
+   * returns no time left; it is asked again each time its last answer ends.
+   */
+  phase<T>(work: () => Promise<T>, remaining?: () => number): Promise<T> {
     if (this.passSignal?.aborted) this.controller.abort();
     if (this.controller.signal.aborted) return Promise.reject(this.abortError());
     return new Promise<T>((resolve, reject) => {
       const abort = () => this.controller.abort();
-      const timer = setTimeout(() => {
-        this.timedOut = true;
-        this.controller.abort();
-      }, timeoutMs);
+      let timer: ReturnType<typeof setTimeout>;
+      const arm = (milliseconds: number) => {
+        timer = setTimeout(() => {
+          const left = remaining?.() ?? 0;
+          if (left > 0) {
+            arm(left);
+            return;
+          }
+          this.timedOut = true;
+          this.controller.abort();
+        }, milliseconds);
+      };
+      arm(remaining?.() ?? REQUEST_TIMEOUT_MS);
       let settled = false;
       const settle = () => {
         settled = true;
@@ -303,9 +382,11 @@ export class DriveTransport {
    * monotonic clock then: wall-clock jumps after it change nothing.
    */
   private serverSample: { date: number; at: number } | null = null;
+  private readonly uploadFloor: UploadFloor;
 
   constructor(private readonly options: DriveTransportOptions) {
     this.fetcher = options.fetch ?? defaultDriveFetch;
+    this.uploadFloor = new UploadFloor(() => this.monotonic());
   }
 
   /**
@@ -366,22 +447,26 @@ export class DriveTransport {
       await this.awaitRetryWindow(vaultId, attempt, signal, honored);
       const started = this.options.now();
       const guard = new RequestGuard(signal);
+      const bodyBytes = requestBodyBytes(init.body);
+      const upload = bodyBytes > 0 ? this.uploadFloor.start(bodyBytes) : null;
       let response: DriveResponseLike;
       try {
         response = guard.wrap(
-          await guard.phase(
-            () =>
-              this.fetcher(url, {
-                ...init,
-                headers: {
-                  ...((init.headers as Record<string, string> | undefined) ?? {}),
-                  Authorization: `Bearer ${token}`,
-                },
-                signal: guard.signal,
-              }),
-            REQUEST_TIMEOUT_MS +
-              Math.ceil(requestBodyBytes(init.body) / MIN_UPLOAD_BYTES_PER_MS),
-          ),
+          await guard
+            .phase(
+              () =>
+                this.fetcher(url, {
+                  ...init,
+                  headers: {
+                    ...((init.headers as Record<string, string> | undefined) ?? {}),
+                    Authorization: `Bearer ${token}`,
+                  },
+                  signal: guard.signal,
+                }),
+              upload?.remaining,
+            )
+            // Leaves the shared floor before any retry backoff.
+            .finally(() => upload?.finish()),
         );
       } catch (failure) {
         if (failure instanceof SyncCancelledError) throw failure;

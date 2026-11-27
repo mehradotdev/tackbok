@@ -79,7 +79,9 @@ function Button({ className, variant, size, ref, ...props }: ButtonProps) {
           buttonVariants({ variant, size }),
           className,
         )}
-        role="button"
+        // `role` outranks `accessibilityRole` in React Native, so a caller's
+        // switch, checkbox or radio role must not be masked by the default.
+        role={props.accessibilityRole ? undefined : 'button'}
         {...props}
       />
     </TextClassContext.Provider>

@@ -19,6 +19,10 @@ export const ar: Translations = {
   'greeting.happyFriday': 'جمعة سعيدة',
   'greeting.happySaturday': 'سبت سعيد',
   'greeting.withName': '{greeting}، {name}',
+  'greeting.christmasEve': 'ليلة عيد الميلاد سعيدة',
+  'greeting.merryChristmas': 'عيد ميلاد مجيد',
+  'greeting.newYearsEve': 'ليلة رأس السنة سعيدة',
+  'greeting.happyNewYear': 'سنة جديدة سعيدة',
 
   // Common
   'common.tackbok': 'تاكبوك',
@@ -41,6 +45,7 @@ export const ar: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'البحث في السجلات…',
+  'search.search': 'بحث',
   'search.startTypingToSearchYourGratitudeLogs': 'اكتب للبحث في سجلاتك',
   'search.searchFailed': 'فشل البحث',
   'search.noResults': 'لا توجد نتائج',
@@ -298,9 +303,19 @@ export const ar: Translations = {
   'appearance.firstDayOfWeek': 'أول يوم في الأسبوع',
   'appearance.firstDayOfWeekDescription': 'اختر اليوم الذي تبدأ به أسابيع التقويم',
   'appearance.appIcon': 'أيقونة التطبيق',
+  'appearance.festiveTouches': 'لمسات احتفالية',
+  'appearance.festiveTouchesDescription': 'تهانٍ واقتراحات في الأعياد',
   'appearance.changeAppIconTitle': 'تغيير أيقونة التطبيق؟',
   'appearance.changeAppIconMessage': 'سيُغلق تاكبوك لتطبيق الأيقونة الجديدة.',
   'appearance.changeIcon': 'تغيير الأيقونة',
+  'festive.promptTitle': 'أجواء احتفالية؟',
+  'festive.promptMessage': 'لدى تاكبوك أيقونة وسمة احتفاليتان لموسم الأعياد.',
+  'festive.takeALook': 'إلقاء نظرة',
+  'festive.notNow': 'ليس الآن',
+  'festive.switchBackTitle': 'العودة إلى مظهرك المعتاد؟',
+  'festive.switchBackMessage': 'ارجع إلى السمة والأيقونة اللتين كانتا لديك قبل الأعياد.',
+  'festive.switchBack': 'العودة',
+  'festive.keepIt': 'الإبقاء عليه',
 
   // Settings - Typography
   'typography.typography': 'الخطوط',
@@ -388,7 +403,10 @@ export const ar: Translations = {
     'سيتم استيراد السجلات من ملف CSV لتطبيق Presently. سيتم تخطي السجلات المكررة.',
   'backup.backupExportedSuccessfully': 'تم تصدير النسخة الاحتياطية بنجاح',
   'backup.exportFailed': 'فشل التصدير',
+  'backup.preparingBackup': 'جارٍ تجهيز النسخة الاحتياطية…',
+  'backup.nothingToExport': 'لا يوجد شيء لتصديره بعد.',
   'backup.importFailed': 'فشل الاستيراد',
+  'backup.importDataTooLarge': 'هذه النسخة الاحتياطية كبيرة جدًا بحيث لا يمكن استيرادها.',
   'backup.restoringTackbokBackup': 'جاري استعادة النسخة الاحتياطية لتاكبوك',
   'backup.loadPresentlyExport': 'تحميل تصدير Presently',
   'backup.importJournalEntries': 'استيراد سجلات اليوميات',
@@ -589,7 +607,8 @@ export const ar: Translations = {
   'onboarding.next': 'التالي',
   'onboarding.stepCurrentOfTotal': 'الخطوة {current} من {total}',
   'onboarding.getStarted': 'ابدأ الآن',
-  'onboarding.alreadyHaveAJournalImportIt': 'هل لديك يوميّات بالفعل؟ استوردها',
+  'onboarding.alreadyHaveAJournalImportIt': 'هل لديك يوميّات بالفعل؟ استعِدها أو استوردها',
+  'onboarding.welcome.version': 'الإصدار {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'مكان خاص لامتنانك — مجاني، ويعمل دون إنترنت، وملكك وحدك.',
   'onboarding.importYourJournal': 'استيراد يوميّاتك',
@@ -636,6 +655,8 @@ export const ar: Translations = {
   'onboarding.youreAllSet': 'كل شيء جاهز!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'أمران أخيران يمكنك تفعيلهما — كلاهما اختياري.',
+  'onboarding.appIconAppearsAfterLeaving': 'سيظهر رمزك الجديد بعد أن تغادر Tackbok.',
+  'onboarding.finish.oneOptionalThing': 'أمر أخير يمكنك تفعيله — وهو اختياري.',
   'onboarding.addExampleEntries': 'إضافة مدخلات تجريبية',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'بضع مدخلات تجريبية تُظهر كيفية عمل الصور والمذكّرات الصوتية والحالات المزاجية والوسوم. يمكنك إزالتها في أي وقت بضغطة واحدة.',
@@ -942,6 +963,8 @@ export const ar: Translations = {
   'cloud.progress.combiningChanges': 'جارٍ دمج التغييرات…',
   'cloud.progress.checkingDownload': 'جارٍ التحقق من التنزيل…',
   'cloud.progress.confirmingUpload': 'جارٍ تأكيد الرفع…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'جارٍ التحقق من الصور والملاحظات الصوتية المرفوعة…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'جارٍ رفع الصور والملاحظات الصوتية…',
   'cloud.progress.devicesChecked': 'الأجهزة التي تم فحصها: {done} من {count}',
   'cloud.progress.filesDownloaded': 'الملفات التي تم تنزيلها: {done} من {count}',
@@ -1037,7 +1060,7 @@ export const ar: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'حُذف دفتر يومياتك ونسخته الاحتياطية من كل مكان. امسح هذا الجهاز لإكمال العملية.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive.',
+    'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive. اضغط على «استئناف الحذف» للمحاولة مجددًا. إذا توقف مرة أخرى، اقطع الاتصال بـ Google Drive في Tackbok على جميع أجهزتك، ثم افتح إعدادات Google Drive على الويب، واختر إدارة التطبيقات › Tackbok › الخيارات، واحذف بيانات التطبيق المخفية.',
   'cloud.skippedHeads.unreadable':
     'لا يستطيع Tackbok قراءة النسخة الاحتياطية لجهاز واحد أو أكثر من أجهزتك، لذلك لم تُضمَّن التغييرات القادمة منها. تستمر المزامنة مع أجهزتك الأخرى.',
   'cloud.skippedHeads.clockAhead':

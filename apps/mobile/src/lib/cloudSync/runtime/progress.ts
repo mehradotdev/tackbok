@@ -21,6 +21,7 @@ export const STEP_FOR_PROGRESS_PHASE: Record<SyncProgressPhase, number> = {
   downloading: 2,
   merging: 3,
   uploading: 4,
+  'checking-media': 4,
   'uploading-media': 4,
   'downloading-media': 4,
 };

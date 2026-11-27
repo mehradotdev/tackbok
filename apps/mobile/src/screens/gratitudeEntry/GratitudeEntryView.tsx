@@ -182,7 +182,7 @@ export function GratitudeEntryView({
                 maxFontSizeMultiplier={MOOD_EMOJI_MAX_FONT_SCALE}>
                 {moodOption.emoji}
               </Text>
-              <Text className="shrink text-sm tracking-wide font-body-medium text-primary-foreground">
+              <Text className="shrink text-sm tracking-wide font-body-medium text-foreground">
                 {t(moodOption.feelingKey)}
               </Text>
             </View>

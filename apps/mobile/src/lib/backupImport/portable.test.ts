@@ -112,6 +112,7 @@ jest.mock('./archiveUtils', () => ({
     return trimmed ? trimmed : null;
   },
   assertSafeArchivePath: (path: string) => path,
+  assertZipJsonBudget: () => {},
   buildSubstantiveCheck: ({
     textTitle,
     textContent,

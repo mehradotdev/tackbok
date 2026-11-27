@@ -80,6 +80,8 @@ export function syncProgressLabel(
   switch (phase) {
     case 'merging':
       return t('cloud.progress.combiningChanges');
+    case 'checking-media':
+      return t('cloud.progress.checkingPhotosAndVoiceNotes');
     case 'uploading-media':
       return t('cloud.progress.uploadingPhotosAndVoiceNotes');
     default:
@@ -111,6 +113,8 @@ export function syncProgressDetail(
         : null;
     case 'uploading':
       return amount ? t('cloud.progress.doneOfTotal', amount) : null;
+    case 'checking-media':
+      return items ? t('cloud.progress.doneOfTotal', { ...items }) : null;
     case 'uploading-media':
     case 'downloading-media':
       if (items && amount) {

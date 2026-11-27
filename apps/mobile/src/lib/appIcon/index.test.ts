@@ -4,6 +4,8 @@ type NativeModule = {
   registeredIcons?: readonly string[];
   getAppIconName: jest.Mock<Promise<string | null>, [readonly string[]]>;
   setAppIcon: jest.Mock<Promise<void>, [string | null, readonly string[]]>;
+  setAppIconOnLeave?: jest.Mock<Promise<void>, [string | null, readonly string[]]>;
+  cancelAppIconOnLeave?: jest.Mock<Promise<void>, []>;
 };
 
 function load({
@@ -49,31 +51,49 @@ test('only Android asks before changing, because the app closes there', () => {
   expect(load({ native: fakeNative(), os: 'ios' }).appIconChangeClosesApp).toBe(false);
 });
 
+// The alternates of the first icon picker, before Christmas.
+const ORIGINAL_ICONS = [
+  'Sage',
+  'Midnight',
+  'Ocean',
+  'Terracotta',
+  'Rose',
+  'Plum',
+  'Blueprint',
+];
+
 test.each([
   [
     'a current Android binary',
-    ['Sage', 'Midnight', 'Ocean', 'Terracotta', 'Rose', 'Plum', 'Blueprint'],
+    [...ORIGINAL_ICONS, 'Christmas'],
+    [...ORIGINAL_ICONS, 'Christmas'],
   ],
-  ['an older Android binary', undefined],
+  // Built before registeredIcons existed: only the original icons, never later ones.
+  ['an older Android binary', undefined, ORIGINAL_ICONS],
 ])(
-  'production on %s offers every icon, with Classic as the bundled default',
-  async (_case, registeredIcons) => {
+  'production on %s offers the icons it has, with Classic as the bundled default',
+  async (_case, registeredIcons, icons) => {
     const native = fakeNative(registeredIcons);
-    const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, useAppIconStore } = load({ native });
+    const { APP_ICON_CHOICES, useAppIconStore } = load({ native });
     const { refresh, setIcon } = useAppIconStore.getState();
 
-    expect(APP_ICON_CHOICES).toEqual(['Classic', ...ALTERNATE_APP_ICONS]);
+    expect(APP_ICON_CHOICES).toEqual(['Classic', ...icons]);
     await refresh();
     expect(useAppIconStore.getState().current).toBe('Classic');
 
     await setIcon('Blueprint');
-    expect(native.setAppIcon).toHaveBeenLastCalledWith('Blueprint', ALTERNATE_APP_ICONS);
+    expect(native.setAppIcon).toHaveBeenLastCalledWith('Blueprint', icons);
     expect(useAppIconStore.getState().current).toBe('Blueprint');
     await setIcon('Classic');
-    expect(native.setAppIcon).toHaveBeenLastCalledWith(null, ALTERNATE_APP_ICONS);
+    expect(native.setAppIcon).toHaveBeenLastCalledWith(null, icons);
     expect(useAppIconStore.getState().current).toBe('Classic');
   },
 );
+
+test('production iOS offers the Christmas icon', () => {
+  const { APP_ICON_CHOICES } = load({ native: fakeNative(), os: 'ios' });
+  expect(APP_ICON_CHOICES).toContain('Christmas');
+});
 
 test.each(['android', 'ios'] as const)(
   'a beta binary on %s offers every icon, with Blueprint as the bundled default',
@@ -119,14 +139,14 @@ test('Android offers only the icons the binary registered', async () => {
 test('an older Android beta binary keeps the icons it was built with', async () => {
   // Built before the Classic alternate: no registeredIcons.
   const native = fakeNative();
-  const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, useAppIconStore } = load({
+  const { APP_ICON_CHOICES, useAppIconStore } = load({
     native,
     appVariant: 'beta',
   });
 
-  expect(APP_ICON_CHOICES).toEqual(ALTERNATE_APP_ICONS);
+  expect(APP_ICON_CHOICES).toEqual(ORIGINAL_ICONS);
   await useAppIconStore.getState().setIcon('Plum');
-  expect(native.setAppIcon).toHaveBeenLastCalledWith('Plum', ALTERNATE_APP_ICONS);
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Plum', ORIGINAL_ICONS);
 });
 
 test.each(['Blueprint', 'Retired'])(
@@ -159,4 +179,97 @@ test('without the native module nothing changes', async () => {
   expect(supportsAlternateIcons).toBe(false);
   await useAppIconStore.getState().setIcon('Sage');
   expect(useAppIconStore.getState().current).toBe('Classic');
+});
+
+/** A newer Android binary that can switch once the user leaves the app. */
+function fakeNativeWithLeave(): Required<NativeModule> {
+  return {
+    ...fakeNative(),
+    registeredIcons: [
+      'Sage',
+      'Midnight',
+      'Ocean',
+      'Terracotta',
+      'Rose',
+      'Plum',
+      'Blueprint',
+    ],
+    setAppIconOnLeave: jest.fn(
+      async (_name: string | null, _icons: readonly string[]) => {},
+    ),
+    cancelAppIconOnLeave: jest.fn(async () => {}),
+  };
+}
+
+test('onboarding offers icons on iOS and on Android binaries that can wait', () => {
+  expect(load({ native: fakeNative(), os: 'ios' }).canChooseIconInOnboarding).toBe(true);
+  expect(load({ native: fakeNative() }).canChooseIconInOnboarding).toBe(false);
+  expect(load({ native: fakeNativeWithLeave() }).canChooseIconInOnboarding).toBe(true);
+  expect(load({ native: null, os: 'ios' }).canChooseIconInOnboarding).toBe(false);
+});
+
+test('iOS switches the onboarding choice straight away', async () => {
+  const native = fakeNative();
+  const { useAppIconStore } = load({ native, os: 'ios' });
+
+  await useAppIconStore.getState().chooseInOnboarding('Ocean');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Ocean', expect.any(Array));
+  expect(useAppIconStore.getState()).toMatchObject({ current: 'Ocean', pending: null });
+});
+
+test('Android keeps the onboarding choice until it is handed over, never switching', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+  const store = () => useAppIconStore.getState();
+
+  await store().chooseInOnboarding('Plum');
+  expect(store()).toMatchObject({ current: 'Classic', pending: 'Plum' });
+  // Picking the current icon again drops the choice.
+  await store().chooseInOnboarding('Classic');
+  expect(store().pending).toBeNull();
+  await store().chooseInOnboarding('Rose');
+  expect(native.setAppIcon).not.toHaveBeenCalled();
+  expect(native.setAppIconOnLeave).not.toHaveBeenCalled();
+
+  await store().syncPendingOnLeave(false);
+  expect(native.setAppIconOnLeave).not.toHaveBeenCalled();
+
+  await store().syncPendingOnLeave(true);
+  expect(native.setAppIconOnLeave).toHaveBeenLastCalledWith('Rose', expect.any(Array));
+  expect(native.setAppIcon).not.toHaveBeenCalled();
+});
+
+test('a replayed or reset onboarding cancels a switch still waiting', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+  const store = () => useAppIconStore.getState();
+
+  await store().chooseInOnboarding('Plum');
+  await store().syncPendingOnLeave(true);
+  native.cancelAppIconOnLeave.mockClear();
+
+  await store().syncPendingOnLeave(false);
+  expect(native.cancelAppIconOnLeave).toHaveBeenCalledTimes(1);
+  // The choice is kept, so finishing onboarding again queues it again.
+  expect(store().pending).toBe('Plum');
+});
+
+test('Android clears the waiting choice once the icon has switched', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+
+  await useAppIconStore.getState().chooseInOnboarding('Sage');
+  native.getAppIconName.mockResolvedValue('Sage');
+  await useAppIconStore.getState().refresh();
+  expect(useAppIconStore.getState()).toMatchObject({ current: 'Sage', pending: null });
+});
+
+test('a later change in Settings replaces the waiting choice', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+
+  await useAppIconStore.getState().chooseInOnboarding('Sage');
+  await useAppIconStore.getState().setIcon('Ocean');
+  expect(native.cancelAppIconOnLeave).toHaveBeenCalled();
+  expect(useAppIconStore.getState()).toMatchObject({ current: 'Ocean', pending: null });
 });

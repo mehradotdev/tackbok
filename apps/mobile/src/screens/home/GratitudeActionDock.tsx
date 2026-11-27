@@ -12,6 +12,7 @@ import { cn } from 'tailwind-variants';
 import { useSettingsStore } from '~/lib/settings';
 import { usePetInteraction } from '~/components/backdrops/PetInteraction';
 import { gratitudeDockHeight } from './gratitude-dock-layout';
+import { useCoachMarkTarget } from './coachMarkTargets';
 import { Icon } from '~/components/ui/icon';
 import { useTranslation } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
@@ -171,6 +172,7 @@ function MeasuredGratitudeActionDock({
       isRTL,
       onToggle,
     });
+  const dockTargetRef = useCoachMarkTarget('dock');
   const directionMultiplier = isRTL ? -1 : 1;
   const collapsedChevronIcon = isRTL ? ChevronRight : ChevronLeft;
   const expandedChevronIcon = isRTL ? ChevronLeft : ChevronRight;
@@ -234,7 +236,11 @@ function MeasuredGratitudeActionDock({
       style={wrapperStyle}
       className={cn('absolute z-10', 'right-0 items-end')}>
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={shellShadowStyle} className="shadow-theme">
+        <Animated.View
+          ref={dockTargetRef}
+          collapsable={false}
+          style={shellShadowStyle}
+          className="shadow-theme">
           <Animated.View
             style={containerStyle}
             className={cn(
@@ -261,7 +267,7 @@ function MeasuredGratitudeActionDock({
                 disabled={!isExpanded}
                 onPress={onAddEntry}>
                 <View className="size-10 items-center justify-center rounded-full">
-                  <Icon as={Plus} className="text-primary-foreground" />
+                  <Icon as={Plus} className="text-foreground" />
                 </View>
               </DockActionButton>
 
@@ -270,7 +276,7 @@ function MeasuredGratitudeActionDock({
                 disabled={!isExpanded}
                 onPress={onPickDate}>
                 <View className="size-10 items-center justify-center rounded-full">
-                  <Icon as={Calendar} className="text-primary-foreground" />
+                  <Icon as={Calendar} className="text-foreground" />
                 </View>
               </DockActionButton>
               {showPet && (

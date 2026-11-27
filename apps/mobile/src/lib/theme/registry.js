@@ -99,8 +99,8 @@ export const THEMES = [
     "defaultTitleFontId": "baskervville"
   },
   {
-    "id": "weckner",
-    "name": "Weckner",
+    "id": "bea",
+    "name": "Bea",
     "description": "Forest dusk/brass lamplight",
     "variant": "dark",
     "enableTimelineBorders": false,
@@ -124,6 +124,51 @@ export const THEMES = [
     "enableTimelineBorders": false,
     "backdropId": "camino-night",
     "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "denise",
+    "name": "Denise",
+    "description": "Blue mountains in drifting morning mist",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "denise",
+    "defaultTitleFontId": "cinzel"
+  },
+  {
+    "id": "giuseppe",
+    "name": "Giuseppe",
+    "description": "A balanced stone tower by a lake at dusk",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "giuseppe",
+    "defaultTitleFontId": "lora"
+  },
+  {
+    "id": "kristen",
+    "name": "Kristen",
+    "description": "A granite wall above a misty pine valley",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "kristen",
+    "defaultTitleFontId": "figtree"
+  },
+  {
+    "id": "pine-night",
+    "name": "Pine Night",
+    "description": "Snow falling on a moonlit pine valley",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "pine-night",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "velvet",
+    "name": "Velvet",
+    "description": "Velvet drapes, fairy lights and a mantel clock",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "velvet",
+    "defaultTitleFontId": "cinzel"
   },
   {
     "id": "bubblegum",

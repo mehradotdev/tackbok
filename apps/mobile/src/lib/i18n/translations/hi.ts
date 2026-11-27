@@ -14,6 +14,10 @@ export const hi = {
   'greeting.happyFriday': 'शुभ शुक्रवार',
   'greeting.happySaturday': 'शनिवार मुबारक हो',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'क्रिसमस ईव मुबारक',
+  'greeting.merryChristmas': 'मेरी क्रिसमस',
+  'greeting.newYearsEve': 'नए साल की शाम मुबारक',
+  'greeting.happyNewYear': 'नया साल मुबारक',
   'common.tackbok': 'ताकबूक',
   'common.cancel': 'रद्द करें',
   'common.done': 'हो गया',
@@ -32,6 +36,7 @@ export const hi = {
   'common.unknownError': 'अज्ञात त्रुटि',
   'common.retry': 'फिर से कोशिश करें',
   'search.searchGratitudeLogs': 'प्रविष्टियाँ खोजें...',
+  'search.search': 'खोजें',
   'search.startTypingToSearchYourGratitudeLogs': 'अपनी प्रविष्टियाँ खोजने के लिए टाइप करें',
   'search.searchFailed': 'खोज विफल रही',
   'search.noResults': 'कोई परिणाम नहीं',
@@ -264,9 +269,19 @@ export const hi = {
   'appearance.firstDayOfWeek': 'सप्ताह का पहला दिन',
   'appearance.firstDayOfWeekDescription': 'चुनें कि आपके कैलेंडर में सप्ताह किस दिन से शुरू हो',
   'appearance.appIcon': 'ऐप आइकन',
+  'appearance.festiveTouches': 'त्योहारी रंग',
+  'appearance.festiveTouchesDescription': 'त्योहारों पर शुभकामनाएँ और सुझाव',
   'appearance.changeAppIconTitle': 'ऐप आइकन बदलें?',
   'appearance.changeAppIconMessage': 'नया आइकन लागू करने के लिए ताकबूक बंद हो जाएगा।',
   'appearance.changeIcon': 'आइकन बदलें',
+  'festive.promptTitle': 'त्योहार का मूड है?',
+  'festive.promptMessage': 'इस मौसम के लिए ताकबूक में एक त्योहारी आइकन और विषय है।',
+  'festive.takeALook': 'देखें',
+  'festive.notNow': 'अभी नहीं',
+  'festive.switchBackTitle': 'अपने सामान्य रूप पर लौटें?',
+  'festive.switchBackMessage': 'त्योहारों से पहले वाले विषय और आइकन पर वापस जाएँ।',
+  'festive.switchBack': 'वापस जाएँ',
+  'festive.keepIt': 'यही रखें',
   'typography.typography': 'टाइपोग्राफी',
   'typography.titleFont': 'टाइटल फ़ॉन्ट',
   'typography.chooseAFontForTitlesAndHeadings': 'शीर्षकों और शीर्षकों के लिए एक फ़ॉन्ट चुनें',
@@ -349,7 +364,10 @@ export const hi = {
     'यह Presently ऐप CSV फ़ाइल से प्रविष्टियाँ आयात करेगा। डुप्लिकेट प्रविष्टियाँ छोड़ दी जाएंगी।',
   'backup.backupExportedSuccessfully': 'बैकअप सफलतापूर्वक निर्यात किया गया',
   'backup.exportFailed': 'निर्यात विफल',
+  'backup.preparingBackup': 'आपका बैकअप तैयार हो रहा है…',
+  'backup.nothingToExport': 'अभी निर्यात करने के लिए कुछ नहीं है।',
   'backup.importFailed': 'आयात विफल',
+  'backup.importDataTooLarge': 'यह बैकअप आयात करने के लिए बहुत बड़ा है।',
   'backup.restoringTackbokBackup': 'ताकबूक बैकअप पुनर्स्थापित किया जा रहा है',
   'backup.loadPresentlyExport': 'Presently निर्यात लोड करें',
   'backup.importJournalEntries': 'डायरी प्रविष्टियाँ आयात करें',
@@ -540,7 +558,9 @@ export const hi = {
   'onboarding.next': 'अगला',
   'onboarding.stepCurrentOfTotal': '{total} का चरण {current}',
   'onboarding.getStarted': 'शुरू हो जाओ',
-  'onboarding.alreadyHaveAJournalImportIt': 'क्या आपके पास पहले से डायरी है? इसे आयात करें',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'क्या आपके पास पहले से डायरी है? इसे पुनर्स्थापित या आयात करें',
+  'onboarding.welcome.version': 'संस्करण {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'आपकी कृतज्ञता के लिए एक निजी स्थान. मुफ़्त, ऑफ़लाइन, आपका।',
   'onboarding.importYourJournal': 'अपनी डायरी आयात करें',
@@ -588,6 +608,9 @@ export const hi = {
   'onboarding.youreAllSet': 'तुम सब सेट हो!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'दो आखिरी चीजें जिन्हें आप चालू कर सकते हैं। दोनों वैकल्पिक हैं.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Tackbok से बाहर जाने के बाद आपका नया आइकन दिखेगा।',
+  'onboarding.finish.oneOptionalThing': 'एक आखिरी चीज़ जिसे आप चालू कर सकते हैं। यह वैकल्पिक है।',
   'onboarding.addExampleEntries': 'उदाहरण प्रविष्टियाँ जोड़ें',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'कुछ नमूना प्रविष्टियाँ दिखाती हैं कि फ़ोटो, वॉयस नोट्स, मूड और टैग कैसे काम करते हैं। उन्हें किसी भी समय एक टैप से हटा दें।',
@@ -886,6 +909,8 @@ export const hi = {
   'cloud.progress.combiningChanges': 'परिवर्तन मिलाए जा रहे हैं…',
   'cloud.progress.checkingDownload': 'डाउनलोड जाँचा जा रहा है…',
   'cloud.progress.confirmingUpload': 'अपलोड की पुष्टि हो रही है…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'अपलोड किए गए फ़ोटो और वॉइस नोट जाँचे जा रहे हैं…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'फ़ोटो और वॉइस नोट अपलोड हो रहे हैं…',
   'cloud.progress.devicesChecked': '{count} में से {done} डिवाइस जाँचे गए',
   'cloud.progress.filesDownloaded': '{count} में से {done} फ़ाइलें डाउनलोड हुईं',
@@ -981,7 +1006,7 @@ export const hi = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'आपकी डायरी और उसका बैकअप हर जगह से हटा दिए गए हैं। पूरा करने के लिए इस डिवाइस को मिटाएं।',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'आपका बैकअप हटाना पूरा नहीं हुआ। हो सकता है उसका कुछ हिस्सा अब भी Google Drive में हो।',
+    'आपका बैकअप हटाना पूरा नहीं हुआ। हो सकता है उसका कुछ हिस्सा अब भी Google Drive में हो। फिर से कोशिश करने के लिए "हटाना फिर से शुरू करें" पर टैप करें। अगर यह बार-बार रुकता है, तो अपने सभी डिवाइसों पर Tackbok में Google Drive को डिस्कनेक्ट करें, फिर वेब पर Google Drive में सेटिंग्स › ऐप प्रबंधित करें › Tackbok › विकल्प खोलकर छिपा हुआ ऐप डेटा मिटाएँ।',
   'cloud.skippedHeads.unreadable':
     'Tackbok आपके एक या अधिक डिवाइस का बैकअप नहीं पढ़ पा रहा है, इसलिए उनके बदलाव शामिल नहीं हैं। आपके दूसरे डिवाइस के साथ सिंक जारी है।',
   'cloud.skippedHeads.clockAhead':

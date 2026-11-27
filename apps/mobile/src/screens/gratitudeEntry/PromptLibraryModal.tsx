@@ -232,14 +232,14 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
                   'border',
                   isSelected
                     ? 'bg-primary-foreground border-primary-foreground'
-                    : 'bg-primary/20 border-primary-foreground/30',
+                    : 'bg-primary/20 border-foreground/30',
                 )}>
                 <View className="flex-row items-center gap-2">
                   <Text className="text-xl">{category.emoji}</Text>
                   <Text
                     className={cn(
                       'text-sm font-body-medium',
-                      isSelected ? 'text-primary' : 'text-primary-foreground',
+                      isSelected ? 'text-primary' : 'text-foreground',
                     )}>
                     {t(category.labelKey)}
                   </Text>

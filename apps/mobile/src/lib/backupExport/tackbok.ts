@@ -35,8 +35,23 @@ import {
   getRelativeAssetFile,
   saveOrShareZipFile,
 } from './utils';
+import { FILES_PER_PAUSE, pauseForApp, stringifyArrayInPieces } from './jsonInPieces';
 
-export async function exportToBackupZip(): Promise<void> {
+/** The journal, tags, prompts and profile are all empty. */
+export class NothingToExportError extends Error {
+  constructor() {
+    super('No backup data to export');
+    this.name = 'NothingToExportError';
+  }
+}
+
+/**
+ * `onPacked` runs once the ZIP is built, just before the save dialog or share
+ * sheet opens, so a "preparing" message can end while the user chooses.
+ */
+export async function exportToBackupZip(
+  options: { onPacked?: () => void } = {},
+): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
     await runExclusiveDbTransaction(async (tx) =>
       Promise.all([
@@ -77,7 +92,7 @@ export async function exportToBackupZip(): Promise<void> {
     !profileEmail &&
     !profileImageUri
   ) {
-    throw new Error('No backup data to export');
+    throw new NothingToExportError();
   }
 
   const tagMap = new Map(allTags.map((tag) => [tag.tag_id, tag.title]));
@@ -123,6 +138,9 @@ export async function exportToBackupZip(): Promise<void> {
     // Opportunistically remove older shared backups that were kept around to avoid the iOS share race.
     cleanupDeferredBackupZipFiles();
 
+    // Local files are added without waiting on anything real, so 1,590 of them
+    // held a low-end Android phone for ~4 s in one go (#185 P15).
+    let added = 0;
     for (const entry of portableEntries) {
       const exportedAssets: PortableEntry['assets'] = [];
 
@@ -138,6 +156,7 @@ export async function exportToBackupZip(): Promise<void> {
 
         try {
           await zip.addFile(asset.path, sourceFile);
+          if (++added % FILES_PER_PAUSE === 0) await pauseForApp();
           exportedAssets.push(asset);
 
           if (asset.path.startsWith(`${BACKUP_MEDIA_PREFIX}/photos/`)) {
@@ -192,12 +211,13 @@ export async function exportToBackupZip(): Promise<void> {
     };
 
     await zip.addText(BACKUP_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
-    await zip.addText(BACKUP_ENTRIES_PATH, JSON.stringify(exportedEntries, null, 2));
+    await zip.addText(BACKUP_ENTRIES_PATH, await stringifyArrayInPieces(exportedEntries));
     await zip.addText(BACKUP_TAGS_PATH, JSON.stringify(portableTags, null, 2));
     await zip.addText(BACKUP_PROMPTS_PATH, JSON.stringify(portablePrompts, null, 2));
     await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));
 
     await zip.close();
+    options.onPacked?.();
     cleanupStrategy = await saveOrShareZipFile(tempZipFile, fileName);
   } catch (error) {
     await zip.abort();

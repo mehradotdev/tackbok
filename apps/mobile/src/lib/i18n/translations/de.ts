@@ -19,6 +19,10 @@ export const de: Translations = {
   'greeting.happyFriday': 'Schönen Freitag',
   'greeting.happySaturday': 'Schönen Samstag',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'Schönen Heiligabend',
+  'greeting.merryChristmas': 'Frohe Weihnachten',
+  'greeting.newYearsEve': 'Guten Rutsch',
+  'greeting.happyNewYear': 'Frohes neues Jahr',
 
   // Common
   'common.tackbok': 'Tackbok',
@@ -41,6 +45,7 @@ export const de: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'Einträge durchsuchen …',
+  'search.search': 'Suchen',
   'search.startTypingToSearchYourGratitudeLogs':
     'Tippe etwas ein, um deine Einträge zu durchsuchen',
   'search.searchFailed': 'Suche fehlgeschlagen',
@@ -333,10 +338,22 @@ export const de: Translations = {
   'appearance.firstDayOfWeekDescription':
     'Wähle, an welchem Tag deine Kalenderwochen beginnen',
   'appearance.appIcon': 'App-Symbol',
+  'appearance.festiveTouches': 'Festliche Akzente',
+  'appearance.festiveTouchesDescription': 'Feiertagsgrüße und Vorschläge',
   'appearance.changeAppIconTitle': 'App-Symbol ändern?',
   'appearance.changeAppIconMessage':
     'Tackbok wird geschlossen, um das neue Symbol zu übernehmen.',
   'appearance.changeIcon': 'Symbol ändern',
+  'festive.promptTitle': 'Lust auf Festtagsstimmung?',
+  'festive.promptMessage':
+    'Tackbok hat für die Feiertage ein festliches Symbol und Design.',
+  'festive.takeALook': 'Ansehen',
+  'festive.notNow': 'Nicht jetzt',
+  'festive.switchBackTitle': 'Zurück zum gewohnten Aussehen?',
+  'festive.switchBackMessage':
+    'Wechsle zurück zum Design und Symbol, die du vor den Feiertagen hattest.',
+  'festive.switchBack': 'Zurückwechseln',
+  'festive.keepIt': 'Behalten',
 
   // Settings - Typography
   'typography.typography': 'Typografie',
@@ -433,7 +450,10 @@ export const de: Translations = {
     'Dadurch werden Einträge aus einer CSV-Datei der Presently App importiert. Doppelte Einträge werden übersprungen.',
   'backup.backupExportedSuccessfully': 'Sicherung erfolgreich exportiert',
   'backup.exportFailed': 'Export fehlgeschlagen',
+  'backup.preparingBackup': 'Sicherung wird vorbereitet…',
+  'backup.nothingToExport': 'Es gibt noch nichts zu exportieren.',
   'backup.importFailed': 'Import fehlgeschlagen',
+  'backup.importDataTooLarge': 'Diese Sicherung ist zu groß zum Importieren.',
   'backup.restoringTackbokBackup': 'Tackbok-Sicherung wird wiederhergestellt',
   'backup.loadPresentlyExport': 'Presently-Export laden',
   'backup.importJournalEntries': 'Tagebucheinträge importieren',
@@ -639,7 +659,9 @@ export const de: Translations = {
   'onboarding.next': 'Weiter',
   'onboarding.stepCurrentOfTotal': 'Schritt {current} von {total}',
   'onboarding.getStarted': 'Loslegen',
-  'onboarding.alreadyHaveAJournalImportIt': 'Du hast bereits ein Tagebuch? Importiere es',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'Du hast bereits ein Tagebuch? Wiederherstellen oder importieren',
+  'onboarding.welcome.version': 'Version {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'Ein privater Ort für deine Dankbarkeit. Kostenlos, offline und ganz für dich.',
   'onboarding.importYourJournal': 'Dein Tagebuch importieren',
@@ -686,6 +708,10 @@ export const de: Translations = {
   'onboarding.youreAllSet': 'Alles ist bereit!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Du kannst noch zwei Dinge aktivieren – beide sind optional.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Dein neues Symbol erscheint, nachdem du Tackbok verlassen hast.',
+  'onboarding.finish.oneOptionalThing':
+    'Eine letzte Sache kannst du noch aktivieren – sie ist optional.',
   'onboarding.addExampleEntries': 'Beispieleinträge hinzufügen',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Einige Beispieleinträge zeigen, wie Fotos, Sprachnotizen, Stimmungen und Tags funktionieren. Du kannst sie jederzeit mit einem Tippen entfernen.',
@@ -1014,6 +1040,8 @@ export const de: Translations = {
   'cloud.progress.combiningChanges': 'Änderungen werden zusammengeführt…',
   'cloud.progress.checkingDownload': 'Download wird geprüft…',
   'cloud.progress.confirmingUpload': 'Upload wird bestätigt…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Hochgeladene Fotos und Sprachnotizen werden geprüft…',
   'cloud.progress.uploadingPhotosAndVoiceNotes':
     'Fotos und Sprachnotizen werden hochgeladen…',
   'cloud.progress.devicesChecked': '{done} von {count} Geräten geprüft',
@@ -1113,7 +1141,7 @@ export const de: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Dein Tagebuch und seine Sicherung wurden überall gelöscht. Lösche dieses Gerät, um den Vorgang abzuschließen.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive.',
+    'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive. Tippe auf „Löschung fortsetzen“, um es erneut zu versuchen. Bricht es immer wieder ab, trenne Google Drive in Tackbok auf all deinen Geräten. Öffne dann Google Drive im Web, gehe zu Einstellungen › Apps verwalten › Tackbok › Optionen und lösche die verborgenen App-Daten.',
   'cloud.skippedHeads.unreadable':
     'Tackbok kann die Sicherung eines oder mehrerer deiner Geräte nicht lesen, daher fehlen deren Änderungen. Die Synchronisierung läuft mit deinen anderen Geräten weiter.',
   'cloud.skippedHeads.clockAhead':

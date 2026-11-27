@@ -268,9 +268,9 @@
     }
 
     /* ═══════════════════════════════════════════
-       WECKNER — Forest dusk/brass lamplight
+       BEA — Forest dusk/brass lamplight
        ═══════════════════════════════════════════ */
-    @variant weckner {
+    @variant bea {
       --color-background: #16211a;
       --color-foreground: #d7e3d2;
       --color-card: #1d2a21;
@@ -363,6 +363,176 @@
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
       --font-heading: 'SpaceMono_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       DENISE — Blue mountains in drifting morning mist
+       ═══════════════════════════════════════════ */
+    @variant denise {
+      --color-background: #e6edf3;
+      --color-foreground: #1d2f42;
+      --color-card: #f1f5f8;
+      --color-card-foreground: #1d2f42;
+      --color-popover: #f6f8fb;
+      --color-popover-foreground: #1d2f42;
+      --color-primary: #46637f;
+      --color-primary-foreground: #f5f8fb;
+      --color-secondary: #d6e0ea;
+      --color-secondary-foreground: #1d2f42;
+      --color-muted: #d6e0ea;
+      --color-muted-foreground: #4a5d71;
+      --color-accent: #c6d4e1;
+      --color-accent-foreground: #1d2f42;
+      --color-destructive: #a8443a;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #b8c7d6;
+      --color-input: #d1dce7;
+      --color-ring: #5a7a99;
+      --color-active-overlay: rgba(29, 47, 66, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(29, 47, 66, 0.1);
+      --font-heading: 'Cinzel_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       GIUSEPPE — A balanced stone tower by a lake at dusk
+       ═══════════════════════════════════════════ */
+    @variant giuseppe {
+      --color-background: #10262a;
+      --color-foreground: #e6eee9;
+      --color-card: #173236;
+      --color-card-foreground: #e6eee9;
+      --color-popover: #1c3a3e;
+      --color-popover-foreground: #e6eee9;
+      --color-primary: #d39a5a;
+      --color-primary-foreground: #1c140c;
+      --color-secondary: #21403f;
+      --color-secondary-foreground: #e6eee9;
+      --color-muted: #1b3638;
+      --color-muted-foreground: #a3bcb8;
+      --color-accent: #3e5f5c;
+      --color-accent-foreground: #eef3ef;
+      --color-destructive: #ef9a8e;
+      --color-destructive-foreground: #2a1512;
+      --color-border: #2c4c4d;
+      --color-input: #1c3a3e;
+      --color-ring: #e0a866;
+      --color-active-overlay: rgba(230, 238, 233, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --font-heading: 'Lora_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       KRISTEN — A granite wall above a misty pine valley
+       ═══════════════════════════════════════════ */
+    @variant kristen {
+      --color-background: #ece6dc;
+      --color-foreground: #2a2f35;
+      --color-card: #f4f0ea;
+      --color-card-foreground: #2a2f35;
+      --color-popover: #f8f5f0;
+      --color-popover-foreground: #2a2f35;
+      --color-primary: #3f5e4c;
+      --color-primary-foreground: #f4f1ea;
+      --color-secondary: #e0d9cd;
+      --color-secondary-foreground: #2a2f35;
+      --color-muted: #e0d9cd;
+      --color-muted-foreground: #5b5852;
+      --color-accent: #d3cbbd;
+      --color-accent-foreground: #2a2f35;
+      --color-destructive: #a8443a;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #cbc2b4;
+      --color-input: #ddd6ca;
+      --color-ring: #5d7a68;
+      --color-active-overlay: rgba(42, 47, 53, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(42, 47, 53, 0.1);
+      --font-heading: 'Figtree_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       PINE-NIGHT — Snow falling on a moonlit pine valley
+       ═══════════════════════════════════════════ */
+    @variant pine-night {
+      --color-background: #0c1b22;
+      --color-foreground: #e8efe9;
+      --color-card: #132830;
+      --color-card-foreground: #e8efe9;
+      --color-popover: #183039;
+      --color-popover-foreground: #e8efe9;
+      --color-primary: #b23a48;
+      --color-primary-foreground: #fbf1ee;
+      --color-secondary: #1c3540;
+      --color-secondary-foreground: #e8efe9;
+      --color-muted: #16303a;
+      --color-muted-foreground: #a9bec4;
+      --color-accent: #2b4a52;
+      --color-accent-foreground: #eef4f1;
+      --color-destructive: #f0a09a;
+      --color-destructive-foreground: #2a1214;
+      --color-border: #2a4650;
+      --color-input: #183039;
+      --color-ring: #e0707c;
+      --color-active-overlay: rgba(232, 239, 233, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       VELVET — Velvet drapes, fairy lights and a mantel clock
+       ═══════════════════════════════════════════ */
+    @variant velvet {
+      --color-background: #2c0d17;
+      --color-foreground: #f3e6d8;
+      --color-card: #3a1521;
+      --color-card-foreground: #f3e6d8;
+      --color-popover: #431a27;
+      --color-popover-foreground: #f3e6d8;
+      --color-primary: #d4a64a;
+      --color-primary-foreground: #2a1408;
+      --color-secondary: #45192a;
+      --color-secondary-foreground: #f3e6d8;
+      --color-muted: #3a1521;
+      --color-muted-foreground: #cdb0b3;
+      --color-accent: #5a2436;
+      --color-accent-foreground: #f8ece0;
+      --color-destructive: #f2a093;
+      --color-destructive-foreground: #2a0f0c;
+      --color-border: #5a2a38;
+      --color-input: #431a27;
+      --color-ring: #e0b860;
+      --color-active-overlay: rgba(243, 230, 216, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --font-heading: 'Cinzel_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
       --font-body-semibold: 'Inter_600SemiBold';

@@ -14,6 +14,10 @@ export const sv = {
   'greeting.happyFriday': 'Trevlig fredag',
   'greeting.happySaturday': 'Trevlig lördag',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'God julafton',
+  'greeting.merryChristmas': 'God jul',
+  'greeting.newYearsEve': 'Trevlig nyårsafton',
+  'greeting.happyNewYear': 'Gott nytt år',
   'common.tackbok': 'Tackbok',
   'common.cancel': 'Avbryt',
   'common.done': 'Klar',
@@ -32,6 +36,7 @@ export const sv = {
   'common.unknownError': 'Okänt fel',
   'common.retry': 'Försök igen',
   'search.searchGratitudeLogs': 'Sök poster...',
+  'search.search': 'Sök',
   'search.startTypingToSearchYourGratitudeLogs': 'Skriv för att söka i dina poster',
   'search.searchFailed': 'Sökningen misslyckades',
   'search.noResults': 'Inga resultat',
@@ -268,9 +273,20 @@ export const sv = {
   'appearance.firstDayOfWeek': 'Första dagen i veckan',
   'appearance.firstDayOfWeekDescription': 'Välj vilken dag dina kalenderveckor börjar på',
   'appearance.appIcon': 'Appikon',
+  'appearance.festiveTouches': 'Festliga detaljer',
+  'appearance.festiveTouchesDescription': 'Hälsningar och förslag under högtiderna',
   'appearance.changeAppIconTitle': 'Byta appikon?',
   'appearance.changeAppIconMessage': 'Tackbok stängs för att byta till den nya ikonen.',
   'appearance.changeIcon': 'Byt ikon',
+  'festive.promptTitle': 'Känner du dig festlig?',
+  'festive.promptMessage': 'Tackbok har en högtidsikon och ett högtidstema för säsongen.',
+  'festive.takeALook': 'Ta en titt',
+  'festive.notNow': 'Inte nu',
+  'festive.switchBackTitle': 'Tillbaka till ditt vanliga utseende?',
+  'festive.switchBackMessage':
+    'Byt tillbaka till temat och ikonen du hade före högtiderna.',
+  'festive.switchBack': 'Byt tillbaka',
+  'festive.keepIt': 'Behåll',
   'typography.typography': 'Typografi',
   'typography.titleFont': 'Typsnitt för titel',
   'typography.chooseAFontForTitlesAndHeadings':
@@ -357,7 +373,10 @@ export const sv = {
     'Detta kommer att importera poster från en Presently app CSV-fil. Dubbletter kommer att hoppas över.',
   'backup.backupExportedSuccessfully': 'Säkerhetskopieringen har exporterats',
   'backup.exportFailed': 'Exporten misslyckades',
+  'backup.preparingBackup': 'Förbereder säkerhetskopian…',
+  'backup.nothingToExport': 'Det finns inget att exportera än.',
   'backup.importFailed': 'Importen misslyckades',
+  'backup.importDataTooLarge': 'Den här säkerhetskopian är för stor för att importeras.',
   'backup.restoringTackbokBackup': 'Återställer Tackbok-säkerhetskopia',
   'backup.loadPresentlyExport': 'Ladda Presently-export',
   'backup.importJournalEntries': 'Importera dagboksanteckningar',
@@ -550,7 +569,9 @@ export const sv = {
   'onboarding.next': 'Nästa',
   'onboarding.stepCurrentOfTotal': 'Steg {current} av {total}',
   'onboarding.getStarted': 'Kom igång',
-  'onboarding.alreadyHaveAJournalImportIt': 'Har du redan en dagbok? Importera den',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'Har du redan en dagbok? Återställ eller importera den',
+  'onboarding.welcome.version': 'Version {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'En privat plats för din tacksamhet. Gratis, offline, din.',
   'onboarding.importYourJournal': 'Importera din dagbok',
@@ -597,6 +618,9 @@ export const sv = {
   'onboarding.youreAllSet': 'Du är klar!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Två sista saker du kan slå på. Båda är valfria.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Din nya ikon visas när du har lämnat Tackbok.',
+  'onboarding.finish.oneOptionalThing': 'En sista sak du kan slå på. Den är valfri.',
   'onboarding.addExampleEntries': 'Lägg till exempelposter',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Några exempelanteckningar visar hur foton, röstanteckningar, sinnesstämningar och etiketter fungerar. Ta bort dem när som helst med ett tryck.',
@@ -904,6 +928,8 @@ export const sv = {
   'cloud.progress.combiningChanges': 'Ändringarna slås ihop…',
   'cloud.progress.checkingDownload': 'Kontrollerar nedladdningen…',
   'cloud.progress.confirmingUpload': 'Bekräftar uppladdningen…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Kontrollerar uppladdade foton och röstanteckningar…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Laddar upp foton och röstanteckningar…',
   'cloud.progress.devicesChecked': '{done} av {count} enheter kontrollerade',
   'cloud.progress.filesDownloaded': '{done} av {count} filer nedladdade',
@@ -1002,7 +1028,7 @@ export const sv = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Din dagbok och dess säkerhetskopia har raderats överallt. Radera den här enheten för att slutföra.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'Borttagningen av din säkerhetskopia slutfördes inte. En del av den kan finnas kvar i Google Drive.',
+    'Borttagningen av din säkerhetskopia slutfördes inte. En del av den kan finnas kvar i Google Drive. Tryck på ”Återuppta borttagningen” för att försöka igen. Om den fortsätter att avbrytas, koppla bort Google Drive i Tackbok på alla dina enheter och öppna sedan Google Drive på webben: Inställningar › Hantera appar › Tackbok › Alternativ, och ta bort dolda appdata.',
   'cloud.skippedHeads.unreadable':
     'Tackbok kan inte läsa säkerhetskopian från en eller flera av dina enheter, så ändringar därifrån tas inte med. Synkroniseringen fortsätter med dina andra enheter.',
   'cloud.skippedHeads.clockAhead':

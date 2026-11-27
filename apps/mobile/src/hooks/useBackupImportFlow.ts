@@ -6,6 +6,7 @@ import {
   createBackupImportProgress,
   createSummaryProgressMetrics,
   getImportPhaseOrder,
+  ImportDataTooLargeError,
   importFromGratitudeAppBackup,
   importFromPresentlyCSV,
   importFromTackbokBackup,
@@ -111,7 +112,12 @@ export function useBackupImportFlow(
       } catch (error) {
         setImportProgress(null);
         track('import_failed', { source });
-        const message = error instanceof Error ? error.message : t('backup.importFailed');
+        const message =
+          error instanceof ImportDataTooLargeError
+            ? t('backup.importDataTooLarge')
+            : error instanceof Error
+              ? error.message
+              : t('backup.importFailed');
         toast.error(message);
       }
     },

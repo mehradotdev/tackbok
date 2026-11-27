@@ -21,6 +21,7 @@ import {
   type JournalPromptsMode,
 } from '~/lib/journalPrompts';
 import type { Achievement } from '~/lib/achievements';
+import type { FestiveSwitch } from '~/lib/seasonal/festivePrompt';
 import {
   runInCloudSyncTransaction,
   updateProfileInTransaction,
@@ -60,6 +61,8 @@ interface SettingsState {
   dateIncludesDayOfWeek: boolean;
   firstDayOfWeek: FirstDayOfWeek;
   showTimelineBorders: boolean;
+  /** Seasonal greetings, decorations and theme/icon suggestions (lib/seasonal). */
+  festiveTouchesEnabled: boolean;
 
   // Typography
   titleFont: TitleFontSelection;
@@ -108,6 +111,12 @@ interface SettingsState {
 
   pendingAchievement: Achievement | null;
 
+  // Seasonal suggestions (per device)
+  /** Season key of the last "Feeling festive?" shown. */
+  festivePromptSeason: string | null;
+  /** The look before "Take a look", for the later switch-back offer. */
+  festiveSwitch: FestiveSwitch | null;
+
   // Hydration status
   _hasHydrated: boolean;
 
@@ -122,6 +131,7 @@ interface SettingsState {
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void;
   setShowTimelineBorders: (enabled: boolean) => void;
+  setFestiveTouchesEnabled: (enabled: boolean) => void;
   setTitleFont: (fontId: TitleFontSelection) => void;
   setBodyFontSize: (size: BodyFontSize) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
@@ -142,6 +152,8 @@ interface SettingsState {
   setSampleEntriesBannerDismissed: (dismissed: boolean) => void;
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
   setPendingAchievement: (achievement: Achievement | null) => void;
+  setFestivePromptSeason: (season: string | null) => void;
+  setFestiveSwitch: (festiveSwitch: FestiveSwitch | null) => void;
   setHasHydrated: (hydrated: boolean) => void;
   markLegacyProfileMigrationComplete: () => void;
 }
@@ -158,6 +170,7 @@ const DEFAULT_SETTINGS_VALUES = {
   dateIncludesDayOfWeek: false,
   firstDayOfWeek: FirstDay.MONDAY,
   showTimelineBorders: false,
+  festiveTouchesEnabled: true,
   titleFont: DEFAULT_TITLE_FONT_SELECTION,
   bodyFontSize: DEFAULT_BODY_FONT_SIZE,
   biometricUnlockEnabled: false,
@@ -176,6 +189,8 @@ const DEFAULT_SETTINGS_VALUES = {
   sampleEntriesBannerDismissed: false,
   hasSeenHomeCoachMarks: false,
   pendingAchievement: null,
+  festivePromptSeason: null as string | null,
+  festiveSwitch: null as FestiveSwitch | null,
 };
 
 /**
@@ -235,6 +250,7 @@ export const useSettingsStore = create<SettingsState>()(
       setDateIncludesDayOfWeek: (enabled) => set({ dateIncludesDayOfWeek: enabled }),
       setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
       setShowTimelineBorders: (enabled) => set({ showTimelineBorders: enabled }),
+      setFestiveTouchesEnabled: (enabled) => set({ festiveTouchesEnabled: enabled }),
       setTitleFont: (fontId) => {
         const safeFontId = normalizeTitleFontSelection(fontId);
         applyTitleFont(safeFontId);
@@ -274,6 +290,8 @@ export const useSettingsStore = create<SettingsState>()(
         set({ sampleEntriesBannerDismissed: dismissed }),
       setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
       setPendingAchievement: (achievement) => set({ pendingAchievement: achievement }),
+      setFestivePromptSeason: (season) => set({ festivePromptSeason: season }),
+      setFestiveSwitch: (festiveSwitch) => set({ festiveSwitch }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
       markLegacyProfileMigrationComplete: () =>
         set({ legacyProfileMigrationComplete: true }),
@@ -351,6 +369,7 @@ export const useSettingsStore = create<SettingsState>()(
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
         firstDayOfWeek: state.firstDayOfWeek,
         showTimelineBorders: state.showTimelineBorders,
+        festiveTouchesEnabled: state.festiveTouchesEnabled,
         titleFont: state.titleFont,
         bodyFontSize: state.bodyFontSize,
         biometricUnlockEnabled: state.biometricUnlockEnabled,
@@ -369,10 +388,25 @@ export const useSettingsStore = create<SettingsState>()(
         sampleEntriesBannerDismissed: state.sampleEntriesBannerDismissed,
         hasSeenHomeCoachMarks: state.hasSeenHomeCoachMarks,
         pendingAchievement: state.pendingAchievement,
+        festivePromptSeason: state.festivePromptSeason,
+        festiveSwitch: state.festiveSwitch,
       }),
     },
   ),
 );
+
+/**
+ * Writes the persisted settings now instead of on the store's own schedule, for
+ * changes that must survive the app closing straight after (an Android icon change).
+ */
+export async function flushSettings(): Promise<void> {
+  const { storage, partialize, name, version } = useSettingsStore.persist.getOptions();
+  if (!storage || !partialize || !name) return;
+  await storage.setItem(name, {
+    state: partialize(useSettingsStore.getState()),
+    version,
+  });
+}
 
 /** Updates the non-persisted profile read cache after a committed DB transaction. */
 export function hydrateProfileCache(

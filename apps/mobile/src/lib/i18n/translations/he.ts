@@ -19,6 +19,10 @@ export const he: Translations = {
   'greeting.happyFriday': 'יום שישי נעים',
   'greeting.happySaturday': 'שבת נעימה',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'ערב חג המולד שמח',
+  'greeting.merryChristmas': 'חג מולד שמח',
+  'greeting.newYearsEve': 'סילבסטר שמח',
+  'greeting.happyNewYear': 'שנה אזרחית טובה',
 
   // Common
   'common.tackbok': 'טאקבוק',
@@ -41,6 +45,7 @@ export const he: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'חיפוש ברשומות…',
+  'search.search': 'חיפוש',
   'search.startTypingToSearchYourGratitudeLogs': 'אפשר להקליד כדי לחפש ברשומות',
   'search.searchFailed': 'החיפוש נכשל',
   'search.noResults': 'אין תוצאות',
@@ -299,9 +304,19 @@ export const he: Translations = {
   'appearance.firstDayOfWeek': 'היום הראשון בשבוע',
   'appearance.firstDayOfWeekDescription': 'בחרו באיזה יום מתחילים השבועות בלוח השנה',
   'appearance.appIcon': 'סמל האפליקציה',
+  'appearance.festiveTouches': 'נגיעות חגיגיות',
+  'appearance.festiveTouchesDescription': 'ברכות והצעות לחגים',
   'appearance.changeAppIconTitle': 'לשנות את סמל האפליקציה?',
   'appearance.changeAppIconMessage': 'טאקבוק ייסגר כדי להחיל את הסמל החדש.',
   'appearance.changeIcon': 'שינוי הסמל',
+  'festive.promptTitle': 'בא לך אווירת חג?',
+  'festive.promptMessage': 'לטאקבוק יש סמל וערכת נושא חגיגיים לעונה.',
+  'festive.takeALook': 'להציץ',
+  'festive.notNow': 'לא עכשיו',
+  'festive.switchBackTitle': 'לחזור למראה הרגיל?',
+  'festive.switchBackMessage': 'חזרה לערכת הנושא ולסמל שהיו לפני החגים.',
+  'festive.switchBack': 'לחזור',
+  'festive.keepIt': 'להשאיר',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',
@@ -389,7 +404,10 @@ export const he: Translations = {
     'פעולה זו תייבא רשומות מקובץ CSV של אפליקציית Presently. רשומות כפולות לא יובאו.',
   'backup.backupExportedSuccessfully': 'הגיבוי יוצא בהצלחה',
   'backup.exportFailed': 'הייצוא נכשל',
+  'backup.preparingBackup': 'מכין את הגיבוי…',
+  'backup.nothingToExport': 'אין עדיין מה לייצא.',
   'backup.importFailed': 'הייבוא נכשל',
+  'backup.importDataTooLarge': 'הגיבוי הזה גדול מדי לייבוא.',
   'backup.restoringTackbokBackup': 'משחזר גיבוי של טאקבוק',
   'backup.loadPresentlyExport': 'טוען ייצוא של Presently',
   'backup.importJournalEntries': 'מייבא רשומות יומן',
@@ -586,7 +604,8 @@ export const he: Translations = {
   'onboarding.next': 'הבא',
   'onboarding.stepCurrentOfTotal': 'שלב {current} מתוך {total}',
   'onboarding.getStarted': 'בואו נתחיל',
-  'onboarding.alreadyHaveAJournalImportIt': 'כבר יש לך יומן? אפשר לייבא אותו',
+  'onboarding.alreadyHaveAJournalImportIt': 'כבר יש לך יומן? אפשר לשחזר או לייבא אותו',
+  'onboarding.welcome.version': 'גרסה {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'מקום פרטי להכרת התודה שלך — חינמי, לא מקוון, ושלך בלבד.',
   'onboarding.importYourJournal': 'ייבוא היומן שלך',
@@ -633,6 +652,8 @@ export const he: Translations = {
   'onboarding.youreAllSet': 'הכול מוכן!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'שני דברים אחרונים שאפשר להפעיל — שניהם אופציונליים.',
+  'onboarding.appIconAppearsAfterLeaving': 'הסמל החדש יופיע אחרי שתצאו מ-Tackbok.',
+  'onboarding.finish.oneOptionalThing': 'דבר אחרון שאפשר להפעיל — הוא אופציונלי.',
   'onboarding.addExampleEntries': 'הוספת רשומות לדוגמה',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'כמה רשומות לדוגמה מציגות את השימוש בתמונות, הקלטות קוליות, מצבי רוח ותגיות. אפשר להסיר אותן בכל רגע בלחיצה אחת.',
@@ -935,6 +956,7 @@ export const he: Translations = {
   'cloud.progress.combiningChanges': 'שילוב השינויים…',
   'cloud.progress.checkingDownload': 'בדיקת ההורדה…',
   'cloud.progress.confirmingUpload': 'אישור ההעלאה…',
+  'cloud.progress.checkingPhotosAndVoiceNotes': 'בדיקת התמונות וההקלטות הקוליות שהועלו…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'העלאת תמונות והקלטות קוליות…',
   'cloud.progress.devicesChecked': 'נבדקו {done} מתוך {count} מכשירים',
   'cloud.progress.filesDownloaded': 'הורדו {done} מתוך {count} קבצים',
@@ -1029,7 +1051,7 @@ export const he: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'היומן שלך והגיבוי שלו נמחקו בכל מקום. כדי לסיים, יש למחוק את המכשיר הזה.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'מחיקת הגיבוי שלך לא הסתיימה. ייתכן שחלק ממנו עדיין ב-Google Drive.',
+    'מחיקת הגיבוי שלך לא הסתיימה. ייתכן שחלק ממנו עדיין ב-Google Drive. כדי לנסות שוב, יש ללחוץ על „המשך המחיקה”. אם היא נעצרת שוב, יש לנתק את Google Drive ב-Tackbok בכל המכשירים, ואז ב-Google Drive באינטרנט לפתוח את ההגדרות › ניהול אפליקציות › Tackbok › אפשרויות ולמחוק את נתוני האפליקציה המוסתרים.',
   'cloud.skippedHeads.unreadable':
     'Tackbok לא יכול לקרוא את הגיבוי של מכשיר אחד או יותר שלך, ולכן השינויים מהם לא נכללים. הסנכרון ממשיך עם שאר המכשירים שלך.',
   'cloud.skippedHeads.clockAhead':

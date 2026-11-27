@@ -31,7 +31,7 @@ the device's full resolution.
   `bun run android` in `apps/mobile`, or the `preview-beta` EAS profile). Beta builds accept a
   one-step dev setup (below); production builds contain none of it.
 - Without it, restore the demo backup through the welcome screen's
-  **Already have a journal? Import it** (on iOS, copy the ZIP into the
+  **Already have a journal? Restore or import it** (on iOS, copy the ZIP into the
   simulator's Files app storage; on Android, `adb push` it to `Download`).
 
 ### One-step dev setup

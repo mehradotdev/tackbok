@@ -17,6 +17,11 @@ export const en = {
   'greeting.happyFriday': 'Happy Friday',
   'greeting.happySaturday': 'Happy Saturday',
   'greeting.withName': '{greeting}, {name}',
+  // Replaces the time-of-day greeting on these local dates (lib/seasonal/events.ts)
+  'greeting.christmasEve': 'Happy Christmas Eve',
+  'greeting.merryChristmas': 'Merry Christmas',
+  'greeting.newYearsEve': "Happy New Year's Eve",
+  'greeting.happyNewYear': 'Happy New Year',
 
   // Common
   'common.tackbok': 'Tackbok',
@@ -39,6 +44,7 @@ export const en = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'Search entries…',
+  'search.search': 'Search',
   'search.startTypingToSearchYourGratitudeLogs': 'Type to search your entries',
   'search.searchFailed': 'Search failed',
   'search.noResults': 'No results',
@@ -314,9 +320,25 @@ export const en = {
   'appearance.firstDayOfWeek': 'First day of week',
   'appearance.firstDayOfWeekDescription': 'Choose which day your calendar weeks start on',
   'appearance.appIcon': 'App icon',
+  // Settings switch for seasonal greetings, decorations and theme/icon suggestions
+  'appearance.festiveTouches': 'Festive touches',
+  'appearance.festiveTouchesDescription': 'Holiday greetings and suggestions',
   'appearance.changeAppIconTitle': 'Change app icon?',
   'appearance.changeAppIconMessage': 'Tackbok will close to apply the new icon.',
   'appearance.changeIcon': 'Change icon',
+  // "Feeling festive?" asks once per season (1–26 Dec) whether to look at the
+  // holiday theme and icon; "Take a look" opens Appearance settings.
+  'festive.promptTitle': 'Feeling festive?',
+  'festive.promptMessage': 'Tackbok has a holiday icon and theme for the season.',
+  'festive.takeALook': 'Take a look',
+  'festive.notNow': 'Not now',
+  // From 2 Jan, offered only to people who switched after "Take a look": restores
+  // the theme and icon they had before.
+  'festive.switchBackTitle': 'Back to your usual look?',
+  'festive.switchBackMessage':
+    'Switch back to the theme and icon you had before the holidays.',
+  'festive.switchBack': 'Switch back',
+  'festive.keepIt': 'Keep it',
 
   // Settings - Typography
   'typography.typography': 'Typography',
@@ -412,7 +434,11 @@ export const en = {
     'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
   'backup.backupExportedSuccessfully': 'Backup exported successfully',
   'backup.exportFailed': 'Export failed',
+  'backup.preparingBackup': 'Preparing your backup…',
+  'backup.nothingToExport': 'There’s nothing to export yet.',
   'backup.importFailed': 'Import failed',
+  // A backup ZIP's journal data file is over the import size limit.
+  'backup.importDataTooLarge': 'This backup is too large to import.',
   'backup.restoringTackbokBackup': 'Restoring Tackbok backup',
   'backup.loadPresentlyExport': 'Load Presently export',
   'backup.importJournalEntries': 'Import journal entries',
@@ -611,7 +637,9 @@ export const en = {
   'onboarding.next': 'Next',
   'onboarding.stepCurrentOfTotal': 'Step {current} of {total}',
   'onboarding.getStarted': 'Get started',
-  'onboarding.alreadyHaveAJournalImportIt': 'Already have a journal? Import it',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'Already have a journal? Restore or import it',
+  'onboarding.welcome.version': 'Version {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'A private place for your gratitude. Free, offline, yours.',
   'onboarding.importYourJournal': 'Import your journal',
@@ -659,6 +687,9 @@ export const en = {
   'onboarding.youreAllSet': 'You’re all set!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Two last things you can turn on. Both are optional.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Your new icon appears after you leave Tackbok.',
+  'onboarding.finish.oneOptionalThing': 'One last thing you can turn on. It’s optional.',
   'onboarding.addExampleEntries': 'Add example entries',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'A few sample entries show how photos, voice notes, moods and tags work. Remove them anytime with one tap.',
@@ -986,6 +1017,8 @@ export const en = {
   'cloud.progress.combiningChanges': 'Combining changes…',
   'cloud.progress.checkingDownload': 'Checking the download…',
   'cloud.progress.confirmingUpload': 'Confirming the upload…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Checking uploaded photos and voice notes…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Uploading photos and voice notes…',
   'cloud.progress.devicesChecked': '{done} of {count} devices checked',
   'cloud.progress.filesDownloaded': '{done} of {count} files downloaded',
@@ -1087,7 +1120,7 @@ export const en = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Your journal and its backup were deleted everywhere. Erase this device to finish.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    "Deleting your backup didn't finish. Some of it may still be in Google Drive.",
+    "Deleting your backup didn't finish. Some of it may still be in Google Drive. Tap “Resume deletion” to try again. If it keeps stopping, disconnect Google Drive in Tackbok on all your devices, then open Google Drive on the web and go to Settings › Manage apps › Tackbok › Options › Delete hidden app data.",
   'cloud.skippedHeads.unreadable':
     "Tackbok can't read the backup of one or more of your devices, so changes from them aren't included. Sync goes on with your other devices.",
   'cloud.skippedHeads.clockAhead':

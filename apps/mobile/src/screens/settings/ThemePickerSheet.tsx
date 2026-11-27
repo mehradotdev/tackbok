@@ -1,11 +1,5 @@
-import { useRef, useEffect } from 'react';
-import {
-  ScrollView,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  type ScrollViewInstance,
-} from 'react-native';
+import { useRef } from 'react';
+import { ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Check, X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
@@ -147,22 +141,7 @@ export function ThemePickerSheet() {
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
-  // Track scroll position so we can restore it after key-triggered remount
-  const scrollOffsetRef = useRef(0);
   const scrollViewRef = useRef<ScrollViewInstance>(null);
-
-  useEffect(() => {
-    if (scrollOffsetRef.current > 0) {
-      const raf = requestAnimationFrame(() => {
-        scrollViewRef.current?.scrollTo({ y: scrollOffsetRef.current, animated: false });
-      });
-      return () => cancelAnimationFrame(raf);
-    }
-  }, [currentTheme]);
-
-  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
-  };
 
   return (
     <TrueSheet
@@ -179,7 +158,6 @@ export function ThemePickerSheet() {
       style={{ flex: 1 }}
       backgroundStyle={{ backgroundColor: backgroundColor as string }}>
       <View
-        key={currentTheme}
         className={cn(
           'flex-1 bg-background overflow-hidden',
           isDark && 'border border-foreground',
@@ -205,8 +183,6 @@ export function ThemePickerSheet() {
         {/* Theme grid */}
         <ScrollView
           ref={scrollViewRef}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
           nestedScrollEnabled
           contentContainerClassName="px-4 pb-12 gap-3"
           showsVerticalScrollIndicator={false}>

@@ -4,13 +4,17 @@ import { getThemeConfig } from '~/lib/theme/themes';
 import type { BackdropId } from '~/lib/theme/registry';
 import { CaminoDayBackdrop, CaminoNightBackdrop } from './CaminoBackdrop';
 import { BotanicalBackdrop } from './BotanicalBackdrop';
+import { PineNightBackdrop, VelvetBackdrop } from './FestiveBackdrops';
+import { DeniseBackdrop, GiuseppeBackdrop, KristenBackdrop } from './FriendBackdrops';
 import { HelenaBackdrop, PoonamBackdrop } from './SkyBackdrop';
 import { ShiroBackdrop, ShadowBackdrop } from './PetBackdrop';
 
 /** Every backdrop component renders the full scene; `preview` freezes all
- *  animation for static contexts like the theme picker cards. */
+ *  animation for static contexts like the theme picker cards. `celebrate` lets
+ *  a festive scene play its special-day celebration (the home screen only). */
 export interface BackdropProps {
   preview?: boolean;
+  celebrate?: boolean;
 }
 
 /**
@@ -33,18 +37,23 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   shadow: ShadowBackdrop,
   camino: CaminoDayBackdrop,
   'camino-night': CaminoNightBackdrop,
+  denise: DeniseBackdrop,
+  giuseppe: GiuseppeBackdrop,
+  kristen: KristenBackdrop,
+  'pine-night': PineNightBackdrop,
+  velvet: VelvetBackdrop,
 };
 
 /**
  * Renders the active theme's backdrop art, or nothing for themes without one —
  * always safe to mount. Place as the first child of a screen's root view so
- * the scene sits behind the content.
+ * the scene sits behind the content. Only the home timeline passes `celebrate`.
  */
-export function ThemeBackdrop() {
+export function ThemeBackdrop({ celebrate = false }: { celebrate?: boolean }) {
   const themeId = useSettingsStore((s) => s.theme);
   const backdropId = getThemeConfig(themeId).backdropId;
   if (!backdropId) return null;
 
   const Backdrop = BACKDROPS[backdropId];
-  return <Backdrop />;
+  return <Backdrop celebrate={celebrate} />;
 }

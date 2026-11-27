@@ -100,39 +100,76 @@ function extractUniwindThemeIds(content: string): string[] {
   return [...themesMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
 }
 
+const hexChannels = (hex: string) =>
+  hex
+    .slice(1)
+    .match(/../g)!
+    .map((channel) => parseInt(channel, 16) / 255);
+
+function contrastRatio(first: number[], second: number[]) {
+  const luminance = (channels: number[]) => {
+    const [r, g, b] = channels.map((value) =>
+      value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+    );
+    return r * 0.2126 + g * 0.7152 + b * 0.0722;
+  };
+  const a = luminance(first);
+  const b = luminance(second);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
 describe('Theme Registry', () => {
-  test.each(['helena', 'poonam', 'shiro', 'shadow'])(
-    '%s provides readable text on its solid surfaces',
+  test.each([
+    'helena',
+    'poonam',
+    'shiro',
+    'shadow',
+    'denise',
+    'giuseppe',
+    'kristen',
+    'pine-night',
+    'velvet',
+  ])('%s provides readable text on its solid surfaces', (id) => {
+    const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
+    const variables = resolveThemeVariables(theme);
+    for (const surface of [
+      'background',
+      'card',
+      'popover',
+      'primary',
+      'secondary',
+      'muted',
+      'accent',
+      'destructive',
+    ]) {
+      const foreground =
+        surface === 'background' ? 'foreground' : `${surface}-foreground`;
+      const contrast = contrastRatio(
+        hexChannels(variables[`--color-${surface}`]),
+        hexChannels(variables[`--color-${foreground}`]),
+      );
+      expect({ surface, readable: contrast >= 4.5 }).toEqual({
+        surface,
+        readable: true,
+      });
+    }
+  });
+
+  // Selected moods, mood badges and chips use text-foreground on bg-primary/20–50.
+  test.each(THEME_DEFINITIONS.map((theme) => theme.id))(
+    '%s keeps foreground text readable on tinted primary surfaces',
     (id) => {
       const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
       const variables = resolveThemeVariables(theme);
-      const luminance = (hex: string) => {
-        const channels = hex
-          .slice(1)
-          .match(/../g)!
-          .map((channel) => {
-            const value = parseInt(channel, 16) / 255;
-            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-          });
-        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-      };
-      for (const surface of [
-        'background',
-        'card',
-        'popover',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'destructive',
-      ]) {
-        const foreground =
-          surface === 'background' ? 'foreground' : `${surface}-foreground`;
-        const a = luminance(variables[`--color-${surface}`]);
-        const b = luminance(variables[`--color-${foreground}`]);
-        const contrast = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-        expect({ surface, readable: contrast >= 4.5 }).toEqual({
-          surface,
+      const background = hexChannels(variables['--color-background']);
+      const primary = hexChannels(variables['--color-primary']);
+      const foreground = hexChannels(variables['--color-foreground']);
+      for (const tint of [0.2, 0.5]) {
+        const surface = background.map(
+          (value, i) => value * (1 - tint) + primary[i] * tint,
+        );
+        expect({ tint, readable: contrastRatio(surface, foreground) >= 4.5 }).toEqual({
+          tint,
           readable: true,
         });
       }
@@ -187,9 +224,14 @@ describe('Theme Registry', () => {
       'helena',
       'poonam',
       'clemens',
-      'weckner',
+      'bea',
       'camino',
       'camino-night',
+      'denise',
+      'giuseppe',
+      'kristen',
+      'pine-night',
+      'velvet',
       'bubblegum',
       'hecker',
       'peach',
