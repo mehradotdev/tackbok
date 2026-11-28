@@ -319,7 +319,7 @@ export const it = {
   'festive.keepIt': 'Mantieni',
   'storeUpdate.title': 'È disponibile una nuova versione di Tackbok',
   'storeUpdate.message':
-    'Tackbok {version} è pronto nello store, con le ultime correzioni e i miglioramenti.',
+    'Tackbok {version} è disponibile nello store, con le ultime correzioni e i miglioramenti.',
   'storeUpdate.requiredMessage':
     'Questa versione di Tackbok non è più aggiornata. Aggiorna alla versione {version} perché tutto continui a funzionare come deve.',
   'storeUpdate.update': 'Aggiorna',

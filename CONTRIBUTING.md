@@ -142,12 +142,12 @@ in that store, one store at a time, because reviews finish at different times:
 1. Set `latest` under `ios`, `android` or `galaxy` to the live version. Use
    strict `MAJOR.MINOR.PATCH` (for example `2.0.1`), the same as `version` in
    `apps/mobile/package.json`.
-2. Raise `minimumSupported` only when older versions must update. Below it,
-   "Not now" no longer keeps the prompt away.
-3. Leave `schema` and `storeUrl` alone. The app ignores a link that doesn't
-   point to that store.
-4. Run `bun run test:jest src/lib/storeUpdate.test.ts` from `apps/mobile`, merge,
-   and deploy the website. Apps check at most once a day, so the prompt reaches
+2. Raise `minimumSupported` only when older versions must update, and never
+   above `latest`. Below it, "Not now" no longer keeps the prompt away.
+3. Leave `schema` and `storeUrl` alone. The app ignores a link that isn't
+   Tackbok's own page in that store.
+4. Run `bun run test:jest src/lib/storeUpdate.test.ts` from `apps/mobile` (CI
+   runs it too when the file changes), merge, and deploy the website. Apps check at most once a day, so the prompt reaches
    people within a day.
 
 Never set `latest` above what the store serves: people would be sent to a store

@@ -102,6 +102,10 @@ jest.mock('~/screens/settings/AppIconPickerSheet', () => ({
 }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
+const mockToastError = jest.fn();
+jest.mock('~/components/ui/toast', () => ({
+  toast: { error: (message: string) => mockToastError(message) },
+}));
 
 const update: Prompt = {
   latest: '2.0.1',
@@ -155,6 +159,14 @@ it('offers the update on the Home the app opened on, and opens the store', async
   expect(isOpen()).toBe(false);
   expect(mockOpenURL).toHaveBeenCalledWith(update.storeUrl);
   expect(mockNotNow).not.toHaveBeenCalled();
+});
+
+it('says so when the store cannot be opened', async () => {
+  mockOpenURL.mockRejectedValueOnce(new Error('no store'));
+  await mount();
+  await settle();
+  await press('update');
+  expect(mockToastError).toHaveBeenCalledWith('appInfo.unableToOpenTheStore');
 });
 
 it('remembers "Not now" for this version', async () => {

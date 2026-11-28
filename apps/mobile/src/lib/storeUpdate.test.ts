@@ -64,6 +64,22 @@ test('Galaxy builds read the galaxy entry', () => {
 });
 
 describe('readStoreRelease', () => {
+  test('another app on Play or Galaxy is ignored too', () => {
+    const other = {
+      ...file,
+      android: {
+        ...file.android,
+        storeUrl: 'https://play.google.com/store/apps/details?id=com.example',
+      },
+      galaxy: {
+        ...file.galaxy,
+        storeUrl: 'https://galaxystore.samsung.com/detail/com.example',
+      },
+    };
+    expect(readStoreRelease(other, 'android')).toBeNull();
+    expect(readStoreRelease(other, 'galaxy')).toBeNull();
+  });
+
   test('reads each store', () => {
     expect(readStoreRelease(file, 'galaxy')?.latest).toBe('2.0.0');
     expect(readStoreRelease(file, 'android')?.minimumSupported).toBe('2.0.0');
@@ -85,6 +101,13 @@ describe('readStoreRelease', () => {
     [
       'a minimum above the latest',
       { ...file, ios: { ...file.ios, minimumSupported: '2.0.2' } },
+    ],
+    [
+      'another app in the right store',
+      {
+        ...file,
+        ios: { ...file.ios, storeUrl: 'https://apps.apple.com/us/app/other/id123' },
+      },
     ],
     ['no entry', { schema: 1 }],
     ['not an object', '<!doctype html>'],

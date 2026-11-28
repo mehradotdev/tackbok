@@ -19,11 +19,23 @@ export interface StoreRelease {
   storeUrl: string;
 }
 
-/** The only places an update button may open. */
-const STORE_HOSTS: Record<StoreKey, string> = {
-  ios: 'apps.apple.com',
-  android: 'play.google.com',
-  galaxy: 'galaxystore.samsung.com',
+/** The only places an update button may open: Tackbok's own listing in each store. */
+const STORE_LISTINGS: Record<
+  StoreKey,
+  { host: string; isTackbok: (url: URL) => boolean }
+> = {
+  ios: {
+    host: 'apps.apple.com',
+    isTackbok: (url) => url.pathname.endsWith('/id6757330507'),
+  },
+  android: {
+    host: 'play.google.com',
+    isTackbok: (url) => url.searchParams.get('id') === 'dev.mehra.tackbok',
+  },
+  galaxy: {
+    host: 'galaxystore.samsung.com',
+    isTackbok: (url) => url.pathname === '/detail/dev.mehra.tackbok',
+  },
 };
 
 export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -43,7 +55,8 @@ export function storeForBuild(
 
 /**
  * Reads one store's entry from the version file. Anything unexpected (another
- * schema, a loose version, a link outside that store) is null: no prompt.
+ * schema, a loose version, a link to anything but Tackbok in that store) is null:
+ * no prompt.
  */
 export function readStoreRelease(file: unknown, store: StoreKey): StoreRelease | null {
   if (typeof file !== 'object' || file === null) return null;
@@ -61,7 +74,9 @@ export function readStoreRelease(file: unknown, store: StoreKey): StoreRelease |
   if (typeof storeUrl !== 'string') return null;
   try {
     const url = new URL(storeUrl);
-    if (url.protocol !== 'https:' || url.hostname !== STORE_HOSTS[store]) return null;
+    const listing = STORE_LISTINGS[store];
+    if (url.protocol !== 'https:' || url.hostname !== listing.host) return null;
+    if (!listing.isTackbok(url)) return null;
   } catch {
     return null;
   }

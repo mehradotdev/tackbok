@@ -24,6 +24,7 @@ import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { AppIconTile } from '~/screens/settings/AppIconPickerSheet';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
+import { toast } from '~/components/ui/toast';
 import { somethingElseOnHome } from './homePrompts';
 
 /** Lets Home settle after the launch animation, the lock or an achievement. */
@@ -144,7 +145,9 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
     answered.current = true;
     const { storeUrl } = prompt;
     await close();
-    await Linking.openURL(storeUrl).catch(() => {});
+    await Linking.openURL(storeUrl).catch(() => {
+      toast.error(t('appInfo.unableToOpenTheStore'));
+    });
   };
 
   const notNow = () => {
