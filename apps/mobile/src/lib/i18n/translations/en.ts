@@ -681,8 +681,8 @@ export const en = {
     'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Audit the analytics code on GitHub',
   'onboarding.neverCollected': 'Never collected',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Your journal text, titles, photos, voice notes, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'Your journal text, titles, photos, voice notes, tags, name, or anything you type. No ads, no selling data, no third-party tracking.',
   'onboarding.youreAllSetName': 'You’re all set, {name}!',
   'onboarding.youreAllSet': 'You’re all set!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

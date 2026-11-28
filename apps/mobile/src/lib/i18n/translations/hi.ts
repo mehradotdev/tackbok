@@ -602,8 +602,8 @@ export const hi = {
     'आपकी अनुमति से, ताकबूक सीमित, अनाम उपयोग जानकारी रिकॉर्ड करता है। इसमें विज़िट की गई स्क्रीन, उपयोग की गई सुविधाएँ, और क्या वैकल्पिक ऑपरेशन सफल होते हैं, शामिल हो सकते हैं। इसमें कभी भी आपकी जर्नल सामग्री या आपके द्वारा टाइप की गई कोई भी चीज़ शामिल नहीं होती है।',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'GitHub पर एनालिटिक्स कोड का ऑडिट करें',
   'onboarding.neverCollected': 'कभी एकत्र नहीं किया गया',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'आपका जर्नल टेक्स्ट, शीर्षक, फ़ोटो, वॉयस नोट्स, टैग, नाम, ईमेल, या आपके द्वारा टाइप की गई कोई भी चीज़। कोई विज्ञापन नहीं, कोई विक्रय डेटा नहीं, कोई तृतीय-पक्ष ट्रैकिंग नहीं।',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'आपका जर्नल टेक्स्ट, शीर्षक, फ़ोटो, वॉयस नोट्स, टैग, नाम, या आपके द्वारा टाइप की गई कोई भी चीज़। कोई विज्ञापन नहीं, कोई विक्रय डेटा नहीं, कोई तृतीय-पक्ष ट्रैकिंग नहीं।',
   'onboarding.youreAllSetName': 'आप पूरी तरह तैयार हैं, {name}!',
   'onboarding.youreAllSet': 'तुम सब सेट हो!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

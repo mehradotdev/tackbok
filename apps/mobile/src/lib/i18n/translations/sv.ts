@@ -612,8 +612,8 @@ export const sv = {
     'Med din tillåtelse registrerar Tackbok begränsad, anonym användningsinformation. Detta kan inkludera besökta skärmar, funktioner som används och om valfria åtgärder lyckas. Det inkluderar aldrig ditt dagboksinnehåll eller något du skriver.',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Granska analyskoden på GitHub',
   'onboarding.neverCollected': 'Aldrig samlad',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Din dagbokstext, titlar, foton, röstanteckningar, etiketter, namn, e-post eller allt du skriver. Inga annonser, inga säljdata, ingen spårning från tredje part.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'Din dagbokstext, titlar, foton, röstanteckningar, etiketter, namn eller allt du skriver. Inga annonser, inga säljdata, ingen spårning från tredje part.',
   'onboarding.youreAllSetName': 'Du är redo, {name}!',
   'onboarding.youreAllSet': 'Du är klar!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

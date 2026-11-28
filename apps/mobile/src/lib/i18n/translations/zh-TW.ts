@@ -634,8 +634,8 @@ export const zhTW: Translations = {
     '經你許可，塔克布克僅記錄有限的匿名使用資訊，其中可能包括造訪過的頁面、使用過的功能，以及選用操作是否成功。它絕不會記錄你的日記內容或任何輸入的文字。',
   'onboarding.auditTheAnalyticsCodeOnGithub': '在 GitHub 上查看分析程式碼',
   'onboarding.neverCollected': '絕不收集',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    '你的日記文字、標題、照片、語音筆記、標籤、姓名、電子郵件或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    '你的日記文字、標題、照片、語音筆記、標籤、姓名或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
   'onboarding.youreAllSetName': '一切就緒，{name}！',
   'onboarding.youreAllSet': '一切就緒！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

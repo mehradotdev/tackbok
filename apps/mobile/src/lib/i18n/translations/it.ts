@@ -654,8 +654,8 @@ export const it = {
   'onboarding.auditTheAnalyticsCodeOnGithub':
     'Controlla il codice delle statistiche su GitHub',
   'onboarding.neverCollected': 'Cosa non raccogliamo mai',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Testo del diario, titoli, foto, memo vocali, tag, nome, email o qualsiasi cosa tu scriva. Niente pubblicità, nessuna vendita di dati, nessun tracciamento di terze parti.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'Testo del diario, titoli, foto, memo vocali, tag, nome o qualsiasi cosa tu scriva. Niente pubblicità, nessuna vendita di dati, nessun tracciamento di terze parti.',
   'onboarding.youreAllSetName': 'Tutto pronto, {name}!',
   'onboarding.youreAllSet': 'Tutto pronto!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
