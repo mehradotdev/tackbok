@@ -10,7 +10,8 @@
     "deploy": "wrangler deploy",
     "astro": "astro",
     "lint": "oxlint --report-unused-disable-directives && eslint .",
-    "typecheck": "astro check",
+    "typecheck": "astro check && tsc -p worker",
+    "test": "bun test worker",
     "frame-screenshots": "bun scripts/frame-screenshots.mjs"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.9",
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.1.18",
     "daisyui": "^5.7.1",
