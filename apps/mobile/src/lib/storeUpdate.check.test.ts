@@ -22,6 +22,7 @@ function load(extra: Record<string, unknown>, native: string) {
   // The JS bundle (an OTA update) can be newer than the installed app.
   jest.doMock('expo-constants', () => ({ expoConfig: { version: '9.9.9', extra } }));
   jest.doMock('expo-application', () => ({ nativeApplicationVersion: native }));
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require('./storeUpdate') as typeof import('./storeUpdate');
 }
 
