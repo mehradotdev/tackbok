@@ -23,7 +23,10 @@ const mockCustomerInfoListeners = new Set<(info: unknown) => void>();
 const mockFetch = jest.fn();
 const originalTestApiKey = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 
+let mockUuid = 0;
+
 jest.mock('react-native');
+jest.mock('expo-crypto', () => ({ randomUUID: () => `note-${++mockUuid}` }));
 jest.mock('~/lib/kvStorage', () => ({
   kvStorage: {
     getItem: async (key: string) => mockSaved.get(key) ?? null,
@@ -163,6 +166,7 @@ test('sends the note after a completed purchase and clears the record', async ()
   expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
     appUserId: '$RCAnonymousID:test',
     transactionId: 'tx-now',
+    noteId: expect.stringMatching(/^note-/),
     ...note,
   });
   expect(mockSaved.has(DONATION_FOLLOW_UPS_KEY)).toBe(false);
@@ -237,5 +241,44 @@ test('completes a pending donation later and only then sends its note', async ()
   expect(JSON.parse(mockFetch.mock.calls[0][1].body).transactionId).toBe('tx-later');
   expect(mockSaved.has(DONATION_FOLLOW_UPS_KEY)).toBe(false);
   expect(mockCustomerInfoListeners.size).toBe(0);
+  unsubscribe();
+});
+
+test('sends no transaction ID when the store did not report one', async () => {
+  mockPurchasePackage.mockResolvedValueOnce({
+    transaction: { transactionIdentifier: '' },
+  });
+  const completed = jest.fn();
+  const unsubscribe = onPendingDonationCompleted(completed);
+
+  await expect(purchaseSupportTier('small', note)).resolves.toBe('completed');
+  await flush();
+
+  expect(JSON.parse(mockFetch.mock.calls[0][1].body).transactionId).toBeNull();
+  // A completed purchase is never announced again as a completed pending one.
+  expect(completed).not.toHaveBeenCalled();
+  expect(mockSaved.has(DONATION_FOLLOW_UPS_KEY)).toBe(false);
+  unsubscribe();
+});
+
+test('catches up on a pending payment that completed during the purchase call', async () => {
+  mockPurchasePackage.mockImplementationOnce(async () => {
+    // The store finishes the payment before the app has registered a listener.
+    mockTransactions.push({
+      transactionIdentifier: 'tx-fast',
+      productIdentifier: PRODUCT_ID,
+      purchaseDate: new Date().toISOString(),
+    });
+    throw { code: PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, message: 'pending' };
+  });
+  const completed = jest.fn();
+  const unsubscribe = onPendingDonationCompleted(completed);
+
+  await expect(purchaseSupportTier('small', note)).resolves.toBe('pending');
+  await flush();
+
+  expect(completed).toHaveBeenCalledWith('small');
+  expect(JSON.parse(mockFetch.mock.calls[0][1].body).transactionId).toBe('tx-fast');
+  expect(mockSaved.has(DONATION_FOLLOW_UPS_KEY)).toBe(false);
   unsubscribe();
 });

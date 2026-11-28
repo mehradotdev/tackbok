@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  type TextInputInstance,
+  View,
+} from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -185,11 +190,15 @@ function DonorNoteFields({
   onChange,
   showEmailError,
   onEmailBlur,
+  editable,
+  emailRef,
 }: {
   note: DonorNote;
   onChange: (note: DonorNote) => void;
   showEmailError: boolean;
   onEmailBlur: () => void;
+  editable: boolean;
+  emailRef: React.RefObject<TextInputInstance | null>;
 }) {
   const { t } = useTranslation();
 
@@ -201,20 +210,33 @@ function DonorNoteFields({
         </Text>
         <Text className="text-sm text-foreground">{t('support.note.description')}</Text>
       </View>
+      {/* Visible labels; screen readers get the same text from the fields. */}
+      <Text
+        importantForAccessibility="no"
+        accessibilityElementsHidden
+        className="-mb-2 text-sm font-body-medium text-foreground">
+        {t('support.note.message')}
+      </Text>
       <Textarea
+        editable={editable}
         value={note.message}
         onChangeText={(message) => onChange({ ...note, message })}
         maxLength={DONOR_NOTE_MAX_MESSAGE_LENGTH}
-        placeholder={t('support.note.message')}
-        placeholderTextColorClassName="accent-muted-foreground"
         accessibilityLabel={t('support.note.message')}
         className="min-h-24 bg-background"
       />
+      <Text
+        importantForAccessibility="no"
+        accessibilityElementsHidden
+        className="-mb-2 text-sm font-body-medium text-foreground">
+        {t('support.note.email')}
+      </Text>
       <Input
+        ref={emailRef}
+        editable={editable}
         value={note.email}
         onChangeText={(email) => onChange({ ...note, email })}
         onBlur={onEmailBlur}
-        placeholder={t('support.note.email')}
         accessibilityLabel={t('support.note.email')}
         accessibilityHint={showEmailError ? t('support.note.emailInvalid') : undefined}
         keyboardType="email-address"
@@ -226,6 +248,7 @@ function DonorNoteFields({
         className="h-auto min-h-10"
       />
       {showEmailError && (
+        // Android reads this live region; iOS gets an announcement instead.
         <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
           {t('support.note.emailInvalid')}
         </Text>
@@ -244,6 +267,7 @@ export default function SupportScreen() {
   // The draft stays in memory only; it is saved for sending once a purchase starts.
   const [note, setNote] = useState<DonorNote>({ message: '', email: '' });
   const [emailTouched, setEmailTouched] = useState(false);
+  const emailRef = useRef<TextInputInstance>(null);
   const emailValid = isValidDonorEmail(note.email);
   const isAnonymous = normalizeDonorNote(note) === null;
 
@@ -304,6 +328,11 @@ export default function SupportScreen() {
       } else if (result === 'pending') {
         track('support_purchase_pending', { tier: tier.id });
         setNotice({ type: 'pending' });
+        if (process.env.EXPO_OS === 'ios') {
+          AccessibilityInfo.announceForAccessibility(
+            t('appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen'),
+          );
+        }
       } else {
         track('support_purchase_cancelled', { tier: tier.id });
       }
@@ -324,7 +353,11 @@ export default function SupportScreen() {
   const selectTier = (tier: SupportCatalogTier) => {
     if (!emailValid) {
       setEmailTouched(true);
-      AccessibilityInfo.announceForAccessibility(t('support.note.emailInvalid'));
+      // Focusing scrolls the field into view, next to its error.
+      emailRef.current?.focus();
+      if (process.env.EXPO_OS === 'ios') {
+        AccessibilityInfo.announceForAccessibility(t('support.note.emailInvalid'));
+      }
       return;
     }
     setSelectedTier(tier);
@@ -406,6 +439,8 @@ export default function SupportScreen() {
             onChange={setNote}
             showEmailError={emailTouched && !emailValid}
             onEmailBlur={() => setEmailTouched(true)}
+            editable={!isPurchasing}
+            emailRef={emailRef}
           />
           {catalog.map((tier) => (
             <SupportTierRow
@@ -446,7 +481,9 @@ export default function SupportScreen() {
                 ? 'mx-4 mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4'
                 : 'mx-4 mb-6 rounded-lg border border-primary/30 bg-primary/10 p-4'
             }>
-            <Text className="text-sm leading-5 text-foreground">
+            <Text
+              accessibilityLiveRegion="polite"
+              className="text-sm leading-5 text-foreground">
               {notice.type === 'pending'
                 ? t('appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen')
                 : notice.message}

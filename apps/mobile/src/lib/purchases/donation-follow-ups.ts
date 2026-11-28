@@ -17,6 +17,11 @@ export const DONATION_FOLLOW_UPS_KEY = 'support.donationFollowUps.v1';
 export const DONATION_FOLLOW_UP_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 /** Store clocks and the device clock can disagree a little. */
 const PURCHASE_DATE_TOLERANCE_MS = 10 * 60 * 1000;
+/**
+ * Stands in for the transaction ID of a completed purchase the store did not
+ * identify; the server then attaches the note to the newest donation.
+ */
+export const UNKNOWN_TRANSACTION_ID = 'unknown';
 
 export type DonationFollowUp = {
   id: string;
@@ -98,8 +103,8 @@ export function matchCompletedDonations(
           transaction.productIdentifier === record.productId &&
           !claimed.has(transaction.transactionIdentifier) &&
           !record.knownTransactionIds.includes(transaction.transactionIdentifier) &&
-          (Number.isNaN(purchasedAt) ||
-            purchasedAt >= record.createdAt - PURCHASE_DATE_TOLERANCE_MS)
+          !Number.isNaN(purchasedAt) &&
+          purchasedAt >= record.createdAt - PURCHASE_DATE_TOLERANCE_MS
         );
       });
       if (!match) return record;
@@ -115,28 +120,44 @@ export function matchCompletedDonations(
 // listener can both update the list.
 let queue: Promise<unknown> = Promise.resolve();
 
+function enqueue<T>(task: () => Promise<T>): Promise<T> {
+  const run = queue.then(task);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function loadFollowUps(now: number): Promise<DonationFollowUp[]> {
+  // A failed read throws, so a storage hiccup can't overwrite the list with
+  // nothing. Only unreadable JSON, which can never recover, counts as empty.
+  const raw = await kvStorage.getItem(DONATION_FOLLOW_UPS_KEY);
+  if (!raw) return [];
+  let stored: unknown;
+  try {
+    stored = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  return pruneFollowUps(stored, now);
+}
+
 export function updateFollowUps<T>(
   change: (records: DonationFollowUp[]) => { records: DonationFollowUp[]; result: T },
   now: () => number = Date.now,
 ): Promise<T> {
-  const run = queue.then(async () => {
-    let stored: unknown = [];
-    try {
-      const raw = await kvStorage.getItem(DONATION_FOLLOW_UPS_KEY);
-      stored = raw ? JSON.parse(raw) : [];
-    } catch {
-      stored = [];
-    }
-    const { records, result } = change(pruneFollowUps(stored, now()));
+  return enqueue(async () => {
+    const { records, result } = change(await loadFollowUps(now()));
     const kept = pruneFollowUps(records, now());
     if (kept.length === 0) await kvStorage.removeItem(DONATION_FOLLOW_UPS_KEY);
     else await kvStorage.setItem(DONATION_FOLLOW_UPS_KEY, JSON.stringify(kept));
     return result;
   });
-  queue = run.catch(() => undefined);
-  return run;
 }
 
-export function readFollowUps(): Promise<DonationFollowUp[]> {
-  return updateFollowUps((records) => ({ records, result: records }));
+export function readFollowUps(now: () => number = Date.now): Promise<DonationFollowUp[]> {
+  return enqueue(() => loadFollowUps(now()));
+}
+
+/** Delete All Data also drops unsent notes and pending donations. */
+export function clearFollowUps(): Promise<void> {
+  return enqueue(() => kvStorage.removeItem(DONATION_FOLLOW_UPS_KEY));
 }

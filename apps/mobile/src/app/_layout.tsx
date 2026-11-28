@@ -1,7 +1,7 @@
 import '../global.css';
 
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
@@ -268,9 +268,17 @@ export default function Layout() {
   );
   useEffect(() => {
     if (!success || !hasHydrated || launchAnimating) return;
-    resumeDonationFollowUps().catch(() => {
-      console.warn('Donation follow-up check failed');
+    const resume = () => {
+      resumeDonationFollowUps().catch(() => {
+        console.warn('Donation follow-up check failed');
+      });
+    };
+    resume();
+    // Retry unsent notes when the app comes back, not only at launch.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') resume();
     });
+    return () => subscription.remove();
   }, [hasHydrated, launchAnimating, success]);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error

@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { randomUUID } from 'expo-crypto';
 // Type augmentation only: Google/iOS builds do not link the Galaxy native module.
 import type {} from 'react-native-purchases-store-galaxy';
 import Purchases, {
@@ -18,6 +19,7 @@ import { sendDonorNote, type DonorNote } from './donor-note';
 import {
   matchCompletedDonations,
   readFollowUps,
+  UNKNOWN_TRANSACTION_ID,
   updateFollowUps,
   type DonationFollowUp,
 } from './donation-follow-ups';
@@ -219,15 +221,41 @@ async function excludeFromPendingDonations(transactionId: string): Promise<void>
   }
 }
 
-async function saveFollowUp(record: DonationFollowUp): Promise<void> {
+/** Returns false when the record could not be stored. */
+async function saveFollowUp(record: DonationFollowUp): Promise<boolean> {
   try {
     await updateFollowUps((records) => ({
       records: [...records, record],
       result: undefined,
     }));
+    return true;
   } catch {
     // Storage failures must not turn a successful payment into an error.
+    return false;
   }
+}
+
+function noteRequest(record: DonationFollowUp, appUserId: string) {
+  return {
+    appUserId,
+    transactionId:
+      record.transactionId === UNKNOWN_TRANSACTION_ID ? null : record.transactionId,
+    noteId: record.id,
+    ...record.note!,
+  };
+}
+
+/** Last resort when the note could not be stored: one attempt, right now. */
+async function sendUnsavedNote(record: DonationFollowUp): Promise<void> {
+  await sendDonorNote(noteRequest(record, await Purchases.getAppUserID()));
+}
+
+let missedCustomerInfoUpdate = false;
+
+function refreshCustomerInfo() {
+  void Purchases.getCustomerInfo()
+    .then(processCustomerInfo)
+    .catch(() => undefined);
 }
 
 /**
@@ -253,7 +281,8 @@ export async function purchaseSupportTier(
     const createdAt = Date.now();
     const baseline = await knownTransactionIds(productId);
     const followUp = (transactionId: string | null): DonationFollowUp => ({
-      id: `${createdAt}-${Math.random().toString(36).slice(2)}`,
+      // Also sent with the note, so the server recognises a retry.
+      id: randomUUID(),
       tierId,
       productId,
       createdAt,
@@ -262,14 +291,16 @@ export async function purchaseSupportTier(
       note,
     });
 
+    let watchPending = false;
     purchasesInFlight += 1;
     try {
       const result = await Purchases.purchasePackage(revenueCatPackage);
-      const transactionId = result?.transaction?.transactionIdentifier ?? null;
+      const transactionId = result?.transaction?.transactionIdentifier || null;
       if (transactionId) await excludeFromPendingDonations(transactionId);
       if (note) {
-        await saveFollowUp(followUp(transactionId));
-        void sendReadyDonorNotes();
+        const record = followUp(transactionId ?? UNKNOWN_TRANSACTION_ID);
+        if (await saveFollowUp(record)) void sendReadyDonorNotes().catch(() => undefined);
+        else void sendUnsavedNote(record).catch(() => undefined);
       }
       return 'completed';
     } catch (error) {
@@ -280,6 +311,7 @@ export async function purchaseSupportTier(
         if (error.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) {
           await saveFollowUp(followUp(null));
           watchCustomerInfo();
+          watchPending = true;
           return 'pending';
         }
         throw new SupportPurchaseError(classifyPurchasesError(error.code), error.message);
@@ -287,6 +319,12 @@ export async function purchaseSupportTier(
       throw new SupportPurchaseError('unknown', 'The purchase could not be completed.');
     } finally {
       purchasesInFlight -= 1;
+      // Catch up on updates skipped while the purchase ran, and on a payment
+      // that completed before the listener was registered.
+      if (purchasesInFlight === 0 && (missedCustomerInfoUpdate || watchPending)) {
+        missedCustomerInfoUpdate = false;
+        refreshCustomerInfo();
+      }
     }
   });
 }
@@ -321,7 +359,10 @@ function stopWatchingIfIdle(records: readonly DonationFollowUp[]) {
 }
 
 async function processCustomerInfo(info: CustomerInfo): Promise<void> {
-  if (purchasesInFlight > 0) return;
+  if (purchasesInFlight > 0) {
+    missedCustomerInfoUpdate = true;
+    return;
+  }
   const completed = await updateFollowUps((records) => {
     const match = matchCompletedDonations(records, info.nonSubscriptionTransactions);
     return { records: match.records, result: match.completed };
@@ -333,29 +374,41 @@ async function processCustomerInfo(info: CustomerInfo): Promise<void> {
 }
 
 let sending: Promise<void> | null = null;
+let sendAgain = false;
+
+async function sendReadyOnce(attempted: Set<string>): Promise<void> {
+  const ready = (await readFollowUps()).filter(
+    (record) =>
+      record.transactionId !== null && record.note !== null && !attempted.has(record.id),
+  );
+  if (ready.length === 0) return;
+  const appUserId = await Purchases.getAppUserID();
+  for (const record of ready) {
+    attempted.add(record.id);
+    const result = await sendDonorNote(noteRequest(record, appUserId));
+    if (result === 'retry') continue;
+    await updateFollowUps((records) => ({
+      records: records.filter((item) => item.id !== record.id),
+      result: undefined,
+    }));
+  }
+}
 
 /** Sends every note whose donation has completed; failed sends stay queued. */
 function sendReadyDonorNotes(): Promise<void> {
-  sending ??= (async () => {
+  if (sending) {
+    // A note that became ready mid-run is picked up before the run ends.
+    sendAgain = true;
+    return sending;
+  }
+  sending = (async () => {
     try {
-      const ready = (await readFollowUps()).filter(
-        (record) => record.transactionId !== null && record.note !== null,
-      );
-      if (ready.length > 0) {
-        const appUserId = await Purchases.getAppUserID();
-        for (const record of ready) {
-          const result = await sendDonorNote({
-            appUserId,
-            transactionId: record.transactionId,
-            ...record.note!,
-          });
-          if (result === 'retry') continue;
-          await updateFollowUps((records) => ({
-            records: records.filter((item) => item.id !== record.id),
-            result: undefined,
-          }));
-        }
-      }
+      // Each note gets one attempt per run; a failed one waits for the next.
+      const attempted = new Set<string>();
+      do {
+        sendAgain = false;
+        await sendReadyOnce(attempted);
+      } while (sendAgain);
       stopWatchingIfIdle(await readFollowUps());
     } finally {
       sending = null;

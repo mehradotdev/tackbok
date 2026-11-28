@@ -1,11 +1,24 @@
 import {
+  clearFollowUps,
   DONATION_FOLLOW_UP_MAX_AGE_MS,
+  DONATION_FOLLOW_UPS_KEY,
   matchCompletedDonations,
   pruneFollowUps,
+  readFollowUps,
+  updateFollowUps,
   type DonationFollowUp,
 } from './donation-follow-ups';
 
-jest.mock('~/lib/kvStorage', () => ({ kvStorage: {} }));
+const mockGetItem = jest.fn();
+const mockSetItem = jest.fn();
+const mockRemoveItem = jest.fn();
+jest.mock('~/lib/kvStorage', () => ({
+  kvStorage: {
+    getItem: (...args: unknown[]) => mockGetItem(...args),
+    setItem: (...args: unknown[]) => mockSetItem(...args),
+    removeItem: (...args: unknown[]) => mockRemoveItem(...args),
+  },
+}));
 
 const NOW = Date.parse('2026-12-01T12:00:00Z');
 const PRODUCT = 'dev.mehra.tackbok.support.small.v2';
@@ -56,6 +69,11 @@ describe('pruneFollowUps', () => {
 });
 
 describe('matchCompletedDonations', () => {
+  test('ignores a transaction without a readable purchase date', () => {
+    const unreadable = { ...transaction('tx-1'), purchaseDate: 'not a date' };
+    expect(matchCompletedDonations([record()], [unreadable]).completed).toEqual([]);
+  });
+
   test('completes a pending donation with a new transaction for its product', () => {
     const result = matchCompletedDonations(
       [record({ knownTransactionIds: ['tx-old'] })],
@@ -91,5 +109,36 @@ describe('matchCompletedDonations', () => {
     expect(result.completed.map((item) => [item.id, item.transactionId])).toEqual([
       ['first', 'tx-b'],
     ]);
+  });
+});
+
+describe('stored follow-ups', () => {
+  beforeEach(() => {
+    mockGetItem.mockReset();
+    mockSetItem.mockReset().mockResolvedValue(undefined);
+    mockRemoveItem.mockReset().mockResolvedValue(undefined);
+  });
+
+  test('a failed read never overwrites the stored list', async () => {
+    mockGetItem.mockRejectedValueOnce(new Error('database is locked'));
+    await expect(
+      updateFollowUps((records) => ({ records, result: undefined })),
+    ).rejects.toThrow('database is locked');
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(mockRemoveItem).not.toHaveBeenCalled();
+  });
+
+  test('reading does not write', async () => {
+    mockGetItem.mockResolvedValueOnce(
+      JSON.stringify([record({ createdAt: Date.now() })]),
+    );
+    expect(await readFollowUps()).toHaveLength(1);
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(mockRemoveItem).not.toHaveBeenCalled();
+  });
+
+  test('clearing removes the key', async () => {
+    await clearFollowUps();
+    expect(mockRemoveItem).toHaveBeenCalledWith(DONATION_FOLLOW_UPS_KEY);
   });
 });

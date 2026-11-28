@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import Purchases from 'react-native-purchases';
 
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'note-id' }));
 jest.mock('expo-constants', () => ({ expoConfig: { extra: {} } }));
 jest.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 jest.mock('~/lib/kvStorage', () => ({ kvStorage: {} }));
