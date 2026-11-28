@@ -149,6 +149,16 @@
       @apply mt-8 text-[1.2rem] font-bold;
     }
 
+    /* Release notes on the changelog sit one heading level down. */
+    & section > * + *,
+    & .release-notes > * + * {
+      @apply mt-5;
+    }
+
+    & h4 {
+      @apply mt-6 font-bold;
+    }
+
     & a {
       @apply font-semibold text-sage-deep underline underline-offset-4 hover:text-ink;
     }
