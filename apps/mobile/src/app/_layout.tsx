@@ -2,6 +2,7 @@ import '../global.css';
 
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -23,7 +24,7 @@ import { useAppIconStore } from '~/lib/appIcon';
 import { useProfileBootstrap } from '~/lib/settings/useProfileBootstrap';
 import { useTranslation, useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
-import { initAnalytics, trackScreenView } from '~/lib/analytics';
+import { initAnalytics, track, trackScreenView } from '~/lib/analytics';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { recordLastSeenAppVersion } from '~/lib/appVersion';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
@@ -31,7 +32,11 @@ import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { AppLockGate } from '~/components/AppLockGate';
 import { PortalHost } from '~/components/primitives/portal';
 import { Text } from '~/components/ui/text';
-import { Toaster } from '~/components/ui/toast';
+import { toast, Toaster } from '~/components/ui/toast';
+import {
+  onPendingDonationCompleted,
+  resumeDonationFollowUps,
+} from '~/lib/purchases/revenue-cat';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
 import { SplashAnimation } from '~/components/SplashAnimation';
@@ -244,6 +249,29 @@ export default function Layout() {
       cloudSyncRuntime.stop();
     };
   }, [devSetupReady, hasHydrated, launchAnimating, profileReady, success]);
+
+  // A donation that was pending (UPI, Ask to Buy) can complete while the app is
+  // closed or on another screen. Only devices with such a donation, or with an
+  // unsent donor note, talk to RevenueCat here.
+  useEffect(
+    () =>
+      onPendingDonationCompleted((tier) => {
+        track('support_purchase_completed', { tier });
+        toast.success(t('appInfo.paymentSuccessful'), {
+          description: t('appInfo.thankYouForSupportingTackbokItGenuinelyMeansALot'),
+        });
+        if (process.env.EXPO_OS === 'ios') {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }),
+    [t],
+  );
+  useEffect(() => {
+    if (!success || !hasHydrated || launchAnimating) return;
+    resumeDonationFollowUps().catch(() => {
+      console.warn('Donation follow-up check failed');
+    });
+  }, [hasHydrated, launchAnimating, success]);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {

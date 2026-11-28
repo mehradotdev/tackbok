@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,8 @@ import {
 } from 'lucide-react-native';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
+import { Input } from '~/components/ui/input';
+import { Textarea } from '~/components/ui/textarea';
 import { Text } from '~/components/ui/text';
 import {
   AlertDialog,
@@ -33,9 +36,16 @@ import { useTranslation } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
 import {
   loadSupportCatalog,
+  onPendingDonationCompleted,
   purchaseSupportTier,
   SupportPurchaseError,
 } from '~/lib/purchases/revenue-cat';
+import {
+  DONOR_NOTE_MAX_MESSAGE_LENGTH,
+  isValidDonorEmail,
+  normalizeDonorNote,
+  type DonorNote,
+} from '~/lib/purchases/donor-note';
 import {
   mapSupportCatalog,
   type SupportCatalogTier,
@@ -170,6 +180,62 @@ function CostBreakdownRow({
   );
 }
 
+function DonorNoteFields({
+  note,
+  onChange,
+  showEmailError,
+  onEmailBlur,
+}: {
+  note: DonorNote;
+  onChange: (note: DonorNote) => void;
+  showEmailError: boolean;
+  onEmailBlur: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <View className="gap-3 border-b border-border px-4 py-4">
+      <View className="gap-0.5">
+        <Text className="text-base font-body-semibold text-foreground">
+          {t('support.note.title')}
+        </Text>
+        <Text className="text-sm text-foreground">{t('support.note.description')}</Text>
+      </View>
+      <Textarea
+        value={note.message}
+        onChangeText={(message) => onChange({ ...note, message })}
+        maxLength={DONOR_NOTE_MAX_MESSAGE_LENGTH}
+        placeholder={t('support.note.message')}
+        placeholderTextColorClassName="accent-muted-foreground"
+        accessibilityLabel={t('support.note.message')}
+        className="min-h-24 bg-background"
+      />
+      <Input
+        value={note.email}
+        onChangeText={(email) => onChange({ ...note, email })}
+        onBlur={onEmailBlur}
+        placeholder={t('support.note.email')}
+        accessibilityLabel={t('support.note.email')}
+        accessibilityHint={showEmailError ? t('support.note.emailInvalid') : undefined}
+        keyboardType="email-address"
+        textContentType="emailAddress"
+        autoComplete="email"
+        autoCapitalize="none"
+        autoCorrect={false}
+        maxLength={254}
+        className={
+          showEmailError ? 'h-auto min-h-10 border-destructive' : 'h-auto min-h-10'
+        }
+      />
+      {showEmailError && (
+        <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+          {t('support.note.emailInvalid')}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function SupportScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
@@ -177,6 +243,19 @@ export default function SupportScreen() {
   const [selectedTier, setSelectedTier] = useState<SupportCatalogTier | null>(null);
   const [successfulTier, setSuccessfulTier] = useState<SupportCatalogTier | null>(null);
   const [notice, setNotice] = useState<PurchaseNotice>(null);
+  // The draft stays in memory only; it is saved for sending once a purchase starts.
+  const [note, setNote] = useState<DonorNote>({ message: '', email: '' });
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailValid = isValidDonorEmail(note.email);
+  const isAnonymous = normalizeDonorNote(note) === null;
+
+  useEffect(
+    () =>
+      onPendingDonationCompleted(() => {
+        setNotice((current) => (current?.type === 'pending' ? null : current));
+      }),
+    [],
+  );
 
   const catalogQuery = useQuery({
     queryKey: ['support-catalog'],
@@ -189,7 +268,15 @@ export default function SupportScreen() {
     [catalogQuery.data],
   );
 
-  const purchaseMutation = useMutation({ mutationFn: purchaseSupportTier });
+  const purchaseMutation = useMutation({
+    mutationFn: ({
+      tierId,
+      note,
+    }: {
+      tierId: SupportCatalogTier['id'];
+      note: DonorNote | null;
+    }) => purchaseSupportTier(tierId, note),
+  });
   const isPurchasing = purchaseMutation.isPending;
 
   const confirmPurchase = async (tier: SupportCatalogTier) => {
@@ -198,7 +285,15 @@ export default function SupportScreen() {
     track('support_purchase_started', { tier: tier.id });
 
     try {
-      const result = await purchaseMutation.mutateAsync(tier.id);
+      const result = await purchaseMutation.mutateAsync({
+        tierId: tier.id,
+        note: emailValid ? normalizeDonorNote(note) : null,
+      });
+      if (result !== 'cancelled') {
+        // The note now travels with the donation.
+        setNote({ message: '', email: '' });
+        setEmailTouched(false);
+      }
       if (result === 'completed') {
         track('support_purchase_completed', { tier: tier.id });
         toast.success(t('appInfo.paymentSuccessful'), {
@@ -226,6 +321,15 @@ export default function SupportScreen() {
             : t('appInfo.thePurchaseCouldNotBeCompletedPleaseTryAgain'),
       });
     }
+  };
+
+  const selectTier = (tier: SupportCatalogTier) => {
+    if (!emailValid) {
+      setEmailTouched(true);
+      AccessibilityInfo.announceForAccessibility(t('support.note.emailInvalid'));
+      return;
+    }
+    setSelectedTier(tier);
   };
 
   const handleShare = async () => {
@@ -263,7 +367,11 @@ export default function SupportScreen() {
         </Text>
       </View>
 
-      <ScrollView className="px-safe" contentContainerClassName="pb-safe-or-8 pt-6">
+      <KeyboardAwareScrollView
+        className="px-safe"
+        contentContainerClassName="pb-safe-or-8 pt-6"
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={16}>
         <View className="mb-6 items-center px-6">
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">
             <Icon
@@ -294,13 +402,19 @@ export default function SupportScreen() {
             icon={Star}
             onPress={() => void handleRate()}
           />
+          <DonorNoteFields
+            note={note}
+            onChange={setNote}
+            showEmailError={emailTouched && !emailValid}
+            onEmailBlur={() => setEmailTouched(true)}
+          />
           {catalog.map((tier) => (
             <SupportTierRow
               key={tier.id}
               tier={tier}
               busy={isPurchasing}
               loading={catalogQuery.isLoading}
-              onPress={() => setSelectedTier(tier)}
+              onPress={() => selectTier(tier)}
             />
           ))}
         </SettingsSection>
@@ -345,7 +459,7 @@ export default function SupportScreen() {
                 disabled={isPurchasing}
                 onPress={() => {
                   const retryTier = catalog.find((tier) => tier.id === notice.tierId);
-                  if (retryTier?.available) setSelectedTier(retryTier);
+                  if (retryTier?.available) selectTier(retryTier);
                 }}
                 className="mt-3 self-start">
                 <Icon as={RefreshCw} className="text-foreground" size={16} />
@@ -387,7 +501,7 @@ export default function SupportScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <AlertDialog
         open={selectedTier != null}
@@ -415,7 +529,9 @@ export default function SupportScreen() {
               onPress={() => {
                 if (selectedTier) void confirmPurchase(selectedTier);
               }}>
-              <Text>{t('onboarding.continue')}</Text>
+              <Text>
+                {isAnonymous ? t('support.donateAnonymously') : t('onboarding.continue')}
+              </Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

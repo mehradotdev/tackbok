@@ -513,6 +513,14 @@ export const it = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Il pagamento è in sospeso. Lo store lo completerà dopo l’approvazione o il pagamento.',
   'appInfo.whereYourSupportHelps': 'A cosa serve il tuo sostegno',
+  'support.note.title': 'Aggiungi una nota (facoltativa)',
+  'support.note.description':
+    'Viene inviata in privato allo sviluppatore quando il pagamento è completato.',
+  'support.note.message': 'Messaggio',
+  'support.note.email': 'Email, se vuoi una risposta',
+  'support.note.emailInvalid':
+    'Inserisci un indirizzo email valido o lascia il campo vuoto.',
+  'support.donateAnonymously': 'Dona in forma anonima',
   'appInfo.cloudflareWorkers': 'Cloudflare Workers',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'Iscrizione all’Apple Developer Program',

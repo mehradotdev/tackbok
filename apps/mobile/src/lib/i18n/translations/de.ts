@@ -559,6 +559,14 @@ export const de: Translations = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Deine Zahlung steht aus. Der Store schließt sie ab, sobald die Genehmigung oder Zahlung erfolgt ist.',
   'appInfo.whereYourSupportHelps': 'Wobei deine Unterstützung hilft',
+  'support.note.title': 'Notiz hinzufügen (optional)',
+  'support.note.description':
+    'Wird privat an den Entwickler gesendet, sobald deine Zahlung abgeschlossen ist.',
+  'support.note.message': 'Nachricht',
+  'support.note.email': 'E-Mail, falls du eine Antwort möchtest',
+  'support.note.emailInvalid':
+    'Gib eine gültige E-Mail-Adresse ein oder lass das Feld leer.',
+  'support.donateAnonymously': 'Anonym spenden',
   'appInfo.cloudflareWorkers': 'Cloudflare Workers',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'Apple-Developer-Mitgliedschaft',

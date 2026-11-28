@@ -494,6 +494,13 @@ export const es = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Su pago está pendiente. La tienda lo terminará cuando se complete la aprobación o el pago.',
   'appInfo.whereYourSupportHelps': 'Donde ayuda tu apoyo',
+  'support.note.title': 'Añade una nota (opcional)',
+  'support.note.description':
+    'Se envía en privado al desarrollador cuando se complete tu pago.',
+  'support.note.message': 'Mensaje',
+  'support.note.email': 'Correo electrónico, si quieres una respuesta',
+  'support.note.emailInvalid': 'Introduce un correo electrónico válido o déjalo vacío.',
+  'support.donateAnonymously': 'Donar de forma anónima',
   'appInfo.cloudflareWorkers': 'Trabajadores de nube',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'Membresía de desarrollador de Apple',

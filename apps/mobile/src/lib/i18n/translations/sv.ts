@@ -478,6 +478,13 @@ export const sv = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Din betalning väntar. Butiken kommer att avsluta det när godkännandet eller betalningen är klar.',
   'appInfo.whereYourSupportHelps': 'Där ditt stöd hjälper',
+  'support.note.title': 'Skriv en hälsning (valfritt)',
+  'support.note.description':
+    'Skickas privat till utvecklaren när din betalning är klar.',
+  'support.note.message': 'Meddelande',
+  'support.note.email': 'E-post, om du vill ha svar',
+  'support.note.emailInvalid': 'Ange en giltig e-postadress eller lämna fältet tomt.',
+  'support.donateAnonymously': 'Donera anonymt',
   'appInfo.cloudflareWorkers': 'Cloudflare-arbetare',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'Apple utvecklarmedlemskap',

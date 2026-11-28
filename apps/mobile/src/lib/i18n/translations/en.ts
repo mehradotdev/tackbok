@@ -542,6 +542,14 @@ export const en = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Your payment is pending. The store will finish it when approval or payment completes.',
   'appInfo.whereYourSupportHelps': 'Where your support helps',
+  // Support screen: optional note sent with a donation once the payment completes.
+  'support.note.title': 'Add a note (optional)',
+  'support.note.description':
+    'Sent privately to the developer once your payment completes.',
+  'support.note.message': 'Message',
+  'support.note.email': 'Email, if you’d like a reply',
+  'support.note.emailInvalid': 'Enter a valid email address, or leave it empty.',
+  'support.donateAnonymously': 'Donate anonymously',
   'appInfo.cloudflareWorkers': 'Cloudflare workers',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'Apple developer membership',

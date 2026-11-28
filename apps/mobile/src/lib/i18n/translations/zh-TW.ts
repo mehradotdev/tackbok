@@ -494,6 +494,12 @@ export const zhTW: Translations = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     '你的付款正在等候處理。獲得批准或完成付款後，商店將完成交易。',
   'appInfo.whereYourSupportHelps': '你的支持用於何處',
+  'support.note.title': '新增留言（選填）',
+  'support.note.description': '付款完成後，留言會私下傳送給開發者。',
+  'support.note.message': '留言內容',
+  'support.note.email': '電子郵件（如需回覆）',
+  'support.note.emailInvalid': '請輸入有效的電子郵件地址，或留空。',
+  'support.donateAnonymously': '匿名捐款',
   'appInfo.cloudflareWorkers': 'Cloudflare Workers',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'Apple Developer 會員',

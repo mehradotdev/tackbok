@@ -505,6 +505,12 @@ export const he: Translations = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'התשלום שלך בהמתנה. החנות תשלים אותו לאחר השלמת האישור או התשלום.',
   'appInfo.whereYourSupportHelps': 'כיצד התמיכה שלך עוזרת',
+  'support.note.title': 'הוספת הערה (אופציונלי)',
+  'support.note.description': 'ההערה תישלח באופן פרטי למפתח לאחר שהתשלום יושלם.',
+  'support.note.message': 'הודעה',
+  'support.note.email': 'אימייל, אם ברצונך לקבל תשובה',
+  'support.note.emailInvalid': 'יש להזין כתובת אימייל תקינה, או להשאיר את השדה ריק.',
+  'support.donateAnonymously': 'תרומה אנונימית',
   'appInfo.cloudflareWorkers': 'Cloudflare Workers',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'חברות Apple Developer',
