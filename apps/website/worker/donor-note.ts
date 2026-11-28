@@ -352,7 +352,18 @@ export async function handleDonorNote(
     deps.now(),
     deps.env.DONOR_NOTE_ALLOW_SANDBOX === 'true',
   );
-  if (!candidates.length) return respond(403, 'not_verified');
+  if (!candidates.length) {
+    // RevenueCat lists the purchase, but it can never carry a note (refunded,
+    // sandbox or Test Store, too old): tell the app to stop retrying.
+    const known =
+      note.transactionId !== null &&
+      lookup.purchases.some(
+        (purchase) =>
+          String(purchase.store_purchase_identifier) === note.transactionId ||
+          purchase.id === note.transactionId,
+      );
+    return known ? respond(422, 'not_eligible') : respond(403, 'not_verified');
+  }
 
   const claim = await deps.ledger.claim(
     candidates.map((candidate) => candidate.id),

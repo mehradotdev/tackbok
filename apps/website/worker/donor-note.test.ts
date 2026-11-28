@@ -341,10 +341,20 @@ describe('handleDonorNote', () => {
     expect(email.reply_to).toBeUndefined();
   });
 
-  it('rejects notes without a qualifying purchase', async () => {
-    const { calls, deps } = setup({ purchases: [purchase({ environment: 'sandbox' })] });
+  it('asks the app to retry while the purchase is not listed yet', async () => {
+    const older = purchase({
+      environment: 'sandbox',
+      store_purchase_identifier: 'tx-old',
+    });
+    const { calls, deps } = setup({ purchases: [older] });
     const response = await handleDonorNote(post(note), deps);
     expect(response.status).toBe(403);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('tells the app to stop retrying a known purchase that can never qualify', async () => {
+    const { calls, deps } = setup({ purchases: [purchase({ store: 'test_store' })] });
+    expect((await handleDonorNote(post(note), deps)).status).toBe(422);
     expect(calls).toHaveLength(1);
   });
 
