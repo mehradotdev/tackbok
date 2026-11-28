@@ -223,9 +223,7 @@ function DonorNoteFields({
         autoCapitalize="none"
         autoCorrect={false}
         maxLength={254}
-        className={
-          showEmailError ? 'h-auto min-h-10 border-destructive' : 'h-auto min-h-10'
-        }
+        className="h-auto min-h-10"
       />
       {showEmailError && (
         <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
@@ -371,6 +369,7 @@ export default function SupportScreen() {
         className="px-safe"
         contentContainerClassName="pb-safe-or-8 pt-6"
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         bottomOffset={16}>
         <View className="mb-6 items-center px-6">
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">

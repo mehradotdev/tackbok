@@ -49,8 +49,9 @@ export async function sendDonorNote(
     return 'retry';
   }
   if (response.ok || response.status === 409) return 'sent';
-  // 403: RevenueCat may not list a just-completed payment yet.
-  if (response.status === 403 || response.status === 429 || response.status >= 500) {
+  // 403: RevenueCat may not list a just-completed payment yet. 404/405: the
+  // endpoint is not deployed yet (the static site answers instead).
+  if ([403, 404, 405, 429].includes(response.status) || response.status >= 500) {
     return 'retry';
   }
   return 'rejected';

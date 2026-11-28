@@ -31,7 +31,9 @@ test.each([
   [429, 'retry'],
   [503, 'retry'],
   [400, 'rejected'],
-  [404, 'rejected'],
+  [404, 'retry'],
+  [405, 'retry'],
+  [413, 'rejected'],
 ] as const)('maps HTTP %d to %s', async (status, expected) => {
   const fetcher = jest.fn(async () => ({ ok: status < 300, status }) as Response);
   await expect(
