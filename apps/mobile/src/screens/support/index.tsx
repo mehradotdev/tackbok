@@ -438,7 +438,15 @@ export default function SupportScreen() {
             note={note}
             onChange={setNote}
             showEmailError={emailTouched && !emailValid}
-            onEmailBlur={() => setEmailTouched(true)}
+            onEmailBlur={() => {
+              setEmailTouched(true);
+              // VoiceOver ignores live regions; tell it about the error.
+              if (!emailValid && process.env.EXPO_OS === 'ios') {
+                AccessibilityInfo.announceForAccessibility(
+                  t('support.note.emailInvalid'),
+                );
+              }
+            }}
             editable={!isPurchasing}
             emailRef={emailRef}
           />

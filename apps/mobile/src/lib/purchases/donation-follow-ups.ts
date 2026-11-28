@@ -84,6 +84,10 @@ export function pruneFollowUps(values: unknown, now: number): DonationFollowUp[]
  * Finds pending donations that the store has since completed: a transaction
  * for the same product that did not exist when the purchase started and is
  * not already attributed to another donation.
+ *
+ * The newest pending donation is matched first, to the earliest transaction
+ * after it started. A declined attempt that stays pending then can't take the
+ * payment of a later attempt that went through.
  */
 export function matchCompletedDonations(
   records: readonly DonationFollowUp[],
@@ -92,27 +96,37 @@ export function matchCompletedDonations(
   const claimed = new Set(
     records.flatMap((record) => (record.transactionId ? [record.transactionId] : [])),
   );
+  const dated = transactions
+    .map((transaction) => ({
+      transaction,
+      purchasedAt: Date.parse(transaction.purchaseDate),
+    }))
+    .filter(({ purchasedAt }) => !Number.isNaN(purchasedAt))
+    .sort((a, b) => a.purchasedAt - b.purchasedAt);
+  const matched = new Map<string, string>();
+  const pendingNewestFirst = records
+    .filter((record) => record.transactionId === null)
+    .sort((a, b) => b.createdAt - a.createdAt);
+  for (const record of pendingNewestFirst) {
+    const match = dated.find(
+      ({ transaction, purchasedAt }) =>
+        transaction.productIdentifier === record.productId &&
+        !claimed.has(transaction.transactionIdentifier) &&
+        !record.knownTransactionIds.includes(transaction.transactionIdentifier) &&
+        purchasedAt >= record.createdAt - PURCHASE_DATE_TOLERANCE_MS,
+    );
+    if (!match) continue;
+    claimed.add(match.transaction.transactionIdentifier);
+    matched.set(record.id, match.transaction.transactionIdentifier);
+  }
   const completed: DonationFollowUp[] = [];
-  const updated = [...records]
-    .sort((a, b) => a.createdAt - b.createdAt)
-    .map((record) => {
-      if (record.transactionId !== null) return record;
-      const match = transactions.find((transaction) => {
-        const purchasedAt = Date.parse(transaction.purchaseDate);
-        return (
-          transaction.productIdentifier === record.productId &&
-          !claimed.has(transaction.transactionIdentifier) &&
-          !record.knownTransactionIds.includes(transaction.transactionIdentifier) &&
-          !Number.isNaN(purchasedAt) &&
-          purchasedAt >= record.createdAt - PURCHASE_DATE_TOLERANCE_MS
-        );
-      });
-      if (!match) return record;
-      claimed.add(match.transactionIdentifier);
-      const done = { ...record, transactionId: match.transactionIdentifier };
-      completed.push(done);
-      return done;
-    });
+  const updated = records.map((record) => {
+    const transactionId = matched.get(record.id);
+    if (!transactionId) return record;
+    const done = { ...record, transactionId };
+    completed.push(done);
+    return done;
+  });
   return { records: updated, completed };
 }
 

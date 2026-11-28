@@ -107,8 +107,24 @@ describe('matchCompletedDonations', () => {
       [transaction('tx-a'), transaction('tx-b')],
     );
     expect(result.completed.map((item) => [item.id, item.transactionId])).toEqual([
-      ['first', 'tx-b'],
+      ['second', 'tx-b'],
     ]);
+  });
+
+  test('gives a retried payment to the retry, not to an older declined attempt', () => {
+    const result = matchCompletedDonations(
+      [
+        record({ id: 'declined', createdAt: NOW - 60 * 60 * 1000 }),
+        record({ id: 'retry', createdAt: NOW - 60_000 }),
+      ],
+      [transaction('tx-paid')],
+    );
+    expect(result.completed.map((item) => [item.id, item.transactionId])).toEqual([
+      ['retry', 'tx-paid'],
+    ]);
+    expect(
+      result.records.find((item) => item.id === 'declined')?.transactionId,
+    ).toBeNull();
   });
 });
 

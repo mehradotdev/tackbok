@@ -1,5 +1,5 @@
 import { AppState } from 'react-native';
-import { PURCHASES_ERROR_CODE } from 'react-native-purchases';
+import Purchases, { PURCHASES_ERROR_CODE } from 'react-native-purchases';
 import {
   appLockSession,
   refreshExternalAuthentication,
@@ -9,6 +9,7 @@ import {
   loadSupportCatalog,
   onPendingDonationCompleted,
   purchaseSupportTier,
+  resumeDonationFollowUps,
 } from './revenue-cat';
 import { DONATION_FOLLOW_UPS_KEY, readFollowUps } from './donation-follow-ups';
 
@@ -281,4 +282,13 @@ test('catches up on a pending payment that completed during the purchase call', 
   expect(JSON.parse(mockFetch.mock.calls[0][1].body).transactionId).toBe('tx-fast');
   expect(mockSaved.has(DONATION_FOLLOW_UPS_KEY)).toBe(false);
   unsubscribe();
+});
+
+test('at launch, a device without open donations never asks RevenueCat', async () => {
+  jest.mocked(Purchases.getCustomerInfo).mockClear();
+  jest.mocked(Purchases.isConfigured).mockClear();
+  await resumeDonationFollowUps();
+  expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
+  expect(Purchases.isConfigured).not.toHaveBeenCalled();
+  expect(mockCustomerInfoListeners.size).toBe(0);
 });
