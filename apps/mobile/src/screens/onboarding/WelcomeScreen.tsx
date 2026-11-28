@@ -176,7 +176,7 @@ export default function OnboardingWelcomeScreen() {
   const handleImportDone = useCallback(
     (source: BackupImportSource) => {
       if (source === 'tackbok') {
-        // A Tackbok backup restores the profile (name, email, photo) but not
+        // A Tackbok backup restores the profile (name, photo) but not
         // the theme or focus areas, so only the name step is skipped, and only
         // when the backup brought a name.
         router.push(

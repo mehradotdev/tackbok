@@ -53,6 +53,28 @@ it('finishes hydration when the settings store is unreadable', async () => {
   warn.mockRestore();
 });
 
+it('drops the old profile email when it migrates stored settings', async () => {
+  mockSaved.set(
+    'tackbok-settings',
+    JSON.stringify({
+      state: {
+        profileName: 'Sam',
+        profileEmail: 'sam@example.org',
+        legacyProfileMigrationComplete: false,
+        hasCompletedOnboarding: true,
+      },
+      version: 1,
+    }),
+  );
+  await useSettingsStore.persist.rehydrate();
+  expect(useSettingsStore.getState()).not.toHaveProperty('profileEmail');
+  // The legacy name stays until the SQLite backfill takes it.
+  expect(useSettingsStore.getState().profileName).toBe('Sam');
+  const stored = JSON.parse(mockSaved.get('tackbok-settings')!);
+  expect(stored.version).toBe(2);
+  expect(stored.state).not.toHaveProperty('profileEmail');
+});
+
 describe('profile cache reloads', () => {
   const restored = {
     profileName: 'Restored',
