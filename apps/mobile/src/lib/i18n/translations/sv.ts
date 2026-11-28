@@ -289,9 +289,9 @@ export const sv = {
   'festive.keepIt': 'Behåll',
   'storeUpdate.title': 'En ny version av Tackbok finns',
   'storeUpdate.message':
-    'Tackbok {{version}} finns i butiken, med de senaste rättningarna och förbättringarna.',
+    'Tackbok {version} finns i butiken, med de senaste rättningarna och förbättringarna.',
   'storeUpdate.requiredMessage':
-    'Den här versionen av Tackbok är föråldrad. Uppdatera till {{version}} så att allt fortsätter att fungera som det ska.',
+    'Den här versionen av Tackbok är föråldrad. Uppdatera till {version} så att allt fortsätter att fungera som det ska.',
   'storeUpdate.update': 'Uppdatera',
   'storeUpdate.notNow': 'Inte nu',
   'typography.typography': 'Typografi',

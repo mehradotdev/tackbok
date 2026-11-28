@@ -356,9 +356,9 @@ export const de: Translations = {
   'festive.keepIt': 'Behalten',
   'storeUpdate.title': 'Eine neue Version von Tackbok ist da',
   'storeUpdate.message':
-    'Tackbok {{version}} steht im Store bereit, mit den neuesten Fehlerbehebungen und Verbesserungen.',
+    'Tackbok {version} steht im Store bereit, mit den neuesten Fehlerbehebungen und Verbesserungen.',
   'storeUpdate.requiredMessage':
-    'Diese Version von Tackbok ist veraltet. Aktualisiere auf {{version}}, damit alles weiter funktioniert.',
+    'Diese Version von Tackbok ist veraltet. Aktualisiere auf {version}, damit alles weiter funktioniert.',
   'storeUpdate.update': 'Aktualisieren',
   'storeUpdate.notNow': 'Nicht jetzt',
 

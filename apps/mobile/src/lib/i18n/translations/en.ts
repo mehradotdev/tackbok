@@ -340,13 +340,13 @@ export const en = {
   'festive.switchBack': 'Switch back',
   'festive.keepIt': 'Keep it',
   // Store update prompt on Home, when the store has a newer version than the
-  // installed one. {{version}} is the store's version, e.g. 2.0.1. The required
+  // installed one. {version} is the store's version, e.g. 2.0.1. The required
   // message replaces the first one when the installed version is no longer supported.
   'storeUpdate.title': 'A new version of Tackbok is available',
   'storeUpdate.message':
-    'Tackbok {{version}} is ready in the store, with the latest fixes and improvements.',
+    'Tackbok {version} is ready in the store, with the latest fixes and improvements.',
   'storeUpdate.requiredMessage':
-    'This version of Tackbok is out of date. Update to {{version}} to keep everything working as it should.',
+    'This version of Tackbok is out of date. Update to {version} to keep everything working as it should.',
   'storeUpdate.update': 'Update',
   'storeUpdate.notNow': 'Not now',
 

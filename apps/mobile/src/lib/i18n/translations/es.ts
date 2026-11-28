@@ -300,9 +300,9 @@ export const es = {
   'festive.keepIt': 'Mantener',
   'storeUpdate.title': 'Hay una nueva versión de Tackbok',
   'storeUpdate.message':
-    'Tackbok {{version}} ya está en la tienda, con las últimas correcciones y mejoras.',
+    'Tackbok {version} ya está en la tienda, con las últimas correcciones y mejoras.',
   'storeUpdate.requiredMessage':
-    'Esta versión de Tackbok está desactualizada. Actualiza a la {{version}} para que todo siga funcionando bien.',
+    'Esta versión de Tackbok está desactualizada. Actualiza a la {version} para que todo siga funcionando bien.',
   'storeUpdate.update': 'Actualizar',
   'storeUpdate.notNow': 'Ahora no',
   'typography.typography': 'Tipografía',

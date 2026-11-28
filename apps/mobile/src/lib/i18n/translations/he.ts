@@ -318,10 +318,9 @@ export const he: Translations = {
   'festive.switchBack': 'לחזור',
   'festive.keepIt': 'להשאיר',
   'storeUpdate.title': 'יש גרסה חדשה של Tackbok',
-  'storeUpdate.message':
-    'Tackbok {{version}} זמינה בחנות, עם התיקונים והשיפורים האחרונים.',
+  'storeUpdate.message': 'Tackbok {version} זמינה בחנות, עם התיקונים והשיפורים האחרונים.',
   'storeUpdate.requiredMessage':
-    'הגרסה הזו של Tackbok ישנה. כדאי לעדכן לגרסה {{version}} כדי שהכול ימשיך לעבוד כמו שצריך.',
+    'הגרסה הזו של Tackbok ישנה. כדאי לעדכן לגרסה {version} כדי שהכול ימשיך לעבוד כמו שצריך.',
   'storeUpdate.update': 'עדכון',
   'storeUpdate.notNow': 'לא עכשיו',
 

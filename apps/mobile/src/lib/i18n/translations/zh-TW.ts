@@ -314,9 +314,9 @@ export const zhTW: Translations = {
   'festive.switchBack': '切換回去',
   'festive.keepIt': '保留',
   'storeUpdate.title': 'Tackbok 有新版本',
-  'storeUpdate.message': 'Tackbok {{version}} 已在商店上架，包含最新的修正與改進。',
+  'storeUpdate.message': 'Tackbok {version} 已在商店上架，包含最新的修正與改進。',
   'storeUpdate.requiredMessage':
-    '此版本的 Tackbok 已過時。請更新至 {{version}}，以確保一切正常運作。',
+    '此版本的 Tackbok 已過時。請更新至 {version}，以確保一切正常運作。',
   'storeUpdate.update': '更新',
   'storeUpdate.notNow': '暫不',
 

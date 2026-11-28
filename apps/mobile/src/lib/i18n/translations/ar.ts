@@ -318,9 +318,9 @@ export const ar: Translations = {
   'festive.keepIt': 'الإبقاء عليه',
   'storeUpdate.title': 'يتوفّر إصدار جديد من Tackbok',
   'storeUpdate.message':
-    'الإصدار {{version}} من Tackbok متاح الآن في المتجر، مع أحدث الإصلاحات والتحسينات.',
+    'الإصدار {version} من Tackbok متاح الآن في المتجر، مع أحدث الإصلاحات والتحسينات.',
   'storeUpdate.requiredMessage':
-    'هذا الإصدار من Tackbok قديم. حدّث إلى {{version}} ليبقى كل شيء يعمل كما ينبغي.',
+    'هذا الإصدار من Tackbok قديم. حدّث إلى {version} ليبقى كل شيء يعمل كما ينبغي.',
   'storeUpdate.update': 'تحديث',
   'storeUpdate.notNow': 'ليس الآن',
 
