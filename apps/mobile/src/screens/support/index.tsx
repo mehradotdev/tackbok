@@ -403,7 +403,8 @@ export default function SupportScreen() {
         contentContainerClassName="pb-safe-or-8 pt-6"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        bottomOffset={16}>
+        // Leaves room for the email error line under the focused field.
+        bottomOffset={64}>
         <View className="mb-6 items-center px-6">
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">
             <Icon
