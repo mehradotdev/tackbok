@@ -5,6 +5,7 @@ import { useAchievementDialogStore } from '~/lib/achievement-dialog';
 import { useAppLockStore } from '~/lib/appLock';
 import { useSettingsStore } from '~/lib/settings';
 import { useSplashActive } from '~/lib/splash';
+import { checkForStoreUpdate, type StoreUpdatePrompt } from '~/lib/storeUpdate';
 import { somethingElseOnHome } from './homePrompts';
 
 /** Lets Home settle after the launch animation, the lock or an achievement. */
@@ -15,9 +16,16 @@ const SETTLE_MS = 800;
  */
 let offeredThisLaunch = false;
 export const openingHomeSheetOffered = () => offeredThisLaunch;
+let storeCheck: Promise<StoreUpdatePrompt | null> | undefined;
+/** The store check, once per launch: both sheets need its answer to take turns. */
+export function storeUpdateThisLaunch(): Promise<StoreUpdatePrompt | null> {
+  storeCheck ??= checkForStoreUpdate().catch(() => null);
+  return storeCheck;
+}
 /** For tests, which stand in for separate launches. */
 export function resetOpeningHomeSheet() {
   offeredThisLaunch = false;
+  storeCheck = undefined;
 }
 
 /**

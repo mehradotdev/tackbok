@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { useTranslation } from '~/lib/i18n';
-import {
-  checkForStoreUpdate,
-  setNotNowVersion,
-  type StoreUpdatePrompt as Prompt,
-} from '~/lib/storeUpdate';
+import { appUpdatedThisLaunch } from '~/lib/appVersion';
+import { setNotNowVersion, type StoreUpdatePrompt as Prompt } from '~/lib/storeUpdate';
 import { toast } from '~/components/ui/toast';
 import { OpeningHomeSheetView } from './OpeningHomeSheetView';
-import { openingHomeSheetOffered, useOpeningHomeSheet } from './useOpeningHomeSheet';
+import {
+  openingHomeSheetOffered,
+  storeUpdateThisLaunch,
+  useOpeningHomeSheet,
+} from './useOpeningHomeSheet';
 
 /**
  * "A new version of Tackbok is available", with a button to this build's store.
@@ -29,11 +30,12 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
   useEffect(() => {
     if (openingHomeSheetOffered()) return;
     let cancelled = false;
-    void checkForStoreUpdate()
-      .then((next) => {
-        if (!cancelled) setDue(next);
-      })
-      .catch(() => {});
+    void storeUpdateThisLaunch().then((next) => {
+      // "What's new" has the first launch after an update; an optional update
+      // asks on a later launch, a required one goes first.
+      if (cancelled || (next && !next.required && appUpdatedThisLaunch())) return;
+      setDue(next);
+    });
     return () => {
       cancelled = true;
     };

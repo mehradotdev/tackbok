@@ -290,7 +290,7 @@ export const hi = {
   'storeUpdate.update': 'अपडेट करें',
   'storeUpdate.notNow': 'अभी नहीं',
   'whatsNew.title': 'Tackbok अपडेट हो गया है',
-  'whatsNew.message': 'वर्शन {version} में हुए बदलावों के बारे में tackbok.org पर पढ़ें (अंग्रेज़ी में)।',
+  'whatsNew.message': 'संस्करण {version} में हुए बदलावों के बारे में tackbok.org पर पढ़ें (अंग्रेज़ी में)।',
   'whatsNew.seeWhatsNew': 'देखें क्या नया है',
   'typography.typography': 'टाइपोग्राफी',
   'typography.titleFont': 'टाइटल फ़ॉन्ट',

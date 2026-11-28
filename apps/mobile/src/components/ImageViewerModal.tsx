@@ -13,6 +13,7 @@ import { X } from 'lucide-react-native';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { getFullPhotoUri } from '~/lib/photoUtils';
+import { trackPhotoViewer } from '~/lib/photoViewer';
 import { useExportMediaFile } from '~/lib/sharing/use-export-media-file';
 import { ZoomableImage } from './ZoomableImage';
 
@@ -80,6 +81,10 @@ export function ImageViewerModal({
       return () => clearTimeout(timer);
     }
   }, [visible, initialIndex, photos.length]);
+
+  useEffect(() => {
+    if (visible) return trackPhotoViewer();
+  }, [visible]);
 
   return (
     <Modal
