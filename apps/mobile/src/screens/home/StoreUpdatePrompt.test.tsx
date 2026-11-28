@@ -44,7 +44,12 @@ jest.mock('@lodev09/react-native-true-sheet', () => {
         props.onDidDismiss();
       },
     }));
-    return [props.children, props.footer];
+    return (
+      <>
+        {props.children}
+        {props.footer}
+      </>
+    );
   });
   return { TrueSheet };
 });
@@ -180,6 +185,24 @@ it('stays away once the user has left Home, so never mid-edit', async () => {
   act(() => mockBlur?.());
   await act(async () => useSettingsStore.setState({ pendingAchievement: null }));
   await settle();
+  expect(isOpen()).toBe(false);
+});
+
+it('closes if something opens over Home while it is up', async () => {
+  await mount();
+  await settle();
+  expect(isOpen()).toBe(true);
+  await act(async () => mockBlur?.());
+  expect(isOpen()).toBe(false);
+  expect(mockNotNow).not.toHaveBeenCalled();
+});
+
+it('does not offer it if Home was left just as the timer fired', async () => {
+  await mount();
+  // The blur's cleanup runs, then the timer, before React re-renders.
+  mockBlur?.();
+  jest.advanceTimersByTime(800);
+  await act(async () => {});
   expect(isOpen()).toBe(false);
 });
 

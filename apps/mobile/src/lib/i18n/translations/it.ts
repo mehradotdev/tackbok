@@ -321,7 +321,7 @@ export const it = {
   'storeUpdate.message':
     'Tackbok {version} è pronto nello store, con le ultime correzioni e i miglioramenti.',
   'storeUpdate.requiredMessage':
-    'Questa versione di Tackbok non è più aggiornata. Aggiorna alla {version} perché tutto continui a funzionare come deve.',
+    'Questa versione di Tackbok non è più aggiornata. Aggiorna alla versione {version} perché tutto continui a funzionare come deve.',
   'storeUpdate.update': 'Aggiorna',
   'storeUpdate.notNow': 'Non ora',
 

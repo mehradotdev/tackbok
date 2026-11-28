@@ -302,7 +302,7 @@ export const es = {
   'storeUpdate.message':
     'Tackbok {version} ya está en la tienda, con las últimas correcciones y mejoras.',
   'storeUpdate.requiredMessage':
-    'Esta versión de Tackbok está desactualizada. Actualiza a la {version} para que todo siga funcionando bien.',
+    'Esta versión de Tackbok está desactualizada. Actualiza a la versión {version} para que todo siga funcionando bien.',
   'storeUpdate.update': 'Actualizar',
   'storeUpdate.notNow': 'Ahora no',
   'typography.typography': 'Tipografía',

@@ -50,6 +50,8 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   // The opening Home only: false for good once it loses focus.
   const [onOpeningHome, setOnOpeningHome] = useState(true);
+  // The same, at once: a settle timer can fire before the blur re-renders.
+  const leftHome = useRef(false);
   const icon = useAppIconStore((s) => s.current);
   // Re-check whenever one of the things it waits for goes away.
   const splashActive = useSplashActive((s) => s.active);
@@ -92,6 +94,7 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
   useFocusEffect(
     useCallback(() => {
       return () => {
+        leftHome.current = true;
         setOnOpeningHome(false);
         // Something opened over Home (a reminder tap): don't leave the sheet on top.
         void close();
@@ -103,7 +106,7 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
     if (!due || !onOpeningHome || blocked) return;
     let timer: ReturnType<typeof setTimeout>;
     const attempt = () => {
-      if (offeredThisLaunch) return;
+      if (offeredThisLaunch || leftHome.current) return;
       // Some of these (the Home tips, the profile sheet) can't be watched, so
       // look again until they're gone.
       if (somethingElseOnHome()) {
@@ -127,7 +130,7 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
   ]);
 
   useEffect(() => {
-    if (!prompt || open.current) return;
+    if (!prompt || open.current || leftHome.current) return;
     open.current = true;
     answered.current = false;
     sheet.current?.present().catch(() => {
@@ -204,7 +207,7 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
               importantForAccessibility="no-hide-descendants">
               <AppIconTile name={icon} size={84} />
             </View>
-            <Text variant="h3" role="heading" className="text-center text-foreground">
+            <Text variant="h3" className="text-center text-foreground">
               {t('storeUpdate.title')}
             </Text>
             <Text className="mt-2 text-center text-base text-muted-foreground">
