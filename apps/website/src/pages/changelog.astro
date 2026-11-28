@@ -1,0 +1,59 @@
+---
+import ArticlePage from '~/components/ArticlePage.astro';
+import { loadReleases, RELEASES_PAGE } from '~/lib/releases';
+
+// Read when the site is built, so publish a release before deploying.
+const releases = await loadReleases();
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+---
+
+<ArticlePage
+  title="What's new in Tackbok — Changelog"
+  description="Release notes for every version of Tackbok, the free and private gratitude journal for iPhone and Android."
+  heading="What's new in Tackbok"
+  eyebrow="Changelog">
+  <p>
+    What changed in each version of Tackbok, newest first. The same notes are on{' '}
+    <a href={RELEASES_PAGE} rel="noopener noreferrer">
+      GitHub
+    </a>
+    .
+  </p>
+
+  {releases === null && (
+    <p>
+      The release notes couldn't be loaded here. Read them on{' '}
+      <a href={RELEASES_PAGE} rel="noopener noreferrer">
+        GitHub
+      </a>
+      .
+    </p>
+  )}
+
+  {releases?.length === 0 && (
+    <p>Notes for the first release will appear here once it's out.</p>
+  )}
+
+  {releases?.map((release) => (
+    <section aria-labelledby={`v${release.version}`}>
+      <h2 id={`v${release.version}`}>Version {release.version}</h2>
+      <p class="mt-2! text-[0.92rem] text-ink-soft">
+        <time datetime={release.publishedAt.toISOString().slice(0, 10)}>
+          {formatDate(release.publishedAt)}
+        </time>
+        {' · '}
+        <a href={release.url} rel="noopener noreferrer">
+          On GitHub
+        </a>
+      </p>
+      <div class="release-notes" set:html={release.html} />
+    </section>
+  ))}
+</ArticlePage>

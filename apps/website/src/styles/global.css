@@ -149,6 +149,16 @@
       @apply mt-8 text-[1.2rem] font-bold;
     }
 
+    /* Release notes on the changelog sit one heading level down. `:where` keeps
+       this spacing below the heading margins. */
+    & :where(section, .release-notes) > * + * {
+      @apply mt-5;
+    }
+
+    & :is(h4, h5, h6) {
+      @apply mt-6 font-bold;
+    }
+
     & a {
       @apply font-semibold text-sage-deep underline underline-offset-4 hover:text-ink;
     }
@@ -189,16 +199,20 @@
 
     /* App screenshots, framed like PhoneFrame.astro. Several images in one
        paragraph sit side by side. Every image in these pages is expected to be
-       a phone screenshot.
+       a phone screenshot, except in the changelog's release notes.
        shortcut: Markdown images ship at full capture size (about 40-80 KB each,
        lazy-loaded) with no srcset; render them through <Image> with widths if
        the guides gain many screenshots. */
-    & p:has(> img) {
+    & p:has(> img):not(.release-notes *) {
       @apply flex flex-wrap items-start justify-center gap-6 py-2;
     }
 
-    & img {
+    & img:not(.release-notes *) {
       @apply h-auto w-[min(240px,100%)] rounded-[2.1rem] border-8 border-ink bg-ink shadow-[0_24px_55px_color-mix(in_srgb,var(--color-ink)_25%,transparent)] ring-2 ring-paper-deep;
+    }
+
+    & .release-notes img {
+      @apply inline h-auto max-w-full;
     }
   }
 }
