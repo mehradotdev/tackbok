@@ -1,9 +1,35 @@
 name = "tackbok"
 compatibility_date = "2026-03-13"
+# Handles /api/* only (see run_worker_first); every other path is served
+# straight from static assets, exactly as before the Worker existed.
+main = "./worker/index.ts"
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
 # Serve /faq from faq.html and redirect /faq/ to /faq (matches trailingSlash: 'never').
 html_handling = "drop-trailing-slash"
 # Unknown paths get dist/404.html with a 404 status instead of an empty body.
 not_found_handling = "404-page"
+
+[vars]
+# Not secret. RESEND_API_KEY, REVENUECAT_SECRET_KEY and REVENUECAT_PROJECT_ID
+# are set with `wrangler secret put` before the first deploy; until then the
+# endpoint answers 503 and the app keeps notes to retry. Local development
+# reads them from .dev.vars (gitignored).
+DONOR_NOTE_FROM = "Tackbok <donor-notes@tackbok.org>"
+
+[[durable_objects.bindings]]
+name = "DONOR_NOTE_LEDGER"
+class_name = "DonorNoteLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DonorNoteLedger"]
+
+# Per-IP request cap for /api/donor-note, checked before RevenueCat is called.
+[[ratelimits]]
+name = "DONOR_NOTE_RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
