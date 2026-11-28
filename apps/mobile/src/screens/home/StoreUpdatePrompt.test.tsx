@@ -83,7 +83,12 @@ jest.mock('~/lib/appIcon', () => {
   const { create: createStore } = jest.requireActual('zustand');
   return { useAppIconStore: createStore(() => ({ current: 'Classic' })) };
 });
-jest.mock('./HomeCoachMarks', () => ({ homeTipsShowing: () => false }));
+let mockTipsShowing = false;
+let mockSettingsSheet = false;
+jest.mock('./HomeCoachMarks', () => ({ homeTipsShowing: () => mockTipsShowing }));
+jest.mock('~/components/SettingsBottomSheet', () => ({
+  settingsSheetShowing: () => mockSettingsSheet,
+}));
 jest.mock('uniwind', () => ({ useCSSVariable: () => ['#fff', '8', '#999'] }));
 jest.mock('~/lib/theme/themes', () => ({ DEFAULT_THEME_SHEET_RADIUS: 16 }));
 jest.mock('~/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -125,6 +130,8 @@ beforeEach(() => {
   resetStoreUpdateOffer();
   mockDue = update;
   mockSheetOpen = false;
+  mockTipsShowing = false;
+  mockSettingsSheet = false;
   mockOpenURL.mockClear();
   mockNotNow.mockClear();
   useSettingsStore.setState({ pendingAchievement: null });
@@ -181,6 +188,22 @@ it('waits while a Home picker is open', async () => {
   await settle();
   expect(isOpen()).toBe(false);
   await act(async () => tree.update(<StoreUpdatePrompt blocked={false} />));
+  await settle();
+  expect(isOpen()).toBe(true);
+});
+
+it('waits out the Home tips and the profile sheet, which it cannot watch', async () => {
+  mockTipsShowing = true;
+  await mount();
+  await settle();
+  await settle();
+  expect(isOpen()).toBe(false);
+  // The tour ends; the profile sheet opens (its name field) before the next look.
+  mockTipsShowing = false;
+  mockSettingsSheet = true;
+  await settle();
+  expect(isOpen()).toBe(false);
+  mockSettingsSheet = false;
   await settle();
   expect(isOpen()).toBe(true);
 });

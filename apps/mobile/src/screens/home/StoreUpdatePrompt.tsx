@@ -101,12 +101,20 @@ export function StoreUpdatePrompt({ blocked }: { blocked: boolean }) {
 
   useEffect(() => {
     if (!due || !onOpeningHome || blocked) return;
-    const timer = setTimeout(() => {
-      if (somethingElseOnHome() || offeredThisLaunch) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const attempt = () => {
+      if (offeredThisLaunch) return;
+      // Some of these (the Home tips, the profile sheet) can't be watched, so
+      // look again until they're gone.
+      if (somethingElseOnHome()) {
+        timer = setTimeout(attempt, SETTLE_MS);
+        return;
+      }
       offeredThisLaunch = true;
       setDue(null);
       setPrompt(due);
-    }, SETTLE_MS);
+    };
+    timer = setTimeout(attempt, SETTLE_MS);
     return () => clearTimeout(timer);
   }, [
     blocked,

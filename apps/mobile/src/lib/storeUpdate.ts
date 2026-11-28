@@ -55,6 +55,9 @@ export function readStoreRelease(file: unknown, store: StoreKey): StoreRelease |
   if (typeof latest !== 'string' || !parseVersion(latest)) return null;
   if (typeof minimumSupported !== 'string' || !parseVersion(minimumSupported))
     return null;
+  // A minimum above the latest could never be met: every update would ask again.
+  if (compareVersions(parseVersion(minimumSupported)!, parseVersion(latest)!) > 0)
+    return null;
   if (typeof storeUrl !== 'string') return null;
   try {
     const url = new URL(storeUrl);
@@ -135,10 +138,13 @@ export async function getStoreRelease(
     }
   }
   const file = await fetchVersionFile(url);
-  try {
-    await kvStorage.setItem(CACHE_KEY, JSON.stringify({ checkedAt: now, file }));
-  } catch {
-    // Unsaved, the next launch simply checks again.
+  // Uncached checks (a dev test file) must not stand in for the real one later.
+  if (useCache) {
+    try {
+      await kvStorage.setItem(CACHE_KEY, JSON.stringify({ checkedAt: now, file }));
+    } catch {
+      // Unsaved, the next launch simply checks again.
+    }
   }
   return readStoreRelease(file, store);
 }

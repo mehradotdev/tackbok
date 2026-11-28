@@ -283,7 +283,8 @@ export const hi = {
   'festive.switchBack': 'वापस जाएँ',
   'festive.keepIt': 'यही रखें',
   'storeUpdate.title': 'Tackbok का नया संस्करण उपलब्ध है',
-  'storeUpdate.message': 'Tackbok {version} स्टोर में उपलब्ध है, नए सुधारों और बेहतरियों के साथ।',
+  'storeUpdate.message':
+    'Tackbok {version} स्टोर में उपलब्ध है, नए सुधारों और बेहतर सुविधाओं के साथ।',
   'storeUpdate.requiredMessage':
     'Tackbok का यह संस्करण पुराना हो गया है। सब कुछ ठीक से चलता रहे, इसके लिए {version} पर अपडेट करें।',
   'storeUpdate.update': 'अपडेट करें',

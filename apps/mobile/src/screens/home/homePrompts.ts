@@ -3,12 +3,13 @@ import { useAchievementDialogStore } from '~/lib/achievement-dialog';
 import { useAppLockStore } from '~/lib/appLock';
 import { useSettingsStore } from '~/lib/settings';
 import { useSplashActive } from '~/lib/splash';
+import { settingsSheetShowing } from '~/components/SettingsBottomSheet';
 import { homeTipsShowing } from './HomeCoachMarks';
 
 /**
  * True while something else owns the screen or the user is not on Home yet:
- * the launch animation, the app lock, onboarding or its Home tips, or an
- * achievement. Home's one-off sheets wait for all of these.
+ * the launch animation, the app lock, onboarding or its Home tips, an
+ * achievement, or the profile sheet (it has a name field). Home's one-off sheets wait for all of these.
  */
 export function somethingElseOnHome(): boolean {
   const settings = useSettingsStore.getState();
@@ -20,6 +21,7 @@ export function somethingElseOnHome(): boolean {
     !settings.hasSeenHomeCoachMarks ||
     // Marked seen as soon as the tips start, so also check they're gone.
     homeTipsShowing() ||
+    settingsSheetShowing() ||
     settings.pendingAchievement !== null ||
     useAchievementDialogStore.getState().manualAchievement !== null
   );

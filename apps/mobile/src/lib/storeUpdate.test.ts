@@ -82,6 +82,10 @@ describe('readStoreRelease', () => {
       'a look-alike host',
       { ...file, ios: { ...file.ios, storeUrl: 'https://apps.apple.com.evil.test/' } },
     ],
+    [
+      'a minimum above the latest',
+      { ...file, ios: { ...file.ios, minimumSupported: '2.0.2' } },
+    ],
     ['no entry', { schema: 1 }],
     ['not an object', '<!doctype html>'],
   ])('ignores %s', (_name, input) => {
@@ -174,6 +178,15 @@ describe('getStoreRelease', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     },
   );
+
+  test('an uncached check (a dev test file) leaves the daily cache alone', async () => {
+    await getStoreRelease('ios', {
+      now,
+      url: 'http://127.0.0.1/test.json',
+      useCache: false,
+    });
+    expect(mockSaved.size).toBe(0);
+  });
 
   test('a clock set back checks again', async () => {
     await getStoreRelease('ios', { now });
