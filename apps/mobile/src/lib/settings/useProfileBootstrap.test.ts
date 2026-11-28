@@ -5,7 +5,6 @@ import { useProfileBootstrap } from './useProfileBootstrap';
 const mockBackfill = jest.fn();
 const mockProfile = {
   profileName: null,
-  profileEmail: null,
   profileImageUri: null,
 };
 jest.mock('./store', () => ({
@@ -60,7 +59,6 @@ it('restores the profile on every cold mount, including when legacy settings hav
     });
     expect(mockBackfill).toHaveBeenLastCalledWith({
       profileName: null,
-      profileEmail: null,
       profileImageUri: null,
     });
     expect(mockBackfill).toHaveBeenCalledTimes(launch + 1);

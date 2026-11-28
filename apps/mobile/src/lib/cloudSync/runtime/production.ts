@@ -147,7 +147,6 @@ async function retryBackfill(): Promise<void> {
   const settings = useSettingsStore.getState();
   await runNormalizedModelBackfill({
     profileName: settings.profileName,
-    profileEmail: settings.profileEmail,
     profileImageUri: settings.profileImageUri,
   });
 }

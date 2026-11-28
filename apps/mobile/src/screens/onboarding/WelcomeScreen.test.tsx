@@ -14,7 +14,6 @@ const mockSettings = {
   setBodyFontSize: () => {},
   hasCompletedOnboarding: false,
   profileName: null as string | null,
-  profileEmail: null as string | null,
   profileImageUri: null as string | null,
 };
 
@@ -113,7 +112,6 @@ beforeEach(() => {
   Object.assign(mockSettings, {
     hasCompletedOnboarding: false,
     profileName: null,
-    profileEmail: null,
     profileImageUri: null,
   });
 });

@@ -79,7 +79,6 @@ export async function exportToBackupZip(
   const profileName = normalizeOptionalText(
     profileRow?.display_name ?? settings.profileName,
   );
-  const profileEmail = normalizeOptionalText(profileRow?.email ?? settings.profileEmail);
   const profileImageUri = normalizeOptionalText(
     profilePhoto?.local_uri ?? settings.profileImageUri,
   );
@@ -89,7 +88,6 @@ export async function exportToBackupZip(
     allTags.length === 0 &&
     allPrompts.length === 0 &&
     !profileName &&
-    !profileEmail &&
     !profileImageUri
   ) {
     throw new NothingToExportError();
@@ -120,7 +118,8 @@ export async function exportToBackupZip(
   const portablePrompts = createPortablePrompts(allPrompts);
   const profile: PortableProfile = {
     name: profileName,
-    email: profileEmail,
+    // Tackbok no longer keeps an email; older readers expect the field.
+    email: null,
     imagePath: null,
     photoAssetId: profilePhoto?.asset_id ?? null,
     photoBlobHash: profilePhoto?.blob_hash ?? null,

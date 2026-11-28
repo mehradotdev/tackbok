@@ -179,7 +179,6 @@ export async function importFromTackbokBackup(
             : [];
         profileUpdate = {
           ...(currentProfile?.display_name ? {} : { displayName: profileName }),
-          ...(currentProfile?.email ? {} : { email: portableProfile.email ?? null }),
           ...(currentProfile?.photo_asset_id
             ? {}
             : {
@@ -209,7 +208,6 @@ export async function importFromTackbokBackup(
         ...(profileUpdate.displayName !== undefined && {
           profileName: profileUpdate.displayName,
         }),
-        ...(profileUpdate.email !== undefined && { profileEmail: profileUpdate.email }),
         ...(profileUpdate.photoUri !== undefined && {
           profileImageUri: profileUpdate.photoUri,
         }),

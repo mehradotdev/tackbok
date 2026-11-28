@@ -10,7 +10,6 @@ const mockTransaction = jest.fn(
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown) => undefined,
 );
-const mockSetProfileEmail = jest.fn(async (_email: string | null) => undefined);
 const mockSetState = jest.fn((_state: unknown) => undefined);
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
 const mockZip = { close: async () => undefined };
@@ -19,8 +18,6 @@ const mockReadSafeZipBytes = jest.fn(
 );
 const mockProfile = {
   name: 'Mehra' as string | null,
-  hasEmail: false,
-  email: null as string | null,
   imagePath: 'profile.jpg' as string | null,
 };
 
@@ -37,7 +34,6 @@ jest.mock('~/lib/settings', () => ({
   hydrateProfileCache: (state: unknown) => mockSetState(state),
   useSettingsStore: {
     getState: () => ({
-      setProfileEmail: (email: string | null) => mockSetProfileEmail(email),
       // Mirrors the store: commit the profile row, then refresh the cache.
       setProfileImageUri: async (photoUri: string | null) => {
         await mockTransaction((transaction) =>

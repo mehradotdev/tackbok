@@ -127,7 +127,7 @@ async function restore(
   } = { history: true },
 ) {
   const bytes = provider.snapshotBytesForTest(VAULT, snapshotId)!;
-  const portable = snapshotToPortable(decodeEnvelope(bytes, snapshotId).state, null);
+  const portable = snapshotToPortable(decodeEnvelope(bytes, snapshotId).state);
   if (options.dropMedia)
     portable.entries = portable.entries.map((entry) =>
       entry.assets.length ? { ...entry, assets: [], mediaIncomplete: true } : entry,
@@ -185,7 +185,7 @@ describe('backup history (P9)', () => {
     await addEntry(a, 'e2');
     await sync(a);
     const bytes = provider.snapshotBytesForTest(VAULT, headSnapshot(a))!;
-    const portable = snapshotToPortable(decodeEnvelope(bytes).state, 'me@example.com');
+    const portable = snapshotToPortable(decodeEnvelope(bytes).state);
     expect(portable.entries.map((entry) => entry.noteId)).toEqual(['e2', 'e1']);
     expect(portable.entries[1]).toMatchObject({
       textTitle: 'Title',
@@ -197,7 +197,7 @@ describe('backup history (P9)', () => {
       assets: [],
     });
     expect(portable.tags).toMatchObject([{ tagId, title: 'Family' }]);
-    expect(portable.profile).toMatchObject({ email: 'me@example.com', imagePath: null });
+    expect(portable.profile).toMatchObject({ email: null, imagePath: null });
     expect(portable.media).toEqual([]);
   });
 
@@ -452,7 +452,7 @@ describe('backup history (P9)', () => {
     const state = decodeEnvelope(
       provider.snapshotBytesForTest(VAULT, headSnapshot(a))!,
     ).state;
-    const { entries: portableEntries, media } = snapshotToPortable(state, null);
+    const { entries: portableEntries, media } = snapshotToPortable(state);
     expect(portableEntries[0].assets).toMatchObject([
       { type: AssetType.IMAGE, assetId: 'p-1', path: 'media/photos/1.png' },
       { type: AssetType.AUDIO, assetId: 'v-1', path: 'media/voice-memos/2.m4a' },

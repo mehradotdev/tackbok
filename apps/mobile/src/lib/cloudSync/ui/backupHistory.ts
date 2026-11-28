@@ -14,8 +14,7 @@ import {
 } from '~/lib/backupExport/jsonInPieces';
 import { Directory, File, Paths } from 'expo-file-system';
 import { and, eq } from 'drizzle-orm';
-import { cloudSyncState, cloudVault, db, userProfile } from '~/db';
-import { useSettingsStore } from '~/lib/settings';
+import { cloudSyncState, cloudVault, db } from '~/db';
 import { createExpoZipWriter } from '~/lib/zip';
 import {
   BACKUP_ENTRIES_PATH,
@@ -187,12 +186,7 @@ export async function buildBackupHistoryArchive(
       throw new BackupHistoryError('update-required');
     throw new BackupHistoryError('unreadable');
   }
-  const [profileRow] = await db
-    .select({ email: userProfile.email })
-    .from(userProfile)
-    .limit(1);
-  const email = profileRow?.email ?? useSettingsStore.getState().profileEmail ?? null;
-  const portable = snapshotToPortable(state, email);
+  const portable = snapshotToPortable(state);
 
   const fileName = `TackbokBackup_history_${snapshotId.slice(0, 12)}.zip`;
   const file = new File(Paths.cache, fileName);

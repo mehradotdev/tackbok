@@ -210,8 +210,8 @@ export default function OnboardingWelcomeScreen() {
   useEffect(() => {
     if (!pendingImportSelection) return;
     let cancelled = false;
-    const { profileName, profileEmail, profileImageUri } = useSettingsStore.getState();
-    const hasProfile = Boolean(profileName || profileEmail || profileImageUri);
+    const { profileName, profileImageUri } = useSettingsStore.getState();
+    const hasProfile = Boolean(profileName || profileImageUri);
     hasAnyEntries()
       .catch(() => true)
       .then((hasEntries) => {

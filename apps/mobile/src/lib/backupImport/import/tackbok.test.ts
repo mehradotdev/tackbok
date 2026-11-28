@@ -458,7 +458,6 @@ describe('importFromTackbokBackup', () => {
     mockCurrentProfile = {
       profile_id: 'self',
       display_name: 'Mehra',
-      email: null,
       photo_asset_id: 'current-photo',
     };
     mockReadSafeZipJson.mockReset();
@@ -476,14 +475,13 @@ describe('importFromTackbokBackup', () => {
 
     await importFromTackbokBackup('backup.zip', 'skip');
 
+    // An archive's email (written by older versions) is ignored.
     expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
       tx,
-      { email: 'ada@example.com' },
+      {},
       expect.anything(),
     );
-    expect(mockHydrateProfileCache).toHaveBeenCalledWith({
-      profileEmail: 'ada@example.com',
-    });
+    expect(mockHydrateProfileCache).toHaveBeenCalledWith({});
     expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);
   });
 
@@ -492,7 +490,6 @@ describe('importFromTackbokBackup', () => {
     mockCurrentProfile = {
       profile_id: 'self',
       display_name: null,
-      email: null,
       photo_asset_id: null,
     };
 
@@ -502,7 +499,6 @@ describe('importFromTackbokBackup', () => {
       tx,
       {
         displayName: 'Ada',
-        email: null,
         photoUri: 'photos/imported.jpg',
         photoAssetId: null,
       },

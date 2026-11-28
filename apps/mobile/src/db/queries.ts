@@ -353,7 +353,7 @@ export async function deleteAllDataInTransaction(
   }
   await updateProfileInTransaction(
     tx,
-    { displayName: null, email: null, photoUri: null },
+    { displayName: null, photoUri: null },
     { batchId, syncStamps: false },
   );
   // Sync v2: local state is gone, so this install takes a new device ID and

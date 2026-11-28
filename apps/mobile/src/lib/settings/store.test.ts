@@ -56,7 +56,6 @@ it('finishes hydration when the settings store is unreadable', async () => {
 describe('profile cache reloads', () => {
   const restored = {
     profileName: 'Restored',
-    profileEmail: null,
     profileImageUri: 'photos/restored.jpg',
   };
 

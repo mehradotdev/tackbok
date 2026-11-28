@@ -1237,7 +1237,7 @@ async function writeProfile(
     .where(eq(userProfile.profile_id, SELF));
   if (current)
     await tx.update(userProfile).set(values).where(eq(userProfile.profile_id, SELF));
-  else await tx.insert(userProfile).values({ profile_id: SELF, email: null, ...values });
+  else await tx.insert(userProfile).values({ profile_id: SELF, ...values });
 }
 
 /**

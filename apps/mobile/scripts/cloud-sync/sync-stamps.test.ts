@@ -280,12 +280,6 @@ describe('every local write is stamped', () => {
       repositories.updateProfileInTransaction(tx, { displayName: 'Sam' }, { now: T + 2 }),
     );
     expect(Object.keys(stamps('profile', 'profile'))).toEqual(['name']);
-    // The email is not synced: no stamp.
-    const before = device().ctx_json;
-    await write((tx) =>
-      repositories.updateProfileInTransaction(tx, { email: 'a@b.c' }, { now: T + 3 }),
-    );
-    expect(device().ctx_json).toBe(before);
     await write((tx) =>
       repositories.updateProfileInTransaction(
         tx,

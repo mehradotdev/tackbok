@@ -42,7 +42,7 @@ mock.module('../../src/lib/voiceMemoUtils', () => ({ deleteVoiceMemoFile: () => 
 // Native-backed modules the archive builder and the import reach; the test
 // passes the provider and the local media lookup itself.
 mock.module('../../src/lib/settings', () => ({
-  useSettingsStore: { getState: () => ({ profileEmail: null }) },
+  useSettingsStore: { getState: () => ({}) },
   hydrateProfileCache: () => {},
 }));
 mock.module('../../src/lib/cloudSync/snapshot/storage', () => ({

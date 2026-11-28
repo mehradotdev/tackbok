@@ -176,13 +176,9 @@ test('profile updatedAt stays 0 until a synced field is authored', async () => {
     runExclusiveDbTransaction((tx) => updateProfileInTransaction(tx, update, context));
   const profileUpdatedAt = () => db.select().from(schema.userProfile).get()?.updated_at;
 
-  // An empty legacy backfill, a skipped onboarding name and an email leave it at 0.
-  await write(
-    { displayName: null, email: null, photoUri: null },
-    { origin: 'migration', now: 10 },
-  );
+  // An empty legacy backfill and a skipped onboarding name leave it at 0.
+  await write({ displayName: null, photoUri: null }, { origin: 'migration', now: 10 });
   await write({ displayName: null }, { now: 11 });
-  await write({ email: 'local@example.com' }, { now: 12 });
   expect(profileUpdatedAt()).toBe(0);
 
   await write({ displayName: 'Mehra' }, { now: 13 });

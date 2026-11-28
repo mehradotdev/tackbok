@@ -67,13 +67,9 @@ function archivePath(media: MediaDescriptor, index: number): string {
 /**
  * The journal a snapshot shows, as a portable backup. Values the app would
  * show; other versions of a title or text are left out, as in an ordinary
- * export. The profile email is not synced, so the caller passes this
- * device's (an overwriting restore would otherwise clear it).
+ * export.
  */
-export function snapshotToPortable(
-  state: SyncState,
-  email: string | null,
-): SnapshotPortable {
+export function snapshotToPortable(state: SyncState): SnapshotPortable {
   const media = new Map<string, SnapshotMediaFile>();
   const fileFor = (descriptor: MediaDescriptor) => {
     const file = {
@@ -143,7 +139,8 @@ export function snapshotToPortable(
   const photo = photoId ? state.media.get(photoId) : undefined;
   const profile: PortableProfile = {
     name,
-    email,
+    // Tackbok no longer keeps an email; older readers expect the field.
+    email: null,
     imagePath: photo ? fileFor(photo).path : null,
     photoAssetId: photo?.assetId ?? null,
     photoBlobHash: photo?.blobHash ?? null,
