@@ -16,6 +16,8 @@ import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
 import { useNavigateOnce } from './useNavigateOnce';
 
+const PRIVACY_POLICY_URL = 'https://tackbok.org/privacy';
+
 function AnalyticsDetailsSheet() {
   const { t } = useTranslation();
   const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
@@ -70,7 +72,7 @@ function AnalyticsDetailsSheet() {
             {t('onboarding.neverCollected')}
           </Text>
           <Text className="text-sm text-foreground">
-            {t('onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail')}
+            {t('onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName')}
           </Text>
         </View>
       </View>
@@ -148,13 +150,26 @@ export default function OnboardingPrivacyScreen() {
           ))}
         </View>
 
+        {/* size="none" + min height: the tap area grows with large text. */}
         <Button
           variant="link"
-          className="self-start mt-5 -ml-1"
+          size="none"
+          className="self-start mt-4 -ml-1 min-h-11 max-w-full px-1 py-2"
           onPress={() => TrueSheet.present(SHEET_NAMES.ANALYTICS_DETAILS)}>
-          <Text className="text-sm text-muted-foreground underline">
+          <Text className="shrink text-sm text-muted-foreground underline">
             {t('onboarding.seeExactlyWhatWeCollect')}
           </Text>
+        </Button>
+        <Button
+          variant="link"
+          size="none"
+          className="self-start -ml-1 min-h-11 max-w-full px-1 py-2"
+          role="link"
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
+          <Text className="shrink text-sm text-muted-foreground underline">
+            {t('appInfo.privacyPolicy')}
+          </Text>
+          <Icon as={ExternalLink} className="size-4 text-muted-foreground" />
         </Button>
       </View>
     </OnboardingScaffold>

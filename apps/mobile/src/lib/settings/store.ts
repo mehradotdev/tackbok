@@ -50,7 +50,6 @@ interface SettingsState {
 
   // Profile
   profileName: string | null;
-  profileEmail: string | null;
   profileImageUri: string | null;
   /** Keeps the legacy AsyncStorage profile copy until SQLite migration commits. */
   legacyProfileMigrationComplete: boolean;
@@ -131,7 +130,6 @@ interface SettingsState {
   setDailyReminderEnabled: (enabled: boolean) => void;
   setReminderTime: (time: string) => void;
   setProfileName: (name: string | null) => Promise<void>;
-  setProfileEmail: (email: string | null) => Promise<void>;
   setProfileImageUri: (uri: string | null) => Promise<void>;
   setTheme: (theme: string) => void;
   setTimelineEntryLength: (length: number) => void;
@@ -170,7 +168,6 @@ const DEFAULT_SETTINGS_VALUES = {
   dailyReminderEnabled: false,
   reminderTime: '09:00',
   profileName: null,
-  profileEmail: null,
   profileImageUri: null,
   legacyProfileMigrationComplete: false,
   theme: DEFAULT_THEME_ID,
@@ -227,15 +224,6 @@ export const useSettingsStore = create<SettingsState>()(
         );
         profileCacheRevision++;
         set({ profileName: displayName });
-      },
-      setProfileEmail: async (email) => {
-        const normalizedEmail = email?.trim() ? email.trim() : null;
-        profileCacheRevision++;
-        await runInCloudSyncTransaction((tx) =>
-          updateProfileInTransaction(tx, { email: normalizedEmail }),
-        );
-        profileCacheRevision++;
-        set({ profileEmail: normalizedEmail });
       },
       setProfileImageUri: async (uri) => {
         const photoUri = uri?.trim() ? uri.trim() : null;
@@ -308,7 +296,8 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'tackbok-settings',
-      version: 1,
+      // 2: dropped the unused profile email (#111).
+      version: 2,
       storage: createJSONStorage(() => AsyncStorage),
       merge: (persistedState, currentState) => ({
         ...currentState,
@@ -323,6 +312,7 @@ export const useSettingsStore = create<SettingsState>()(
         const {
           googleDriveBackupEnabled: _legacyEnabled,
           backupFrequency: _legacyFrequency,
+          profileEmail: _droppedProfileEmail,
           ...providerNeutral
         } = legacy;
         return {
@@ -361,14 +351,13 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
       partialize: (state) => ({
-        // These three fields intentionally remain in the legacy store until the
+        // These fields intentionally remain in the legacy store until the
         // SQLite profile row has committed. Rehydration itself persists state,
         // so dropping them earlier creates a kill window during first backfill.
         ...(state.legacyProfileMigrationComplete
           ? {}
           : {
               profileName: state.profileName,
-              profileEmail: state.profileEmail,
               profileImageUri: state.profileImageUri,
             }),
         legacyProfileMigrationComplete: state.legacyProfileMigrationComplete,
@@ -423,7 +412,6 @@ export async function flushSettings(): Promise<void> {
 export function hydrateProfileCache(
   profile: Partial<{
     profileName: string | null;
-    profileEmail: string | null;
     profileImageUri: string | null;
   }>,
 ): void {
@@ -445,7 +433,6 @@ export function applyProfileCacheReload(
   revision: number,
   profile: {
     profileName: string | null;
-    profileEmail: string | null;
     profileImageUri: string | null;
   },
 ): boolean {
@@ -453,7 +440,6 @@ export function applyProfileCacheReload(
   const current = useSettingsStore.getState();
   if (
     current.profileName !== profile.profileName ||
-    current.profileEmail !== profile.profileEmail ||
     current.profileImageUri !== profile.profileImageUri
   ) {
     useSettingsStore.setState(profile);

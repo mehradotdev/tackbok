@@ -709,8 +709,8 @@ export const de: Translations = {
     'Mit deiner Zustimmung erfasst Tackbok nur begrenzte, anonyme Nutzungsinformationen. Dazu können besuchte Bildschirme, verwendete Funktionen und der Erfolg optionaler Vorgänge gehören. Deine Tagebuchinhalte oder Eingaben werden niemals erfasst.',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Analysecode auf GitHub prüfen',
   'onboarding.neverCollected': 'Wird niemals erfasst',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name, deine E-Mail-Adresse oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
   'onboarding.youreAllSetName': 'Alles ist bereit, {name}!',
   'onboarding.youreAllSet': 'Alles ist bereit!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

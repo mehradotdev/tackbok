@@ -637,8 +637,8 @@ export const zhCN: Translations = {
     '经你许可，塔克布克仅记录有限的匿名使用信息，其中可能包括访问过的页面、使用过的功能，以及可选操作是否成功。它绝不会记录你的日记内容或任何输入的文字。',
   'onboarding.auditTheAnalyticsCodeOnGithub': '在 GitHub 上查看分析代码',
   'onboarding.neverCollected': '绝不收集',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    '你的日记文字、标题、照片、语音笔记、标签、姓名、邮箱或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    '你的日记文字、标题、照片、语音笔记、标签、姓名或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',
   'onboarding.youreAllSetName': '一切就绪，{name}！',
   'onboarding.youreAllSet': '一切就绪！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

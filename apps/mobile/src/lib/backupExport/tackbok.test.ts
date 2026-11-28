@@ -44,7 +44,6 @@ const mockGetRelativeAssetFile = jest.fn((relativeUri: string) => ({
 }));
 const mockGetState = jest.fn(() => ({
   profileName: 'Ada',
-  profileEmail: 'ada@example.com',
   profileImageUri: 'photos/profile.jpg',
 }));
 const mockCreatePortableEntries = jest.fn(
@@ -296,7 +295,6 @@ describe('exportToBackupZip', () => {
 
     mockGetState.mockReturnValue({
       profileName: 'Ada',
-      profileEmail: 'ada@example.com',
       profileImageUri: 'photos/profile.jpg',
     });
     mockCreatePortableEntries.mockReturnValue({
@@ -383,7 +381,7 @@ describe('exportToBackupZip', () => {
     ]);
     expect(profileJson).toEqual({
       name: 'Ada',
-      email: 'ada@example.com',
+      email: null,
       imagePath: null,
       photoAssetId: null,
       photoBlobHash: null,

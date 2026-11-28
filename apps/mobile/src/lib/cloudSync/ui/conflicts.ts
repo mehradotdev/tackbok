@@ -217,10 +217,9 @@ export async function resolveNameConflict(
     item.seen,
   );
   const [profile] = await db.select().from(userProfile).limit(1);
-  const { profileEmail, profileImageUri } = useSettingsStore.getState();
+  const { profileImageUri } = useSettingsStore.getState();
   hydrateProfileCache({
     profileName: profile?.display_name ?? null,
-    profileEmail,
     profileImageUri,
   });
   notifyProductionCloudSyncChanged();
@@ -234,8 +233,8 @@ export async function resolvePhotoConflict(
   if (choice === 'use') {
     await keepProfileChoice('photo', parseStampId(item.conflictIds[0]), item.seen);
     // `otherUri` is null when the chosen version is "no photo".
-    const { profileName, profileEmail } = useSettingsStore.getState();
-    hydrateProfileCache({ profileName, profileEmail, profileImageUri: item.otherUri });
+    const { profileName } = useSettingsStore.getState();
+    hydrateProfileCache({ profileName, profileImageUri: item.otherUri });
   } else await keepProfileChoice('photo', null, item.seen);
   notifyProductionCloudSyncChanged();
 }

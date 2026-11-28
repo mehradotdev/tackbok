@@ -173,8 +173,6 @@ export interface GratitudeAppPortablePayload {
   portableTags: PortableTag[];
   profile: {
     name: string | null | undefined;
-    email: string | null;
-    hasEmail: boolean;
     imagePath: string | null;
   };
 }
@@ -438,7 +436,6 @@ export async function buildGratitudeAppPortablePayload(
     ),
   }));
 
-  const profileEmail = normalizeOptionalText(gratitudeConfig['Email Id']);
   const profileImageName = normalizeOptionalText(gratitudeConfig['Profile Image Name']);
 
   return {
@@ -447,8 +444,6 @@ export async function buildGratitudeAppPortablePayload(
     portableTags: createPortableTagsFromGratitudeApp(gratitudeTags),
     profile: {
       name: gratitudeConfig.Name,
-      email: profileEmail,
-      hasEmail: profileEmail !== null,
       imagePath: profileImageName ? zipLookup.findByBasename(profileImageName) : null,
     },
   };

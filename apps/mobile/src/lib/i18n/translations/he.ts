@@ -652,8 +652,8 @@ export const he: Translations = {
     'באישורך, Tackbok מתעדת מידע מוגבל ואנונימי על השימוש. המידע עשוי לכלול מסכים שנצפו, תכונות שנעשה בהן שימוש והאם פעולות אופציונליות הצליחו. הוא לעולם אינו כולל את תוכן היומן שלך או כל דבר שהקלדת.',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'בדיקת קוד הניתוח ב-GitHub',
   'onboarding.neverCollected': 'לעולם לא נאסף',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'טקסט היומן, כותרות, תמונות, הקלטות קוליות, תגיות, שם, אימייל או כל דבר שמוקלד. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'טקסט היומן, כותרות, תמונות, הקלטות קוליות, תגיות, שם או כל דבר שמוקלד. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
   'onboarding.youreAllSetName': 'הכול מוכן, {name}!',
   'onboarding.youreAllSet': 'הכול מוכן!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

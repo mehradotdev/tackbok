@@ -1,5 +1,5 @@
 import { entries } from '~/db';
-import { hydrateProfileCache, useSettingsStore } from '~/lib/settings';
+import { hydrateProfileCache } from '~/lib/settings';
 import { type BackupImportSummary, type ImportMode } from '../types';
 import { type ImportProgressCallback, reportImportProgress } from '../progress';
 import {
@@ -116,16 +116,12 @@ export async function importFromGratitudeAppBackup(
 
     let profilePhotoCommitted = false;
     try {
-      const settingsState = useSettingsStore.getState();
       if (profile.name != null) {
         const displayName = profile.name.trim() ? profile.name.trim() : null;
         await runInCloudSyncTransaction((tx) =>
           updateProfileInTransaction(tx, { displayName }),
         );
         hydrateProfileCache({ profileName: displayName });
-      }
-      if (profile.hasEmail) {
-        await settingsState.setProfileEmail(profile.email);
       }
       if (importedProfileImageUri) {
         const photoUri = importedProfileImageUri;

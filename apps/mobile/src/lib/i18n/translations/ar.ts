@@ -656,8 +656,8 @@ export const ar: Translations = {
     'بإذنك، يسجّل Tackbok معلومات استخدام محدودة ومجهولة الهوية. قد تشمل الشاشات التي تمت زيارتها والميزات المستخدمة وما إذا كانت العمليات الاختيارية قد نجحت. ولا تشمل أبدًا محتوى يومياتك أو أي شيء تكتبه.',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'راجع رمز التحليلات على GitHub',
   'onboarding.neverCollected': 'لا يُجمع أبدًا',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
   'onboarding.youreAllSetName': 'كل شيء جاهز يا {name}!',
   'onboarding.youreAllSet': 'كل شيء جاهز!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

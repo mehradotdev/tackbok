@@ -124,7 +124,6 @@ export const userProfile = sqliteTable('user_profile', {
   photo_asset_id: text('photo_asset_id').references(() => mediaAssets.asset_id, {
     onDelete: 'set null',
   }),
-  email: text('email'),
   updated_at: integer('updated_at').notNull(),
 });
 

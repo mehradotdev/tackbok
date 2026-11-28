@@ -802,7 +802,6 @@ export async function deletePromptInTransaction(
 
 export interface ProfileUpdate {
   displayName?: string | null;
-  email?: string | null;
   photoUri?: string | null;
   photoAssetId?: string | null;
 }
@@ -906,7 +905,6 @@ export async function updateProfileInTransaction(
         update.displayName !== undefined
           ? update.displayName
           : (previous?.display_name ?? null),
-      email: update.email !== undefined ? update.email : (previous?.email ?? null),
       photo_asset_id: photoAssetId,
       updated_at: profileUpdatedAt,
     })
@@ -917,7 +915,6 @@ export async function updateProfileInTransaction(
           update.displayName !== undefined
             ? update.displayName
             : (previous?.display_name ?? null),
-        email: update.email !== undefined ? update.email : (previous?.email ?? null),
         photo_asset_id: photoAssetId,
         updated_at: profileUpdatedAt,
       },

@@ -176,7 +176,7 @@ export default function OnboardingWelcomeScreen() {
   const handleImportDone = useCallback(
     (source: BackupImportSource) => {
       if (source === 'tackbok') {
-        // A Tackbok backup restores the profile (name, email, photo) but not
+        // A Tackbok backup restores the profile (name, photo) but not
         // the theme or focus areas, so only the name step is skipped, and only
         // when the backup brought a name.
         router.push(
@@ -210,8 +210,8 @@ export default function OnboardingWelcomeScreen() {
   useEffect(() => {
     if (!pendingImportSelection) return;
     let cancelled = false;
-    const { profileName, profileEmail, profileImageUri } = useSettingsStore.getState();
-    const hasProfile = Boolean(profileName || profileEmail || profileImageUri);
+    const { profileName, profileImageUri } = useSettingsStore.getState();
+    const hasProfile = Boolean(profileName || profileImageUri);
     hasAnyEntries()
       .catch(() => true)
       .then((hasEntries) => {

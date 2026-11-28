@@ -637,8 +637,8 @@ export const es = {
     'Con su permiso, Tackbok registra información de uso limitada y anónima. Esto puede incluir las pantallas visitadas, las funciones utilizadas y si las operaciones opcionales tuvieron éxito. Nunca incluye el contenido de su diario ni nada de lo que escriba.',
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Audite el código de análisis en GitHub',
   'onboarding.neverCollected': 'Nunca recogido',
-  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'El texto de su diario, títulos, fotografías, notas de voz, etiquetas, nombre, correo electrónico o cualquier cosa que escriba. Sin anuncios, sin datos de ventas, sin seguimiento de terceros.',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsName':
+    'El texto de su diario, títulos, fotografías, notas de voz, etiquetas, nombre o cualquier cosa que escriba. Sin anuncios, sin datos de ventas, sin seguimiento de terceros.',
   'onboarding.youreAllSetName': '¡Ya estás listo, {name}!',
   'onboarding.youreAllSet': '¡Ya estás listo!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

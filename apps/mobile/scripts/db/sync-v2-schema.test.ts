@@ -84,6 +84,12 @@ test('an empty database gets a device ID and nothing else', () => {
   expect(row.floor_json).toBeNull();
   expect(Math.abs(row.created_at - Date.now())).toBeLessThan(5_000);
   expect(sqlite.query('SELECT count(*) AS n FROM sync_records').get()).toEqual({ n: 0 });
+  // 0018 dropped the unused profile email (#111).
+  const profileColumns = sqlite
+    .query<{ name: string }, []>('PRAGMA table_info(user_profile)')
+    .all()
+    .map((column) => column.name);
+  expect(profileColumns).not.toContain('email');
   // Another install gets another ID.
   const other = new Database(':memory:');
   migrate(other, 0, tags.length);
