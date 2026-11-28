@@ -28,7 +28,8 @@ The Gratitude app can export your journal as a ZIP file. Tackbok reads that file
 | Voice recordings in an entry              | Imported as voice notes                                                                              |
 | Tags                                      | Tag names are added to Tackbok, but entries aren't tagged. Re-tag entries in Tackbok if you need to. |
 | Moods                                     | Not imported. Add a mood to any entry in Tackbok.                                                    |
-| Name, email and profile photo             | Imported into your Tackbok profile when the export has them, replacing what is there                 |
+| Name and profile photo                    | Imported into your Tackbok profile when the export has them, replacing what is there                 |
+| Email                                     | Not imported. Tackbok doesn't keep an email address.                                                 |
 | Affirmations, vision boards and Daily Zen | Not imported                                                                                         |
 | Reminders and other settings              | Not imported. Set them up again in Tackbok.                                                          |
 
