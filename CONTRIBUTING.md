@@ -133,4 +133,26 @@ For maintainers: apply `good first issue` only to small, well-described tasks wi
 clear acceptance criteria. Use `help wanted` for work that is ready for outside
 contributions, and `bug`, `enhancement`, or `documentation` to describe the work.
 
+## After a store approves a release (maintainers)
+
+The app offers a store update when `apps/website/public/app-version.json` lists a
+newer version than the one installed. Update it only once a release is **live**
+in that store, one store at a time, because reviews finish at different times:
+
+1. Set `latest` under `ios`, `android` or `galaxy` to the live version. Use
+   strict `MAJOR.MINOR.PATCH` (for example `2.0.1`), the same as `version` in
+   `apps/mobile/package.json`.
+2. Raise `minimumSupported` only when older versions must update, and never
+   above `latest`. Below it, "Not now" no longer keeps the prompt away.
+3. Leave `schema` and `storeUrl` alone. The app ignores a link that isn't
+   Tackbok's own page in that store.
+4. Run `bun run test:jest src/lib/storeUpdate.test.ts` from `apps/mobile` (CI
+   runs it too when the file changes), merge, and deploy the website. Apps check at most once a day, so the prompt reaches
+   people within a day.
+
+Never set `latest` above what the store serves: people would be sent to a store
+page with no update. Beta builds never show the prompt. To try it on a
+development build, serve a copy of the file with a higher version and start
+Metro with `EXPO_PUBLIC_APP_VERSION_URL=<its URL>`.
+
 Contributions are covered by the repository's [Apache-2.0 license](LICENSE).

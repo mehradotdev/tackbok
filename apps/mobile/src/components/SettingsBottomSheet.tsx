@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Linking,
@@ -365,6 +365,10 @@ function buildSupportBody(): string {
 
 // ─── SettingsBottomSheet ──────────────────────────────────────────────────────
 
+let sheetShowing = false;
+/** Whether the profile sheet is up, so Home's one-off prompts can wait. */
+export const settingsSheetShowing = () => sheetShowing;
+
 export function SettingsBottomSheet() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -391,7 +395,16 @@ export function SettingsBottomSheet() {
     message: string;
   }>({ isOpen: false, title: '', message: '' });
 
-  const present = () => sheet.current?.present();
+  const present = () => {
+    sheetShowing = true;
+    return sheet.current?.present();
+  };
+  useEffect(
+    () => () => {
+      sheetShowing = false;
+    },
+    [],
+  );
   const dismiss = () => sheet.current?.dismiss();
 
   const handleInsights = async () => {
@@ -549,6 +562,9 @@ export function SettingsBottomSheet() {
         cornerRadius={sheetRadius}
         grabber={false}
         backgroundStyle={{ backgroundColor: bgColor as string }}
+        onDidDismiss={() => {
+          sheetShowing = false;
+        }}
         // maxContentWidth is Android only (mobile-only app, no web). On iOS it sets
         // preferredContentSize + prefersPageSizing=NO, which turns the iPad
         // sheet into a narrow centered form sheet instead of a bottom sheet.

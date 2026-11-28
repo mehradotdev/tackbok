@@ -25,6 +25,7 @@ import { useTranslation, useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
 import { initAnalytics, trackScreenView } from '~/lib/analytics';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
+import { recordLastSeenAppVersion } from '~/lib/appVersion';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { AppLockGate } from '~/components/AppLockGate';
@@ -255,6 +256,7 @@ export default function Layout() {
     if (hasHydrated) {
       // On app launch we can safely clear deferred backup ZIPs that were kept to avoid the iOS share-sheet race.
       cleanupDeferredBackupZipFiles(0);
+      recordLastSeenAppVersion();
     }
   }, [hasHydrated]);
 

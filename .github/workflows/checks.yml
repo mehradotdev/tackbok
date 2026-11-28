@@ -44,10 +44,12 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
+          # The mobile tests also check the published app-version.json.
           for workspace in mobile website; do
             changed_files=$(git diff --name-only --no-renames "$BASE_SHA...HEAD" -- \
               "apps/$workspace/" package.json bun.lock bunfig.toml .node-version patches/ \
-              .github/workflows/checks.yml)
+              .github/workflows/checks.yml \
+              apps/website/public/app-version.json)
             if [[ -n "$changed_files" ]]; then
               echo "$workspace=true" >> "$GITHUB_OUTPUT"
             else

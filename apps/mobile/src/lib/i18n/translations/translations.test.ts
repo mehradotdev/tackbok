@@ -96,6 +96,15 @@ describe('Translations', () => {
     });
   });
 
+  test.each(Object.entries(translations))(
+    "'%s' uses single-brace placeholders",
+    (_locale, messages) => {
+      // The runtime interpolates `{name}`; `{{name}}` would show up literally.
+      const doubled = Object.entries(messages).filter(([, text]) => text.includes('{{'));
+      expect(doubled).toEqual([]);
+    },
+  );
+
   test('languages are listed alphabetically by display name', () => {
     const displayNames = languages.map(({ displayName }) => displayName);
     const sortedDisplayNames = [...displayNames].sort((a, b) => a.localeCompare(b, 'en'));

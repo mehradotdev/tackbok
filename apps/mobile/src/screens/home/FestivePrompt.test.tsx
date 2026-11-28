@@ -106,6 +106,9 @@ jest.mock('~/screens/settings/AppIconPickerSheet', () => ({
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
 let mockTipsShowing = false;
 jest.mock('./HomeCoachMarks', () => ({ homeTipsShowing: () => mockTipsShowing }));
+jest.mock('~/components/SettingsBottomSheet', () => ({
+  settingsSheetShowing: () => false,
+}));
 
 let tree: ReactTestRenderer;
 let blur: (() => void) | void;

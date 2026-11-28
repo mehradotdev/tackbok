@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AppState,
-  Platform,
-  ScrollView,
-  View,
-  type ScrollViewInstance,
-} from 'react-native';
+import { Platform, ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useCSSVariable } from 'uniwind';
-import { useAchievementDialogStore } from '~/lib/achievement-dialog';
 import { appIconChangeClosesApp, useAppIconStore } from '~/lib/appIcon';
-import { useAppLockStore } from '~/lib/appLock';
 import { useTranslation } from '~/lib/i18n';
 import {
   festivePromptFor,
@@ -19,10 +11,9 @@ import {
   type FestivePrompt as Prompt,
 } from '~/lib/seasonal/festivePrompt';
 import { flushSettings, useSettingsStore } from '~/lib/settings';
-import { useSplashActive } from '~/lib/splash';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { AppIconTile } from '~/screens/settings/AppIconPickerSheet';
-import { homeTipsShowing } from './HomeCoachMarks';
+import { somethingElseOnHome } from './homePrompts';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 
@@ -33,22 +24,6 @@ const SETTLE_MS = 800;
 const LATE_MS = SETTLE_MS + 2000;
 
 type Shown = Exclude<Prompt, { kind: 'forget' }>;
-
-/** True while something else owns the screen or the user is not on Home yet. */
-function somethingElseFirst() {
-  const settings = useSettingsStore.getState();
-  return (
-    AppState.currentState !== 'active' ||
-    useSplashActive.getState().active ||
-    (settings.biometricUnlockEnabled && useAppLockStore.getState().isLocked !== false) ||
-    !settings.hasCompletedOnboarding ||
-    !settings.hasSeenHomeCoachMarks ||
-    // Marked seen as soon as the tips start, so also check they're gone.
-    homeTipsShowing() ||
-    settings.pendingAchievement !== null ||
-    useAchievementDialogStore.getState().manualAchievement !== null
-  );
-}
 
 /**
  * The once-per-season "Feeling festive?" suggestion, and from 2 Jan the offer to
@@ -96,7 +71,8 @@ export function FestivePrompt() {
       const timer = setTimeout(async () => {
         // The OS owns the icon; read it before comparing or remembering it.
         await useAppIconStore.getState().refresh();
-        if (cancelled || Date.now() - focusedAt > LATE_MS || somethingElseFirst()) return;
+        if (cancelled || Date.now() - focusedAt > LATE_MS || somethingElseOnHome())
+          return;
         const settings = useSettingsStore.getState();
         const now = new Date();
         const look = {
