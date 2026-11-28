@@ -16,6 +16,10 @@
 - Before adding or changing any user-facing text, read and follow
   [the localization policy](../../docs/localization.md). This applies to screens
   and components as well as translation files.
+- Keep the number of messages small: every new message must be translated into
+  every catalog. Reuse an existing message when its meaning fits, and prefer
+  editing or removing messages over adding near-duplicates. Never drop needed
+  accessibility labels, error messages or safety warnings to save a string.
 - Update all existing catalogs for new messages or meaning changes. Preserve typed
   message IDs, named placeholders, required plural forms, and user-written content.
 - Use shared locale-aware display formatters; do not localize persisted dates,
