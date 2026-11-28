@@ -316,6 +316,25 @@ export const ar: Translations = {
   'festive.switchBackMessage': 'ارجع إلى السمة والأيقونة اللتين كانتا لديك قبل الأعياد.',
   'festive.switchBack': 'العودة',
   'festive.keepIt': 'الإبقاء عليه',
+  'whatsNew.title': 'الجديد في Tackbok 2.0',
+  'whatsNew.intro': 'شكرًا لاختيارك Tackbok لدفتر يومياتك. إليك ما يقدّمه هذا التحديث.',
+  'whatsNew.syncTitle': 'نسخ احتياطي سحابي أُعيد بناؤه',
+  'whatsNew.syncBody':
+    'تجتمع التغييرات من جميع أجهزتك بأمان، ويمكنك العودة إلى دفتر يومياتك كما كان في أي يوم من آخر 30 يومًا.',
+  'whatsNew.festiveTitle': 'عيد الميلاد ورأس السنة',
+  'whatsNew.festiveBody':
+    'سمات احتفالية وأيقونة تطبيق لعيد الميلاد وتهانٍ موسمية. يمكنك إيقافها من المظهر.',
+  'whatsNew.themesTitle': 'سمات وأيقونات جديدة',
+  'whatsNew.themesBody':
+    'سمات صُمّمت لأصدقاء Tackbok، ويمكنك الآن اختيار أيقونة التطبيق على شاشتك الرئيسية.',
+  'whatsNew.freshTitle': 'بداية جديدة',
+  'whatsNew.freshBody':
+    'رسوم متحركة جديدة عند فتح التطبيق، ونص يبقى سهل القراءة حتى بأكبر الأحجام.',
+  'whatsNew.photosTitle': 'الصور والملاحظات الصوتية',
+  'whatsNew.photosBody':
+    'الصق صورة مباشرة في سجل، واحفظ أو شارك صورة واحدة أو ملاحظة صوتية واحدة.',
+  'whatsNew.seeThemes': 'عرض السمات الجديدة',
+  'whatsNew.continue': 'متابعة',
 
   // Settings - Typography
   'typography.typography': 'الخطوط',

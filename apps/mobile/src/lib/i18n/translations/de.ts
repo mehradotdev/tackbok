@@ -354,6 +354,26 @@ export const de: Translations = {
     'Wechsle zurück zum Design und Symbol, die du vor den Feiertagen hattest.',
   'festive.switchBack': 'Zurückwechseln',
   'festive.keepIt': 'Behalten',
+  'whatsNew.title': 'Neu in Tackbok 2.0',
+  'whatsNew.intro':
+    'Danke, dass du dein Tagebuch mit Tackbok führst. Das bringt dieses Update.',
+  'whatsNew.syncTitle': 'Cloud-Sicherung, neu gebaut',
+  'whatsNew.syncBody':
+    'Änderungen von all deinen Geräten werden sicher zusammengeführt, und du kannst dein Tagebuch so zurückholen, wie es an einem der letzten 30 Tage war.',
+  'whatsNew.festiveTitle': 'Weihnachten und Neujahr',
+  'whatsNew.festiveBody':
+    'Festliche Designs, ein weihnachtliches App-Symbol und Grüße zur Jahreszeit. Du kannst sie unter „Darstellung“ ausschalten.',
+  'whatsNew.themesTitle': 'Neue Designs und App-Symbole',
+  'whatsNew.themesBody':
+    'Designs, gestaltet für Freunde von Tackbok, und du kannst jetzt das Symbol auf deinem Startbildschirm wählen.',
+  'whatsNew.freshTitle': 'Ein frischer Start',
+  'whatsNew.freshBody':
+    'Eine neue Startanimation und Text, der auch in den größten Schriftgrößen lesbar bleibt.',
+  'whatsNew.photosTitle': 'Fotos und Sprachnotizen',
+  'whatsNew.photosBody':
+    'Füge ein Foto direkt in einen Eintrag ein, und speichere oder teile ein einzelnes Foto oder eine Sprachnotiz.',
+  'whatsNew.seeThemes': 'Neue Designs ansehen',
+  'whatsNew.continue': 'Weiter',
 
   // Settings - Typography
   'typography.typography': 'Typografie',

@@ -339,6 +339,29 @@ export const en = {
     'Switch back to the theme and icon you had before the holidays.',
   'festive.switchBack': 'Switch back',
   'festive.keepIt': 'Keep it',
+  // "What's new" sheet, shown once on Home to people updating from 1.x.
+  // Each highlight is a short title and one sentence; "See the new themes" opens
+  // the theme picker in Appearance.
+  'whatsNew.title': "What's new in Tackbok 2.0",
+  'whatsNew.intro':
+    "Thank you for keeping your journal with Tackbok. Here's what this update brings.",
+  'whatsNew.syncTitle': 'Cloud backup, rebuilt',
+  'whatsNew.syncBody':
+    'Changes from all your devices come together safely, and you can go back to your journal as it was on any of the last 30 days.',
+  'whatsNew.festiveTitle': 'Christmas and New Year',
+  'whatsNew.festiveBody':
+    'Festive themes, a Christmas app icon and seasonal greetings. You can turn them off in Appearance.',
+  'whatsNew.themesTitle': 'New themes and app icons',
+  'whatsNew.themesBody':
+    'Themes made for friends of Tackbok, and you can now choose the icon on your home screen.',
+  'whatsNew.freshTitle': 'A fresh start',
+  'whatsNew.freshBody':
+    'A new launch animation, and text that stays readable at the largest sizes.',
+  'whatsNew.photosTitle': 'Photos and voice notes',
+  'whatsNew.photosBody':
+    'Paste a photo straight into an entry, and save or share a single photo or voice note.',
+  'whatsNew.seeThemes': 'See the new themes',
+  'whatsNew.continue': 'Continue',
 
   // Settings - Typography
   'typography.typography': 'Typography',

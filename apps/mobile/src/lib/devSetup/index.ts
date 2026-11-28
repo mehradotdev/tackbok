@@ -22,6 +22,7 @@ import { kvStorage } from '~/lib/kvStorage';
 import { useSettingsStore } from '~/lib/settings';
 import { hideBetaBadge } from '~/screens/home/Header';
 import { skipLaunchGreeting } from '~/screens/home/header-greeting';
+import { currentAppVersion } from '~/lib/whatsNew';
 import { DEV_SETUP_KEY, getDevSetupFromUrl, parseDevSetup, type DevSetup } from './parse';
 
 /** The last request applied on this device; see applyDevSetup. */
@@ -121,6 +122,10 @@ async function applySavedSettings(setup: DevSetup, errors: string[]) {
   if (setup.onboarding) settings.setHasCompletedOnboarding(setup.onboarding === 'done');
   if (setup.coachMarks !== undefined) {
     settings.setHasSeenHomeCoachMarks(!setup.coachMarks);
+  }
+  // After onboarding, which records the version as seen.
+  if (setup.whatsNew !== undefined) {
+    settings.setLastSeenAppVersion(setup.whatsNew ? null : currentAppVersion());
   }
   const localePreference = setup.locale ?? (setup.reset ? 'device' : undefined);
   if (localePreference) {

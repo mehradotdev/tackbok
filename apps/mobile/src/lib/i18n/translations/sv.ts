@@ -287,6 +287,26 @@ export const sv = {
     'Byt tillbaka till temat och ikonen du hade före högtiderna.',
   'festive.switchBack': 'Byt tillbaka',
   'festive.keepIt': 'Behåll',
+  'whatsNew.title': 'Nytt i Tackbok 2.0',
+  'whatsNew.intro':
+    'Tack för att du skriver din dagbok med Tackbok. Det här kommer med uppdateringen.',
+  'whatsNew.syncTitle': 'Säkerhetskopiering i molnet, ombyggd',
+  'whatsNew.syncBody':
+    'Ändringar från alla dina enheter förs ihop säkert, och du kan gå tillbaka till din dagbok som den var någon av de senaste 30 dagarna.',
+  'whatsNew.festiveTitle': 'Jul och nyår',
+  'whatsNew.festiveBody':
+    'Festliga teman, en julikon för appen och hälsningar för säsongen. Du kan stänga av dem under Utseende.',
+  'whatsNew.themesTitle': 'Nya teman och appikoner',
+  'whatsNew.themesBody':
+    'Teman gjorda för vänner till Tackbok, och nu kan du välja ikonen på hemskärmen.',
+  'whatsNew.freshTitle': 'En ny start',
+  'whatsNew.freshBody':
+    'En ny startanimation och text som går att läsa även i de största storlekarna.',
+  'whatsNew.photosTitle': 'Foton och röstanteckningar',
+  'whatsNew.photosBody':
+    'Klistra in ett foto direkt i en anteckning, och spara eller dela ett enskilt foto eller en röstanteckning.',
+  'whatsNew.seeThemes': 'Se de nya temana',
+  'whatsNew.continue': 'Fortsätt',
   'typography.typography': 'Typografi',
   'typography.titleFont': 'Typsnitt för titel',
   'typography.chooseAFontForTitlesAndHeadings':

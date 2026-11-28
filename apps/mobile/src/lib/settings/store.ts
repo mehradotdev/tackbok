@@ -22,6 +22,7 @@ import {
 } from '~/lib/journalPrompts';
 import type { Achievement } from '~/lib/achievements';
 import type { FestiveSwitch } from '~/lib/seasonal/festivePrompt';
+import { currentAppVersion } from '~/lib/whatsNew';
 import {
   runInCloudSyncTransaction,
   updateProfileInTransaction,
@@ -108,6 +109,11 @@ interface SettingsState {
   /** Banner hidden without removing the entries — user chose to build over them. */
   sampleEntriesBannerDismissed: boolean;
   hasSeenHomeCoachMarks: boolean;
+  /**
+   * App version whose "What's new" this device is past. 1.x never stored it, so
+   * null after a finished onboarding means an update from 1.x.
+   */
+  lastSeenAppVersion: string | null;
 
   pendingAchievement: Achievement | null;
 
@@ -151,6 +157,7 @@ interface SettingsState {
   setSampleEntryIds: (ids: string[]) => void;
   setSampleEntriesBannerDismissed: (dismissed: boolean) => void;
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
+  setLastSeenAppVersion: (version: string | null) => void;
   setPendingAchievement: (achievement: Achievement | null) => void;
   setFestivePromptSeason: (season: string | null) => void;
   setFestiveSwitch: (festiveSwitch: FestiveSwitch | null) => void;
@@ -188,6 +195,7 @@ const DEFAULT_SETTINGS_VALUES = {
   sampleEntryIds: [] as string[],
   sampleEntriesBannerDismissed: false,
   hasSeenHomeCoachMarks: false,
+  lastSeenAppVersion: null as string | null,
   pendingAchievement: null,
   festivePromptSeason: null as string | null,
   festiveSwitch: null as FestiveSwitch | null,
@@ -284,11 +292,19 @@ export const useSettingsStore = create<SettingsState>()(
       setJournalPromptsMode: (mode) => set({ journalPromptsMode: mode }),
       setActionDockY: (y) => set({ actionDockY: y }),
       setHasCompletedOnboarding: (completed) =>
-        set({ hasCompletedOnboarding: completed }),
+        set((state) => ({
+          hasCompletedOnboarding: completed,
+          // Onboarding already shows what's new, so a fresh install starts past
+          // this version's "What's new".
+          ...(completed && state.lastSeenAppVersion === null
+            ? { lastSeenAppVersion: currentAppVersion() }
+            : {}),
+        })),
       setSampleEntryIds: (ids) => set({ sampleEntryIds: ids }),
       setSampleEntriesBannerDismissed: (dismissed) =>
         set({ sampleEntriesBannerDismissed: dismissed }),
       setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
+      setLastSeenAppVersion: (version) => set({ lastSeenAppVersion: version }),
       setPendingAchievement: (achievement) => set({ pendingAchievement: achievement }),
       setFestivePromptSeason: (season) => set({ festivePromptSeason: season }),
       setFestiveSwitch: (festiveSwitch) => set({ festiveSwitch }),
@@ -387,6 +403,7 @@ export const useSettingsStore = create<SettingsState>()(
         sampleEntryIds: state.sampleEntryIds,
         sampleEntriesBannerDismissed: state.sampleEntriesBannerDismissed,
         hasSeenHomeCoachMarks: state.hasSeenHomeCoachMarks,
+        lastSeenAppVersion: state.lastSeenAppVersion,
         pendingAchievement: state.pendingAchievement,
         festivePromptSeason: state.festivePromptSeason,
         festiveSwitch: state.festiveSwitch,

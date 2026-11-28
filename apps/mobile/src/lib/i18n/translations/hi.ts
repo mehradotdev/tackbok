@@ -282,6 +282,25 @@ export const hi = {
   'festive.switchBackMessage': 'त्योहारों से पहले वाले विषय और आइकन पर वापस जाएँ।',
   'festive.switchBack': 'वापस जाएँ',
   'festive.keepIt': 'यही रखें',
+  'whatsNew.title': 'Tackbok 2.0 में नया क्या है',
+  'whatsNew.intro': 'Tackbok के साथ अपनी डायरी लिखने के लिए धन्यवाद। यह अपडेट ये चीज़ें लाया है।',
+  'whatsNew.syncTitle': 'क्लाउड बैकअप, नए सिरे से',
+  'whatsNew.syncBody':
+    'आपके सभी डिवाइस के बदलाव सुरक्षित रूप से एक साथ आते हैं, और आप पिछले 30 दिनों में से किसी भी दिन की अपनी डायरी पर लौट सकते हैं।',
+  'whatsNew.festiveTitle': 'क्रिसमस और नया साल',
+  'whatsNew.festiveBody':
+    'त्योहारी विषय, क्रिसमस का ऐप आइकन और मौसम की शुभकामनाएँ। आप इन्हें दिखावट में बंद कर सकते हैं।',
+  'whatsNew.themesTitle': 'नए विषय और ऐप आइकन',
+  'whatsNew.themesBody':
+    'Tackbok के दोस्तों के लिए बनाए गए विषय, और अब आप होम स्क्रीन पर दिखने वाला आइकन चुन सकते हैं।',
+  'whatsNew.freshTitle': 'एक नई शुरुआत',
+  'whatsNew.freshBody':
+    'ऐप खुलने पर नया एनिमेशन, और ऐसा टेक्स्ट जो सबसे बड़े आकार में भी पढ़ने में आसान रहता है।',
+  'whatsNew.photosTitle': 'फ़ोटो और वॉइस नोट',
+  'whatsNew.photosBody':
+    'किसी प्रविष्टि में सीधे फ़ोटो चिपकाएँ, और एक फ़ोटो या वॉइस नोट को सहेजें या साझा करें।',
+  'whatsNew.seeThemes': 'नए विषय देखें',
+  'whatsNew.continue': 'जारी रखें',
   'typography.typography': 'टाइपोग्राफी',
   'typography.titleFont': 'टाइटल फ़ॉन्ट',
   'typography.chooseAFontForTitlesAndHeadings': 'शीर्षकों और शीर्षकों के लिए एक फ़ॉन्ट चुनें',

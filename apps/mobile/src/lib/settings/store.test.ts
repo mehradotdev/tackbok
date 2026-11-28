@@ -19,6 +19,7 @@ jest.mock('~/lib/kvStorage', () => ({
 }));
 jest.mock('react-native', () => ({ Appearance: { getColorScheme: () => 'light' } }));
 jest.mock('uniwind', () => ({ Uniwind: { setTheme: jest.fn() } }));
+jest.mock('expo-constants', () => ({ expoConfig: { version: '2.0.0' } }));
 jest.mock('~/lib/theme/typography', () => ({
   ...jest.requireActual('~/lib/theme/typography'),
   applyTitleFont: jest.fn(),
@@ -101,5 +102,24 @@ describe('profile cache reloads', () => {
     hydrateProfileCache({ profileImageUri: 'photos/imported.jpg' });
     expect(applyProfileCacheReload(revision, restored)).toBe(false);
     expect(useSettingsStore.getState().profileImageUri).toBe('photos/imported.jpg');
+  });
+});
+
+describe('last seen app version', () => {
+  test('finishing onboarding records this version, so a fresh install skips "What\'s new"', () => {
+    useSettingsStore.getState().resetToDefaults();
+    expect(useSettingsStore.getState().lastSeenAppVersion).toBeNull();
+    useSettingsStore.getState().setHasCompletedOnboarding(true);
+    expect(useSettingsStore.getState().lastSeenAppVersion).toBe('2.0.0');
+  });
+
+  test('replaying onboarding keeps the version already recorded', () => {
+    useSettingsStore.setState({
+      hasCompletedOnboarding: true,
+      lastSeenAppVersion: '1.9.0',
+    });
+    useSettingsStore.getState().setHasCompletedOnboarding(false);
+    useSettingsStore.getState().setHasCompletedOnboarding(true);
+    expect(useSettingsStore.getState().lastSeenAppVersion).toBe('1.9.0');
   });
 });

@@ -21,6 +21,8 @@ export interface DevSetup {
   locale?: LocalePreference;
   onboarding?: 'done' | 'show';
   coachMarks?: boolean;
+  /** On: act as an update from 1.x, so "What's new" shows. Off: mark it seen. */
+  whatsNew?: boolean;
   greeting?: boolean;
   betaBadge?: boolean;
   /** Absolute route path, for example `/insights`. */
@@ -83,6 +85,7 @@ export function parseDevSetup(raw: string): { setup: DevSetup; errors: string[] 
         else invalid();
         break;
       case 'coachMarks':
+      case 'whatsNew':
       case 'greeting':
       case 'betaBadge':
         if (value === 'on' || value === 'off') setup[key] = ON_OFF[value];

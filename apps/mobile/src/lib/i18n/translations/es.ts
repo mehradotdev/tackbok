@@ -298,6 +298,26 @@ export const es = {
     'Vuelve al tema y al icono que tenías antes de las fiestas.',
   'festive.switchBack': 'Volver',
   'festive.keepIt': 'Mantener',
+  'whatsNew.title': 'Novedades de Tackbok 2.0',
+  'whatsNew.intro':
+    'Gracias por llevar tu diario con Tackbok. Esto es lo que trae esta actualización.',
+  'whatsNew.syncTitle': 'Copia de seguridad en la nube, renovada',
+  'whatsNew.syncBody':
+    'Los cambios de todos tus dispositivos se combinan de forma segura, y puedes volver a tu diario tal como estaba cualquiera de los últimos 30 días.',
+  'whatsNew.festiveTitle': 'Navidad y Año Nuevo',
+  'whatsNew.festiveBody':
+    'Temas festivos, un icono navideño para la app y saludos de temporada. Puedes desactivarlos en Apariencia.',
+  'whatsNew.themesTitle': 'Nuevos temas e iconos',
+  'whatsNew.themesBody':
+    'Temas creados para amigos de Tackbok, y ahora puedes elegir el icono de tu pantalla de inicio.',
+  'whatsNew.freshTitle': 'Un nuevo comienzo',
+  'whatsNew.freshBody':
+    'Una nueva animación de inicio y texto que se lee bien incluso en los tamaños más grandes.',
+  'whatsNew.photosTitle': 'Fotos y notas de voz',
+  'whatsNew.photosBody':
+    'Pega una foto directamente en una entrada, y guarda o comparte una sola foto o nota de voz.',
+  'whatsNew.seeThemes': 'Ver los nuevos temas',
+  'whatsNew.continue': 'Continuar',
   'typography.typography': 'Tipografía',
   'typography.titleFont': 'Fuente del título',
   'typography.chooseAFontForTitlesAndHeadings':

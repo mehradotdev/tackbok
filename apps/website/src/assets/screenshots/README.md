@@ -82,20 +82,21 @@ so `-d` and `-a` aren't read as its own flags:
   --launch-args='<URL above>'`. Without `-a`, agent-device sends a `MAIN`
   intent, and the app ignores the URL.
 
-| Setting      | Values                                                                   |
-| ------------ | ------------------------------------------------------------------------ |
-| `onboarding` | `done` skips onboarding, including the analytics question; `show`        |
-| `coachMarks` | `off` marks the Home coach marks as seen; `on` shows them again          |
-| `greeting`   | `off` shows the plain title instead of the launch greeting               |
-| `betaBadge`  | `off` hides the header's BETA badge                                      |
-| `theme`      | Any theme id from `src/lib/theme/theme-tokens.ts`, for example `dark`    |
-| `fontSize`   | `small`, `default`, `large`                                              |
-| `titleFont`  | `default` or a title font id, for example `lora`                         |
-| `locale`     | `device` or a supported locale such as `ar`, `zh-TW`                     |
-| `restore`    | A ZIP file name in the app's documents folder (`files/` on Android)      |
-| `reset`      | `1` deletes all data and settings first, like **Delete all data**        |
-| `screen`     | A route to open on top of Home, for example `/insights` or `/appearance` |
-| `run`        | Any token. The same settings apply only once; a new token applies again  |
+| Setting      | Values                                                                      |
+| ------------ | --------------------------------------------------------------------------- |
+| `onboarding` | `done` skips onboarding, including the analytics question; `show`           |
+| `coachMarks` | `off` marks the Home coach marks as seen; `on` shows them again             |
+| `whatsNew`   | `on` acts as an update from 1.x, so "What's new" shows; `off` marks it seen |
+| `greeting`   | `off` shows the plain title instead of the launch greeting                  |
+| `betaBadge`  | `off` hides the header's BETA badge                                         |
+| `theme`      | Any theme id from `src/lib/theme/theme-tokens.ts`, for example `dark`       |
+| `fontSize`   | `small`, `default`, `large`                                                 |
+| `titleFont`  | `default` or a title font id, for example `lora`                            |
+| `locale`     | `device` or a supported locale such as `ar`, `zh-TW`                        |
+| `restore`    | A ZIP file name in the app's documents folder (`files/` on Android)         |
+| `reset`      | `1` deletes all data and settings first, like **Delete all data**           |
+| `screen`     | A route to open on top of Home, for example `/insights` or `/appearance`    |
+| `run`        | Any token. The same settings apply only once; a new token applies again     |
 
 The app remembers the last settings it applied, because reloads keep the launch
 argument or URL: a language change in Settings must not rerun a restore. Change

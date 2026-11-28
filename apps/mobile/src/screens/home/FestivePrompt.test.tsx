@@ -13,6 +13,7 @@ const mockSettings = {
   biometricUnlockEnabled: false,
   hasCompletedOnboarding: true,
   hasSeenHomeCoachMarks: true,
+  lastSeenAppVersion: '2.0.0' as string | null,
   pendingAchievement: null as unknown,
   setFestivePromptSeason: (season: string | null) => {
     mockSettings.festivePromptSeason = season;
@@ -99,6 +100,7 @@ jest.mock('~/lib/splash', () => ({
 jest.mock('~/lib/achievement-dialog', () => ({
   useAchievementDialogStore: { getState: () => ({ manualAchievement: null }) },
 }));
+jest.mock('expo-constants', () => ({ expoConfig: { version: '2.0.0' } }));
 jest.mock('~/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('~/screens/settings/AppIconPickerSheet', () => ({
   AppIconTile: 'AppIconTile',
@@ -166,6 +168,7 @@ beforeEach(async () => {
     festiveSwitch: null,
     theme: 'ocean',
     pendingAchievement: null,
+    lastSeenAppVersion: '2.0.0',
   });
   mockIcon.current = 'Sage';
   mockTipsShowing = false;
@@ -191,6 +194,16 @@ it('waits for a return to Home, never the app opening', async () => {
   expect(isOpen()).toBe(true);
   expect(mockSettings.festivePromptSeason).toBe('winter-holidays-2026');
   expect(labels()).toEqual(['festive.takeALook', 'festive.notNow']);
+});
+
+it('waits while "What\'s new" is still due', async () => {
+  // Updated from 1.x: What's new goes first.
+  mockSettings.lastSeenAppVersion = null;
+  await focus();
+  leave();
+  await focus();
+  expect(isOpen()).toBe(false);
+  expect(mockSettings.festivePromptSeason).toBeNull();
 });
 
 it('stays back while an achievement is waiting', async () => {

@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { SHEET_NAMES } from '~/constants';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
@@ -15,6 +18,16 @@ import { AppIconPickerSheet } from '~/screens/settings/AppIconPickerSheet';
 export default function AppearanceScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
+  // "See the new themes" in What's new opens the theme picker straight away.
+  const { open } = useLocalSearchParams<{ open?: string }>();
+  useEffect(() => {
+    if (open !== 'themes') return;
+    // After the push transition, so the sheet presents over a settled screen.
+    const timer = setTimeout(() => {
+      void TrueSheet.present(SHEET_NAMES.THEME_PICKER).catch(() => {});
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   return (
     <>

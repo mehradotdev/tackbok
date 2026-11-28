@@ -313,6 +313,24 @@ export const zhTW: Translations = {
   'festive.switchBackMessage': '切換回節日前使用的主題和圖示。',
   'festive.switchBack': '切換回去',
   'festive.keepIt': '保留',
+  'whatsNew.title': 'Tackbok 2.0 新功能',
+  'whatsNew.intro': '感謝你一直用 Tackbok 寫日記。以下是這次更新帶來的變化。',
+  'whatsNew.syncTitle': '雲端備份，全新打造',
+  'whatsNew.syncBody':
+    '所有裝置上的變更都能安全地合併在一起，你還可以把日記還原到過去 30 天中任何一天的樣子。',
+  'whatsNew.festiveTitle': '聖誕節和新年',
+  'whatsNew.festiveBody':
+    '節日主題、聖誕應用程式圖示和應景問候。你可以在「外觀」中關閉它們。',
+  'whatsNew.themesTitle': '新主題和應用程式圖示',
+  'whatsNew.themesBody':
+    '為 Tackbok 的朋友們設計的主題，現在你也可以選擇主畫面上的應用程式圖示。',
+  'whatsNew.freshTitle': '煥然一新',
+  'whatsNew.freshBody': '全新的啟動動畫，文字在最大字級下也依然清楚易讀。',
+  'whatsNew.photosTitle': '照片和語音筆記',
+  'whatsNew.photosBody':
+    '直接把照片貼到紀錄中，也可以單獨儲存或分享一張照片或一則語音筆記。',
+  'whatsNew.seeThemes': '查看新主題',
+  'whatsNew.continue': '繼續',
 
   // Settings - Typography
   'typography.typography': '排版',

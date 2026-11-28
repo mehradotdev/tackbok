@@ -317,6 +317,24 @@ export const he: Translations = {
   'festive.switchBackMessage': 'חזרה לערכת הנושא ולסמל שהיו לפני החגים.',
   'festive.switchBack': 'לחזור',
   'festive.keepIt': 'להשאיר',
+  'whatsNew.title': 'מה חדש ב-Tackbok 2.0',
+  'whatsNew.intro': 'תודה שבחרת ב-Tackbok ליומן שלך. הנה מה שהעדכון הזה מביא.',
+  'whatsNew.syncTitle': 'גיבוי בענן, בנוי מחדש',
+  'whatsNew.syncBody':
+    'שינויים מכל המכשירים שלך מתאחדים בבטחה, ואפשר לחזור ליומן כפי שהיה בכל אחד מ-30 הימים האחרונים.',
+  'whatsNew.festiveTitle': 'חג המולד והשנה החדשה',
+  'whatsNew.festiveBody':
+    'ערכות נושא חגיגיות, סמל אפליקציה לחג המולד וברכות לעונה. אפשר לכבות אותן במסך המראה.',
+  'whatsNew.themesTitle': 'ערכות נושא וסמלים חדשים',
+  'whatsNew.themesBody':
+    'ערכות נושא שנוצרו בשביל חברים של Tackbok, ועכשיו אפשר לבחור את הסמל שבמסך הבית.',
+  'whatsNew.freshTitle': 'התחלה רעננה',
+  'whatsNew.freshBody': 'אנימציית פתיחה חדשה, וטקסט שנשאר קריא גם בגדלים הגדולים ביותר.',
+  'whatsNew.photosTitle': 'תמונות והקלטות קוליות',
+  'whatsNew.photosBody':
+    'להדביק תמונה ישירות לרשומה, ולשמור או לשתף תמונה אחת או הקלטה קולית אחת.',
+  'whatsNew.seeThemes': 'לערכות הנושא החדשות',
+  'whatsNew.continue': 'המשך',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',
