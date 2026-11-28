@@ -509,6 +509,12 @@ export const ar: Translations = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'دفعتك معلقة. سيكملها المتجر عند اكتمال الموافقة أو الدفع.',
   'appInfo.whereYourSupportHelps': 'أين يساعد دعمك',
+  'support.note.title': 'أضف ملاحظة (اختياري)',
+  'support.note.description': 'تُرسل بشكل خاص إلى المطوّر بعد اكتمال دفعتك.',
+  'support.note.message': 'الرسالة',
+  'support.note.email': 'البريد الإلكتروني، إن أردت ردًا',
+  'support.note.emailInvalid': 'أدخل بريدًا إلكترونيًا صالحًا، أو اتركه فارغًا.',
+  'support.donateAnonymously': 'تبرّع دون ذكر اسمك',
   'appInfo.cloudflareWorkers': 'Cloudflare Workers',
   'appInfo.expoEas': 'Expo EAS',
   'appInfo.appleDeveloperMembership': 'عضوية Apple Developer',

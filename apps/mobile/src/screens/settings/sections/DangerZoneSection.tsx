@@ -7,6 +7,7 @@ import { QUERY_KEYS } from '~/hooks/useGratitude';
 import { resetThisDeviceOnly, useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
+import { clearFollowUps } from '~/lib/purchases/donation-follow-ups';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
 import {
@@ -41,6 +42,8 @@ export function DangerZoneSection() {
       // Reset persisted app settings alongside the DB wipe so Delete All Data
       // restores the app to its default state.
       resetSettingsToDefaults();
+      // Unsent donor notes are private too.
+      await clearFollowUps().catch(() => undefined);
       // Invalidate and await refetch of all cached queries so the mounted
       // home screen receives empty data from the cleared DB before we navigate
       // back. Using invalidateQueries (not removeQueries) ensures active

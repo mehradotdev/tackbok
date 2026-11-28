@@ -467,6 +467,12 @@ export const hi = {
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'आपका भुगतान लंबित है. अनुमोदन या भुगतान पूरा होने पर स्टोर इसे पूरा कर देगा।',
   'appInfo.whereYourSupportHelps': 'जहां आपका समर्थन मदद करता है',
+  'support.note.title': 'एक नोट जोड़ें (वैकल्पिक)',
+  'support.note.description': 'आपका भुगतान पूरा होने पर यह निजी तौर पर डेवलपर को भेजा जाता है।',
+  'support.note.message': 'संदेश',
+  'support.note.email': 'ईमेल, अगर आप जवाब चाहते हैं',
+  'support.note.emailInvalid': 'मान्य ईमेल पता दर्ज करें, या इसे खाली छोड़ दें।',
+  'support.donateAnonymously': 'गुमनाम रूप से दान करें',
   'appInfo.cloudflareWorkers': 'क्लाउडफ्लेयर कार्यकर्ता',
   'appInfo.expoEas': 'एक्सपो ईएएस',
   'appInfo.appleDeveloperMembership': 'Apple डेवलपर सदस्यता',

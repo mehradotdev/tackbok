@@ -1,9 +1,11 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { randomUUID } from 'expo-crypto';
 // Type augmentation only: Google/iOS builds do not link the Galaxy native module.
 import type {} from 'react-native-purchases-store-galaxy';
 import Purchases, {
   PURCHASES_ERROR_CODE,
+  type CustomerInfo,
   type PurchasesError,
   type PurchasesPackage,
 } from 'react-native-purchases';
@@ -13,6 +15,14 @@ import {
   type SupportCatalogTier,
   type SupportTierId,
 } from './support-catalog';
+import { sendDonorNote, type DonorNote } from './donor-note';
+import {
+  matchCompletedDonations,
+  readFollowUps,
+  UNKNOWN_TRANSACTION_ID,
+  updateFollowUps,
+  type DonationFollowUp,
+} from './donation-follow-ups';
 import { withExternalAuthentication } from '~/lib/externalAuthentication';
 
 export type SupportPurchaseErrorCategory =
@@ -176,8 +186,86 @@ function classifyPurchasesError(
   return 'unknown';
 }
 
+// While a purchase call is running, its own customer-info update must not be
+// mistaken for a pending donation completing.
+let purchasesInFlight = 0;
+
+async function knownTransactionIds(productId: string): Promise<string[]> {
+  try {
+    const info = await Purchases.getCustomerInfo();
+    return info.nonSubscriptionTransactions
+      .filter((transaction) => transaction.productIdentifier === productId)
+      .map((transaction) => transaction.transactionIdentifier);
+  } catch {
+    // Without a baseline, matching falls back to the purchase date.
+    return [];
+  }
+}
+
+/** A purchase that completed right away must not complete an older pending one. */
+async function excludeFromPendingDonations(transactionId: string): Promise<void> {
+  try {
+    await updateFollowUps((records) => ({
+      records: records.map((record) =>
+        record.transactionId === null
+          ? {
+              ...record,
+              knownTransactionIds: [...record.knownTransactionIds, transactionId],
+            }
+          : record,
+      ),
+      result: undefined,
+    }));
+  } catch {
+    // Best effort; see saveFollowUp.
+  }
+}
+
+/** Returns false when the record could not be stored. */
+async function saveFollowUp(record: DonationFollowUp): Promise<boolean> {
+  try {
+    await updateFollowUps((records) => ({
+      records: [...records, record],
+      result: undefined,
+    }));
+    return true;
+  } catch {
+    // Storage failures must not turn a successful payment into an error.
+    return false;
+  }
+}
+
+function noteRequest(record: DonationFollowUp, appUserId: string) {
+  return {
+    appUserId,
+    transactionId:
+      record.transactionId === UNKNOWN_TRANSACTION_ID ? null : record.transactionId,
+    noteId: record.id,
+    ...record.note!,
+  };
+}
+
+/** Last resort when the note could not be stored: one attempt, right now. */
+async function sendUnsavedNote(record: DonationFollowUp): Promise<void> {
+  await sendDonorNote(noteRequest(record, await Purchases.getAppUserID()));
+}
+
+let missedCustomerInfoUpdate = false;
+
+function refreshCustomerInfo() {
+  void Purchases.getCustomerInfo()
+    .then(processCustomerInfo)
+    .catch(() => undefined);
+}
+
+/**
+ * Starts a donation. `note` is the donor's optional message and email, already
+ * normalized; it is sent only once the store reports the payment as completed,
+ * either right away or later for a pending payment.
+ */
 export async function purchaseSupportTier(
   tierId: SupportTierId,
+  note: DonorNote | null = null,
 ): Promise<SupportPurchaseResult> {
   await initializeRevenueCat();
   const revenueCatPackage = packagesByTier.get(tierId);
@@ -189,8 +277,31 @@ export async function purchaseSupportTier(
   }
 
   return withExternalAuthentication(async () => {
+    const productId = revenueCatPackage.product.identifier;
+    const createdAt = Date.now();
+    const baseline = await knownTransactionIds(productId);
+    const followUp = (transactionId: string | null): DonationFollowUp => ({
+      // Also sent with the note, so the server recognises a retry.
+      id: randomUUID(),
+      tierId,
+      productId,
+      createdAt,
+      transactionId,
+      knownTransactionIds: baseline,
+      note,
+    });
+
+    let watchPending = false;
+    purchasesInFlight += 1;
     try {
-      await Purchases.purchasePackage(revenueCatPackage);
+      const result = await Purchases.purchasePackage(revenueCatPackage);
+      const transactionId = result?.transaction?.transactionIdentifier || null;
+      if (transactionId) await excludeFromPendingDonations(transactionId);
+      if (note) {
+        const record = followUp(transactionId ?? UNKNOWN_TRANSACTION_ID);
+        if (await saveFollowUp(record)) void sendReadyDonorNotes().catch(() => undefined);
+        else void sendUnsavedNote(record).catch(() => undefined);
+      }
       return 'completed';
     } catch (error) {
       if (isPurchasesError(error)) {
@@ -198,11 +309,122 @@ export async function purchaseSupportTier(
           return 'cancelled';
         }
         if (error.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) {
+          await saveFollowUp(followUp(null));
+          watchCustomerInfo();
+          watchPending = true;
           return 'pending';
         }
         throw new SupportPurchaseError(classifyPurchasesError(error.code), error.message);
       }
       throw new SupportPurchaseError('unknown', 'The purchase could not be completed.');
+    } finally {
+      purchasesInFlight -= 1;
+      // Catch up on updates skipped while the purchase ran, and on a payment
+      // that completed before the listener was registered.
+      if (purchasesInFlight === 0 && (missedCustomerInfoUpdate || watchPending)) {
+        missedCustomerInfoUpdate = false;
+        refreshCustomerInfo();
+      }
     }
   });
+}
+
+type CompletionListener = (tierId: SupportTierId) => void;
+const completionListeners = new Set<CompletionListener>();
+
+/** Called when a donation that was pending is completed by the store. */
+export function onPendingDonationCompleted(listener: CompletionListener): () => void {
+  completionListeners.add(listener);
+  return () => {
+    completionListeners.delete(listener);
+  };
+}
+
+let watching = false;
+
+function handleCustomerInfoUpdate(info: CustomerInfo) {
+  void processCustomerInfo(info).catch(() => undefined);
+}
+
+function watchCustomerInfo() {
+  if (watching) return;
+  watching = true;
+  Purchases.addCustomerInfoUpdateListener(handleCustomerInfoUpdate);
+}
+
+function stopWatchingIfIdle(records: readonly DonationFollowUp[]) {
+  if (!watching || records.some((record) => record.transactionId === null)) return;
+  watching = false;
+  Purchases.removeCustomerInfoUpdateListener(handleCustomerInfoUpdate);
+}
+
+async function processCustomerInfo(info: CustomerInfo): Promise<void> {
+  if (purchasesInFlight > 0) {
+    missedCustomerInfoUpdate = true;
+    return;
+  }
+  const completed = await updateFollowUps((records) => {
+    const match = matchCompletedDonations(records, info.nonSubscriptionTransactions);
+    return { records: match.records, result: match.completed };
+  });
+  for (const record of completed) {
+    for (const listener of completionListeners) listener(record.tierId);
+  }
+  await sendReadyDonorNotes();
+}
+
+let sending: Promise<void> | null = null;
+let sendAgain = false;
+
+async function sendReadyOnce(attempted: Set<string>): Promise<void> {
+  const ready = (await readFollowUps()).filter(
+    (record) =>
+      record.transactionId !== null && record.note !== null && !attempted.has(record.id),
+  );
+  if (ready.length === 0) return;
+  const appUserId = await Purchases.getAppUserID();
+  for (const record of ready) {
+    attempted.add(record.id);
+    const result = await sendDonorNote(noteRequest(record, appUserId));
+    if (result === 'retry') continue;
+    await updateFollowUps((records) => ({
+      records: records.filter((item) => item.id !== record.id),
+      result: undefined,
+    }));
+  }
+}
+
+/** Sends every note whose donation has completed; failed sends stay queued. */
+function sendReadyDonorNotes(): Promise<void> {
+  if (sending) {
+    // A note that became ready mid-run is picked up before the run ends.
+    sendAgain = true;
+    return sending;
+  }
+  sending = (async () => {
+    try {
+      // Each note gets one attempt per run; a failed one waits for the next.
+      const attempted = new Set<string>();
+      do {
+        sendAgain = false;
+        await sendReadyOnce(attempted);
+      } while (sendAgain);
+      stopWatchingIfIdle(await readFollowUps());
+    } finally {
+      sending = null;
+    }
+  })();
+  return sending;
+}
+
+/**
+ * Runs at launch. Only a device with an open donation (a pending payment or an
+ * unsent note) configures RevenueCat here; everyone else contacts it only from
+ * the Support screen, as before.
+ */
+export async function resumeDonationFollowUps(): Promise<void> {
+  if ((await readFollowUps()).length === 0) return;
+  await initializeRevenueCat();
+  watchCustomerInfo();
+  await processCustomerInfo(await Purchases.getCustomerInfo());
 }
