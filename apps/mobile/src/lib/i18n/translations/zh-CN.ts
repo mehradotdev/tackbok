@@ -319,6 +319,9 @@ export const zhCN: Translations = {
     '此版本的 Tackbok 已过时。请更新到 {version}，以确保一切正常运行。',
   'storeUpdate.update': '更新',
   'storeUpdate.notNow': '暂不',
+  'whatsNew.title': 'Tackbok 已更新',
+  'whatsNew.message': '在 tackbok.org 上查看 {version} 版本的更新内容（英文）。',
+  'whatsNew.seeWhatsNew': '查看新内容',
 
   // Settings - Typography
   'typography.typography': '排版',

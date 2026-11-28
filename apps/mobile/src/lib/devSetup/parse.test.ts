@@ -29,9 +29,11 @@ describe('parseDevSetup', () => {
 
   test('accepts the default title font, the device locale and blank pairs', () => {
     expect(
-      parseDevSetup(' titleFont=default, ,locale = device,coachMarks=on,run=1747,'),
+      parseDevSetup(
+        ' titleFont=default, ,locale = device,coachMarks=on,whatsNew=on,run=1747,',
+      ),
     ).toEqual({
-      setup: { titleFont: 'default', locale: 'device', coachMarks: true },
+      setup: { titleFont: 'default', locale: 'device', coachMarks: true, whatsNew: true },
       errors: [],
     });
   });

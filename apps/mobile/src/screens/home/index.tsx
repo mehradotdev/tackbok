@@ -18,6 +18,7 @@ import { GratitudeActionDock } from './GratitudeActionDock';
 import { HomeCoachMarks } from './HomeCoachMarks';
 import { FestivePrompt } from './FestivePrompt';
 import { StoreUpdatePrompt } from './StoreUpdatePrompt';
+import { WhatsNewSheet } from './WhatsNewSheet';
 import { PetInteractionProvider } from '~/components/backdrops/PetInteraction';
 
 export default function HomeScreen() {
@@ -180,6 +181,7 @@ export default function HomeScreen() {
 
       {!isSearchMode && <HomeCoachMarks />}
       {!isSearchMode && <FestivePrompt />}
+      <WhatsNewSheet blocked={isSearchMode || showDatePicker} />
       <StoreUpdatePrompt blocked={isSearchMode || showDatePicker} />
     </SafeAreaView>
   );
