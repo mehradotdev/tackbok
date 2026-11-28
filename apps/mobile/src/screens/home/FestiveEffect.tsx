@@ -82,7 +82,7 @@ function Snowflake({ index, progress, width, height }: ParticleProps) {
   });
   return (
     <Animated.View
-      className="absolute rounded-full bg-primary-foreground"
+      className="absolute rounded-full bg-header-foreground"
       style={[{ width: diameter, height: diameter, left: 0, top: 0 }, style]}
     />
   );
@@ -90,7 +90,7 @@ function Snowflake({ index, progress, width, height }: ParticleProps) {
 
 function SparklePop({ index, progress, width, height }: ParticleProps) {
   // Lucide's currentColor only reaches the stroke, so fill with the token directly.
-  const color = useCSSVariable('--color-primary-foreground') as string;
+  const color = useCSSVariable('--color-header-foreground') as string;
   const glyph = 14 + (index % 3) * 4;
   const x = (0.06 + 0.88 * spread(index, 4)) * width - glyph / 2;
   const y = (0.15 + 0.7 * spread(index, 5)) * height - glyph / 2;

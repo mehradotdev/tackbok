@@ -128,7 +128,7 @@ export default function HomeScreen() {
   }, [router]);
 
   return (
-    <SafeAreaView className="flex-1 w-full bg-primary" edges={['top', 'left', 'right']}>
+    <SafeAreaView className="flex-1 w-full bg-header" edges={['top', 'left', 'right']}>
       <Header
         isSearchMode={isSearchMode}
         onSearchPress={handleSearchPress}

@@ -7,7 +7,7 @@ function MiniThemeTile({ theme }: { theme: ThemeId }) {
   return (
     <ScopedTheme theme={theme}>
       <View className="h-[38px] w-[34px] overflow-hidden rounded border border-border bg-background">
-        <View className="h-2 bg-primary" />
+        <View className="h-2 bg-header" />
         <View className="flex-1 flex-row px-1.5">
           <View className="w-px items-center bg-foreground/60">
             <View className="mt-1.5 size-1 rounded-full border border-foreground bg-background" />

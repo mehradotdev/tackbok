@@ -8,6 +8,7 @@ import { ChristmasBackdrop, NewYearBackdrop } from './FestiveBackdrops';
 import {
   BeaBackdrop,
   DeniseBackdrop,
+  ErikaBackdrop,
   GiuseppeBackdrop,
   HigaBackdrop,
   KristenBackdrop,
@@ -43,6 +44,7 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   shadow: ShadowBackdrop,
   camino: CaminoDayBackdrop,
   'camino-night': CaminoNightBackdrop,
+  erika: ErikaBackdrop,
   denise: DeniseBackdrop,
   giuseppe: GiuseppeBackdrop,
   kristen: KristenBackdrop,

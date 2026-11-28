@@ -44,19 +44,19 @@ function ThemeCardContent({
         'grow rounded-(--theme-radius) overflow-hidden border-2 bg-background shadow-theme',
         isActive ? 'border-ring' : 'border-transparent',
       )}>
-      {/* Header bar showing primary color */}
-      <View className="px-3 py-2 flex-row items-center justify-between bg-primary">
+      {/* The theme's header bar */}
+      <View className="px-3 py-2 flex-row items-center justify-between bg-header">
         {/* Left spacer for perfect centering */}
         <View className="w-4" />
 
         <Text
-          className="text-sm text-primary-foreground"
+          className="text-sm text-header-foreground"
           style={{ fontFamily: themeFontFamily }}>
           {t('common.tackbok')}
         </Text>
 
         <View className="w-4 h-4 items-center justify-center">
-          {isActive && <Icon as={Check} className="size-4 text-primary-foreground" />}
+          {isActive && <Icon as={Check} className="size-4 text-header-foreground" />}
         </View>
       </View>
 

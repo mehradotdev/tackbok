@@ -291,7 +291,7 @@ function GreetingLine({
         step={props.step}>
         <Text
           variant="h2"
-          className="text-primary-foreground font-heading"
+          className="text-header-foreground font-heading"
           style={{ writingDirection: 'rtl', textAlign: 'auto' }}
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -393,7 +393,7 @@ function AnimatedGreetingLine({
             <Text
               numberOfLines={1}
               variant="h2"
-              className="text-primary-foreground font-heading"
+              className="text-header-foreground font-heading"
               style={{ writingDirection: isRTL ? 'rtl' : 'ltr' }}>
               {unit}
             </Text>

@@ -5,6 +5,7 @@ import {
   DEFAULT_THEME_ID,
   DEFAULT_TITLE_FONT,
   FONT_TOKEN_KEYS,
+  HEADER_TOKEN_KEYS,
   THEME_DEFINITIONS,
   THEME_TOKEN_KEYS,
   TITLE_FONTS,
@@ -119,7 +120,7 @@ function buildThemeCssVariableLines(themeId: ThemeId): string {
   const theme = getThemeDefinition(themeId);
   const resolvedVariables = resolveThemeVariables(theme);
 
-  return [...THEME_TOKEN_KEYS, ...FONT_TOKEN_KEYS]
+  return [...THEME_TOKEN_KEYS, ...HEADER_TOKEN_KEYS, ...FONT_TOKEN_KEYS]
     .map((key) => `      ${key}: ${resolvedVariables[key]};`)
     .join('\n');
 }

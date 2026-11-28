@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { AppState, PixelRatio, StyleSheet } from 'react-native';
-import { Canvas, Image, Rect, Shader, Skia } from 'react-native-skia';
+import { Canvas, Group, Image, Rect, Shader, Skia } from 'react-native-skia';
 import { useFocusEffect } from 'expo-router';
 import {
   cancelAnimation,
@@ -15,14 +15,26 @@ import {
 import { useCSSVariable } from 'uniwind';
 import {
   BEA_TEXT_CONTRAST,
-  DENISE_PALETTE,
+  DENISE_TEXT_CONTRAST,
+  ERIKA_PALETTE,
   GIUSEPPE_PALETTE,
   HIGA_TEXT_CONTRAST,
   KRISTEN_CONTRAST,
   KRISTEN_PALETTE,
 } from '~/lib/theme/theme-tokens';
 import { BEA_LANTERN, BEA_LIGHT, BEA_MIST, BEA_SCENE, beaLanternBox } from './bea-shader';
-import { DENISE_MIST, DENISE_SCENE } from './denise-shader';
+import {
+  DENISE_AIR,
+  DENISE_FIGURE,
+  DENISE_GEOMETRY,
+  DENISE_HEAD,
+  DENISE_ROOM,
+  DENISE_STEAM,
+  deniseHeadPose,
+  deniseRegion,
+  deniseScale,
+} from './denise-shader';
+import { ERIKA_MIST, ERIKA_SCENE } from './erika-shader';
 import { GIUSEPPE_BOKEH, GIUSEPPE_CAIRN, GIUSEPPE_LAKE } from './giuseppe-shader';
 import { HIGA_SCENE } from './higa-shader';
 import {
@@ -39,8 +51,13 @@ import {
   type Size,
 } from './scene-kit';
 
-const deniseScene = Skia.RuntimeEffect.Make(DENISE_SCENE);
-const deniseMist = Skia.RuntimeEffect.Make(DENISE_MIST);
+const deniseRoom = Skia.RuntimeEffect.Make(DENISE_ROOM);
+const deniseFigure = Skia.RuntimeEffect.Make(DENISE_FIGURE);
+const deniseHead = Skia.RuntimeEffect.Make(DENISE_HEAD);
+const deniseAir = Skia.RuntimeEffect.Make(DENISE_AIR);
+const deniseSteam = Skia.RuntimeEffect.Make(DENISE_STEAM);
+const erikaScene = Skia.RuntimeEffect.Make(ERIKA_SCENE);
+const erikaMist = Skia.RuntimeEffect.Make(ERIKA_MIST);
 const giuseppeLake = Skia.RuntimeEffect.Make(GIUSEPPE_LAKE);
 const giuseppeCairn = Skia.RuntimeEffect.Make(GIUSEPPE_CAIRN);
 const giuseppeBokeh = Skia.RuntimeEffect.Make(GIUSEPPE_BOKEH);
@@ -111,23 +128,101 @@ function DeniseScene({ width, height, preview }: Size & { preview: boolean }) {
     '--color-background',
     '--color-foreground',
   ]);
+  // The head loop, rain and drips must resume where they paused.
+  const time = useForwardTime(preview);
+  const bg = typeof background === 'string' ? background : '#121b27';
+  const ink = typeof foreground === 'string' ? foreground : '#dfe7f0';
+  const scene = useMemo(
+    () => ({
+      size: [width, height],
+      ink: rgb(ink),
+      ceilRatio: DENISE_TEXT_CONTRAST,
+    }),
+    [width, height, ink],
+  );
+  const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
+  const regions = useMemo(
+    () => ({
+      glass: deniseRegion(width, height, 'glass'),
+      figure: deniseRegion(width, height, 'figure'),
+      head: deniseRegion(width, height, 'head'),
+      steam: deniseRegion(width, height, 'steam'),
+    }),
+    [width, height],
+  );
+  const density = PixelRatio.get();
+  const room = useShaderTexture(deniseRoom, scene, full, density);
+  const figure = useShaderTexture(deniseFigure, scene, regions.figure, density);
+  const head = useShaderTexture(deniseHead, scene, regions.head, density);
+  const s = deniseScale(width, height);
+  const pivot = useMemo(
+    () => ({
+      x: width / 2 + DENISE_GEOMETRY.pivot.x * s,
+      y: DENISE_GEOMETRY.pivot.y * s,
+    }),
+    [width, s],
+  );
+  const headTransform = useDerivedValue(() => {
+    const pose = deniseHeadPose(time.value);
+    return [
+      { translateX: pose.dx * s },
+      { translateY: pose.dy * s },
+      { rotate: pose.angle },
+    ];
+  });
+  const moving = useDerivedValue(() => ({ ...scene, time: time.value }));
+
+  return (
+    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* The theme colour shows until the textures are ready, or if a shader fails. */}
+      <Rect x={0} y={0} width={width} height={height} color={bg} />
+      <Image image={room} x={0} y={0} width={width} height={height} fit="fill" />
+      {deniseAir && (
+        <Rect {...regions.glass}>
+          <Shader source={deniseAir} uniforms={moving} />
+        </Rect>
+      )}
+      <Image image={figure} {...regions.figure} fit="fill" />
+      <Group origin={pivot} transform={headTransform}>
+        <Image image={head} {...regions.head} fit="fill" />
+      </Group>
+      {deniseSteam && (
+        <Rect {...regions.steam}>
+          <Shader source={deniseSteam} uniforms={moving} />
+        </Rect>
+      )}
+    </Canvas>
+  );
+}
+
+export function ErikaBackdrop({ preview = false }: { preview?: boolean }) {
+  return (
+    <MeasuredHost>{(size) => <ErikaScene {...size} preview={preview} />}</MeasuredHost>
+  );
+}
+
+function ErikaScene({ width, height, preview }: Size & { preview: boolean }) {
+  const [background, foreground] = useCSSVariable([
+    '--color-background',
+    '--color-foreground',
+  ]);
   const time = useAmbientTime(preview);
-  const sky = typeof background === 'string' ? background : DENISE_PALETTE.fog;
-  const ink = typeof foreground === 'string' ? foreground : DENISE_PALETTE.near;
+  const sky = typeof background === 'string' ? background : ERIKA_PALETTE.fog;
+  const ink = typeof foreground === 'string' ? foreground : ERIKA_PALETTE.near;
   const scene = useMemo(
     () => ({
       size: [width, height],
       sky: rgb(sky),
-      ridge: rgb(DENISE_PALETTE.ridge),
-      near: rgb(DENISE_PALETTE.near),
-      fogCol: rgb(DENISE_PALETTE.fog),
-      sun: rgb(DENISE_PALETTE.sun),
+      ridge: rgb(ERIKA_PALETTE.ridge),
+      near: rgb(ERIKA_PALETTE.near),
+      fogCol: rgb(ERIKA_PALETTE.fog),
+      sun: rgb(ERIKA_PALETTE.sun),
       ink: rgb(ink),
     }),
     [width, height, sky, ink],
   );
   const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
-  const texture = useShaderTexture(deniseScene, scene, full, PixelRatio.get());
+  const texture = useShaderTexture(erikaScene, scene, full, PixelRatio.get());
   const mist = useDerivedValue(() => ({
     size: scene.size,
     time: time.value,
@@ -139,9 +234,9 @@ function DeniseScene({ width, height, preview }: Size & { preview: boolean }) {
       {/* The theme colour shows until the texture is ready, or if the shader fails. */}
       <Rect x={0} y={0} width={width} height={height} color={sky} />
       <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
-      {deniseMist && (
+      {erikaMist && (
         <Rect x={0} y={height * 0.45} width={width} height={height * 0.55}>
-          <Shader source={deniseMist} uniforms={mist} />
+          <Shader source={erikaMist} uniforms={mist} />
         </Rect>
       )}
     </Canvas>
