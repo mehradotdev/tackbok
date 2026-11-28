@@ -361,6 +361,10 @@ export const de: Translations = {
     'Diese Version von Tackbok ist veraltet. Aktualisiere auf {version}, damit alles weiter funktioniert.',
   'storeUpdate.update': 'Aktualisieren',
   'storeUpdate.notNow': 'Nicht jetzt',
+  'whatsNew.title': 'Tackbok wurde aktualisiert',
+  'whatsNew.message':
+    'Was sich in Version {version} geändert hat, liest du auf tackbok.org (auf Englisch).',
+  'whatsNew.seeWhatsNew': 'Neuigkeiten ansehen',
 
   // Settings - Typography
   'typography.typography': 'Typografie',

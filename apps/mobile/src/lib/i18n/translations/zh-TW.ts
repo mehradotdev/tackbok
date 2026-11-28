@@ -319,6 +319,9 @@ export const zhTW: Translations = {
     '此版本的 Tackbok 已過時。請更新至 {version}，以確保一切正常運作。',
   'storeUpdate.update': '更新',
   'storeUpdate.notNow': '暫不',
+  'whatsNew.title': 'Tackbok 已更新',
+  'whatsNew.message': '到 tackbok.org 查看 {version} 版的更新內容（英文）。',
+  'whatsNew.seeWhatsNew': '查看新內容',
 
   // Settings - Typography
   'typography.typography': '排版',

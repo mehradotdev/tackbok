@@ -323,6 +323,10 @@ export const ar: Translations = {
     'هذا الإصدار من Tackbok قديم. حدّث إلى {version} ليبقى كل شيء يعمل كما ينبغي.',
   'storeUpdate.update': 'تحديث',
   'storeUpdate.notNow': 'ليس الآن',
+  'whatsNew.title': 'تم تحديث Tackbok',
+  'whatsNew.message':
+    'اقرأ عن التغييرات في الإصدار {version} على tackbok.org (باللغة الإنجليزية).',
+  'whatsNew.seeWhatsNew': 'اكتشف الجديد',
 
   // Settings - Typography
   'typography.typography': 'الخطوط',

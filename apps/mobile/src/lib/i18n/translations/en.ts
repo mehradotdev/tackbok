@@ -349,6 +349,10 @@ export const en = {
     'This version of Tackbok is out of date. Update to {version} to keep everything working as it should.',
   'storeUpdate.update': 'Update',
   'storeUpdate.notNow': 'Not now',
+  // "What's new": the changelog page itself is English only.
+  'whatsNew.title': 'Tackbok has been updated',
+  'whatsNew.message': 'Read about the changes in version {version} on tackbok.org.',
+  'whatsNew.seeWhatsNew': "See what's new",
 
   // Settings - Typography
   'typography.typography': 'Typography',

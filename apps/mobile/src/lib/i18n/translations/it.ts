@@ -324,6 +324,10 @@ export const it = {
     'Questa versione di Tackbok non è più aggiornata. Aggiorna alla versione {version} perché tutto continui a funzionare come deve.',
   'storeUpdate.update': 'Aggiorna',
   'storeUpdate.notNow': 'Non ora',
+  'whatsNew.title': 'Tackbok è stato aggiornato',
+  'whatsNew.message':
+    'Scopri cosa cambia nella versione {version} su tackbok.org (in inglese).',
+  'whatsNew.seeWhatsNew': 'Vedi le novità',
 
   'typography.typography': 'Tipografia',
   'typography.titleFont': 'Font dei titoli',

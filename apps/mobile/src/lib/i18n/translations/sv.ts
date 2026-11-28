@@ -294,6 +294,10 @@ export const sv = {
     'Den här versionen av Tackbok är föråldrad. Uppdatera till {version} så att allt fortsätter att fungera som det ska.',
   'storeUpdate.update': 'Uppdatera',
   'storeUpdate.notNow': 'Inte nu',
+  'whatsNew.title': 'Tackbok har uppdaterats',
+  'whatsNew.message':
+    'Läs om ändringarna i version {version} på tackbok.org (på engelska).',
+  'whatsNew.seeWhatsNew': 'Se vad som är nytt',
   'typography.typography': 'Typografi',
   'typography.titleFont': 'Typsnitt för titel',
   'typography.chooseAFontForTitlesAndHeadings':

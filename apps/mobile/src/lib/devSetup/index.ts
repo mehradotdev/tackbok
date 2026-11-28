@@ -19,6 +19,7 @@ import { stopProductionSyncRuntime } from '~/lib/cloudSync/runtime';
 import { resetThisDeviceOnly } from '~/lib/cloudSync/ui';
 import { getEffectiveSupportedLocale, RTL_LOCALES, useLocaleStore } from '~/lib/i18n';
 import { kvStorage } from '~/lib/kvStorage';
+import { recordLastSeenAppVersion, resetAppUpdatedThisLaunch } from '~/lib/appVersion';
 import { useSettingsStore } from '~/lib/settings';
 import { hideBetaBadge } from '~/screens/home/Header';
 import { skipLaunchGreeting } from '~/screens/home/header-greeting';
@@ -121,6 +122,12 @@ async function applySavedSettings(setup: DevSetup, errors: string[]) {
   if (setup.onboarding) settings.setHasCompletedOnboarding(setup.onboarding === 'done');
   if (setup.coachMarks !== undefined) {
     settings.setHasSeenHomeCoachMarks(!setup.coachMarks);
+  }
+  if (setup.whatsNew) {
+    // As if 1.x had run before this launch, which then records itself again.
+    settings.setLastSeenAppVersion(null);
+    resetAppUpdatedThisLaunch();
+    recordLastSeenAppVersion();
   }
   const localePreference = setup.locale ?? (setup.reset ? 'device' : undefined);
   if (localePreference) {

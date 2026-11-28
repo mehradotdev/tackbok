@@ -1,7 +1,9 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { StoreUpdatePrompt as Prompt } from '~/lib/storeUpdate';
-import { resetStoreUpdateOffer, StoreUpdatePrompt } from './StoreUpdatePrompt';
+import { StoreUpdatePrompt } from './StoreUpdatePrompt';
+import { resetOpeningHomeSheet } from './useOpeningHomeSheet';
+import { CHANGELOG_URL, WhatsNewSheet } from './WhatsNewSheet';
 
 jest.mock('react-native', () => ({
   View: 'View',
@@ -54,7 +56,7 @@ jest.mock('@lodev09/react-native-true-sheet', () => {
   return { TrueSheet };
 });
 
-let mockDue: Prompt | null = null;
+let mockDue: Prompt | null | Promise<Prompt | null> = null;
 const mockNotNow = jest.fn(async (_version: string) => {});
 jest.mock('~/lib/storeUpdate', () => ({
   checkForStoreUpdate: async () => mockDue,
@@ -94,6 +96,10 @@ jest.mock('./HomeCoachMarks', () => ({ homeTipsShowing: () => mockTipsShowing })
 jest.mock('~/components/SettingsBottomSheet', () => ({
   settingsSheetShowing: () => mockSettingsSheet,
 }));
+let mockViewer = false;
+jest.mock('~/lib/photoViewer', () => ({
+  photoViewerShowing: () => mockViewer,
+}));
 jest.mock('uniwind', () => ({ useCSSVariable: () => ['#fff', '8', '#999'] }));
 jest.mock('~/lib/theme/themes', () => ({ DEFAULT_THEME_SHEET_RADIUS: 16 }));
 jest.mock('~/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -102,6 +108,11 @@ jest.mock('~/screens/settings/AppIconPickerSheet', () => ({
 }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
+let mockUpdated = false;
+jest.mock('~/lib/appVersion', () => ({
+  appUpdatedThisLaunch: () => mockUpdated,
+  currentAppVersion: () => '2.0.0',
+}));
 const mockToastError = jest.fn();
 jest.mock('~/components/ui/toast', () => ({
   toast: { error: (message: string) => mockToastError(message) },
@@ -136,11 +147,13 @@ async function press(which: 'update' | 'notNow') {
 
 beforeEach(() => {
   jest.useFakeTimers();
-  resetStoreUpdateOffer();
+  resetOpeningHomeSheet();
   mockDue = update;
   mockSheetOpen = false;
   mockTipsShowing = false;
+  mockUpdated = false;
   mockSettingsSheet = false;
+  mockViewer = false;
   mockOpenURL.mockClear();
   mockNotNow.mockClear();
   useSettingsStore.setState({ pendingAchievement: null });
@@ -227,7 +240,7 @@ it('waits while a Home picker is open', async () => {
   expect(isOpen()).toBe(true);
 });
 
-it('waits out the Home tips and the profile sheet, which it cannot watch', async () => {
+it('waits out the Home tips, the profile sheet and a photo viewer, which it cannot watch', async () => {
   mockTipsShowing = true;
   await mount();
   await settle();
@@ -239,6 +252,11 @@ it('waits out the Home tips and the profile sheet, which it cannot watch', async
   await settle();
   expect(isOpen()).toBe(false);
   mockSettingsSheet = false;
+  // Then a photo opens from the timeline.
+  mockViewer = true;
+  await settle();
+  expect(isOpen()).toBe(false);
+  mockViewer = false;
   await settle();
   expect(isOpen()).toBe(true);
 });
@@ -258,4 +276,87 @@ it('shows nothing when no update is due', async () => {
   await mount();
   await settle();
   expect(isOpen()).toBe(false);
+});
+
+describe("What's new", () => {
+  async function mountBoth() {
+    await act(async () => {
+      tree = create(
+        <>
+          <WhatsNewSheet blocked={false} />
+          <StoreUpdatePrompt blocked={false} />
+        </>,
+      );
+    });
+  }
+  const labels = () =>
+    tree.root.findAllByType('Text' as never).map((node) => node.props.children);
+
+  it('greets an updated app once, with a link to the changelog', async () => {
+    mockUpdated = true;
+    mockDue = null;
+    await mountBoth();
+    await settle();
+    expect(labels()).toContain('whatsNew.title');
+    await press('update');
+    expect(mockOpenURL).toHaveBeenCalledWith(CHANGELOG_URL);
+    expect(isOpen()).toBe(false);
+  });
+
+  it('closes without opening anything', async () => {
+    mockUpdated = true;
+    mockDue = null;
+    await mountBoth();
+    await settle();
+    await press('notNow');
+    expect(mockOpenURL).not.toHaveBeenCalled();
+    expect(isOpen()).toBe(false);
+  });
+
+  it('stays away from a fresh install or an unchanged version', async () => {
+    mockDue = null;
+    await mountBoth();
+    await settle();
+    expect(isOpen()).toBe(false);
+  });
+
+  it('goes before an optional update, which waits for a later launch', async () => {
+    mockUpdated = true;
+    await mountBoth();
+    await settle();
+    expect(labels()).toContain('whatsNew.title');
+    expect(labels()).not.toContain('storeUpdate.title');
+    await press('notNow');
+    await settle();
+    await settle();
+    expect(isOpen()).toBe(false);
+    expect(labels()).not.toContain('storeUpdate.title');
+  });
+
+  it('steps aside for a required update', async () => {
+    mockUpdated = true;
+    mockDue = { ...update, required: true };
+    await mountBoth();
+    await settle();
+    expect(labels()).toContain('storeUpdate.title');
+    expect(labels()).not.toContain('whatsNew.title');
+    await press('notNow');
+    await settle();
+    await settle();
+    expect(isOpen()).toBe(false);
+    expect(labels()).not.toContain('whatsNew.title');
+  });
+
+  it('does not wait long for a slow store check', async () => {
+    mockUpdated = true;
+    mockDue = new Promise(() => {});
+    await mountBoth();
+    await settle();
+    expect(isOpen()).toBe(false);
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
+    await settle();
+    expect(labels()).toContain('whatsNew.title');
+  });
 });

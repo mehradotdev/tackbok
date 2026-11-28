@@ -323,6 +323,10 @@ export const he: Translations = {
     'הגרסה הזו של Tackbok ישנה. יש לעדכן לגרסה {version} כדי שהכול ימשיך לעבוד כמו שצריך.',
   'storeUpdate.update': 'עדכון',
   'storeUpdate.notNow': 'לא עכשיו',
+  'whatsNew.title': 'Tackbok עודכנה',
+  'whatsNew.message':
+    'אפשר לקרוא על השינויים בגרסה {version} באתר tackbok.org (באנגלית).',
+  'whatsNew.seeWhatsNew': 'מה חדש',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',

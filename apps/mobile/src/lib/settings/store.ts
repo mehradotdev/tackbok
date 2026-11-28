@@ -110,9 +110,9 @@ interface SettingsState {
   hasSeenHomeCoachMarks: boolean;
   /**
    * App version of the last launch, written silently once per launch (see
-   * `recordLastSeenAppVersion`). 1.x never stored it, so a future "What's new"
-   * can tell an update (an older or missing version with onboarding done) from
-   * a fresh install. Such a feature must read it before this launch's write.
+   * `recordLastSeenAppVersion`). 1.x never stored it, so "What's new" can tell an
+   * update (an older or missing version with onboarding done) from a fresh
+   * install; read it through `appUpdatedThisLaunch`, not directly.
    */
   lastSeenAppVersion: string | null;
 

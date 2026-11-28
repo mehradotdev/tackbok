@@ -86,6 +86,7 @@ so `-d` and `-a` aren't read as its own flags:
 | ------------ | ------------------------------------------------------------------------ |
 | `onboarding` | `done` skips onboarding, including the analytics question; `show`        |
 | `coachMarks` | `off` marks the Home coach marks as seen; `on` shows them again          |
+| `whatsNew`   | `on` acts as an update from 1.x, so "What's new" shows on this launch    |
 | `greeting`   | `off` shows the plain title instead of the launch greeting               |
 | `betaBadge`  | `off` hides the header's BETA badge                                      |
 | `theme`      | Any theme id from `src/lib/theme/theme-tokens.ts`, for example `dark`    |
