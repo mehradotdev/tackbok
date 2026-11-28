@@ -313,6 +313,12 @@ export const zhCN: Translations = {
   'festive.switchBackMessage': '切换回节日前使用的主题和图标。',
   'festive.switchBack': '切换回去',
   'festive.keepIt': '保留',
+  'storeUpdate.title': 'Tackbok 有新版本',
+  'storeUpdate.message': 'Tackbok {{version}} 已在应用商店上架，包含最新的修复和改进。',
+  'storeUpdate.requiredMessage':
+    '此版本的 Tackbok 已过时。请更新到 {{version}}，以确保一切正常运行。',
+  'storeUpdate.update': '更新',
+  'storeUpdate.notNow': '暂不',
 
   // Settings - Typography
   'typography.typography': '排版',

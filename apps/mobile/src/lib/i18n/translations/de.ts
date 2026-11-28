@@ -354,6 +354,13 @@ export const de: Translations = {
     'Wechsle zurück zum Design und Symbol, die du vor den Feiertagen hattest.',
   'festive.switchBack': 'Zurückwechseln',
   'festive.keepIt': 'Behalten',
+  'storeUpdate.title': 'Eine neue Version von Tackbok ist da',
+  'storeUpdate.message':
+    'Tackbok {{version}} steht im Store bereit, mit den neuesten Fehlerbehebungen und Verbesserungen.',
+  'storeUpdate.requiredMessage':
+    'Diese Version von Tackbok ist veraltet. Aktualisiere auf {{version}}, damit alles weiter funktioniert.',
+  'storeUpdate.update': 'Aktualisieren',
+  'storeUpdate.notNow': 'Nicht jetzt',
 
   // Settings - Typography
   'typography.typography': 'Typografie',

@@ -317,6 +317,13 @@ export const he: Translations = {
   'festive.switchBackMessage': 'חזרה לערכת הנושא ולסמל שהיו לפני החגים.',
   'festive.switchBack': 'לחזור',
   'festive.keepIt': 'להשאיר',
+  'storeUpdate.title': 'יש גרסה חדשה של Tackbok',
+  'storeUpdate.message':
+    'Tackbok {{version}} זמינה בחנות, עם התיקונים והשיפורים האחרונים.',
+  'storeUpdate.requiredMessage':
+    'הגרסה הזו של Tackbok ישנה. כדאי לעדכן לגרסה {{version}} כדי שהכול ימשיך לעבוד כמו שצריך.',
+  'storeUpdate.update': 'עדכון',
+  'storeUpdate.notNow': 'לא עכשיו',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',

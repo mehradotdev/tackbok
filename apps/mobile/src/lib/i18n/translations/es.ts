@@ -298,6 +298,13 @@ export const es = {
     'Vuelve al tema y al icono que tenías antes de las fiestas.',
   'festive.switchBack': 'Volver',
   'festive.keepIt': 'Mantener',
+  'storeUpdate.title': 'Hay una nueva versión de Tackbok',
+  'storeUpdate.message':
+    'Tackbok {{version}} ya está en la tienda, con las últimas correcciones y mejoras.',
+  'storeUpdate.requiredMessage':
+    'Esta versión de Tackbok está desactualizada. Actualiza a la {{version}} para que todo siga funcionando bien.',
+  'storeUpdate.update': 'Actualizar',
+  'storeUpdate.notNow': 'Ahora no',
   'typography.typography': 'Tipografía',
   'typography.titleFont': 'Fuente del título',
   'typography.chooseAFontForTitlesAndHeadings':

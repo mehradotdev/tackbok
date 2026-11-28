@@ -108,6 +108,13 @@ interface SettingsState {
   /** Banner hidden without removing the entries — user chose to build over them. */
   sampleEntriesBannerDismissed: boolean;
   hasSeenHomeCoachMarks: boolean;
+  /**
+   * App version of the last launch, written silently once per launch (see
+   * `recordLastSeenAppVersion`). 1.x never stored it, so a future "What's new"
+   * can tell an update (an older or missing version with onboarding done) from
+   * a fresh install. Such a feature must read it before this launch's write.
+   */
+  lastSeenAppVersion: string | null;
 
   pendingAchievement: Achievement | null;
 
@@ -151,6 +158,7 @@ interface SettingsState {
   setSampleEntryIds: (ids: string[]) => void;
   setSampleEntriesBannerDismissed: (dismissed: boolean) => void;
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
+  setLastSeenAppVersion: (version: string | null) => void;
   setPendingAchievement: (achievement: Achievement | null) => void;
   setFestivePromptSeason: (season: string | null) => void;
   setFestiveSwitch: (festiveSwitch: FestiveSwitch | null) => void;
@@ -188,6 +196,7 @@ const DEFAULT_SETTINGS_VALUES = {
   sampleEntryIds: [] as string[],
   sampleEntriesBannerDismissed: false,
   hasSeenHomeCoachMarks: false,
+  lastSeenAppVersion: null as string | null,
   pendingAchievement: null,
   festivePromptSeason: null as string | null,
   festiveSwitch: null as FestiveSwitch | null,
@@ -289,6 +298,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSampleEntriesBannerDismissed: (dismissed) =>
         set({ sampleEntriesBannerDismissed: dismissed }),
       setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
+      setLastSeenAppVersion: (version) => set({ lastSeenAppVersion: version }),
       setPendingAchievement: (achievement) => set({ pendingAchievement: achievement }),
       setFestivePromptSeason: (season) => set({ festivePromptSeason: season }),
       setFestiveSwitch: (festiveSwitch) => set({ festiveSwitch }),
@@ -387,6 +397,7 @@ export const useSettingsStore = create<SettingsState>()(
         sampleEntryIds: state.sampleEntryIds,
         sampleEntriesBannerDismissed: state.sampleEntriesBannerDismissed,
         hasSeenHomeCoachMarks: state.hasSeenHomeCoachMarks,
+        lastSeenAppVersion: state.lastSeenAppVersion,
         pendingAchievement: state.pendingAchievement,
         festivePromptSeason: state.festivePromptSeason,
         festiveSwitch: state.festiveSwitch,

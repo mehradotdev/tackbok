@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "ios": {
+    "latest": "1.0.3",
+    "minimumSupported": "1.0.0",
+    "storeUrl": "https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507"
+  },
+  "android": {
+    "latest": "1.0.3",
+    "minimumSupported": "1.0.0",
+    "storeUrl": "https://play.google.com/store/apps/details?id=dev.mehra.tackbok"
+  },
+  "galaxy": {
+    "latest": "1.0.3",
+    "minimumSupported": "1.0.0",
+    "storeUrl": "https://galaxystore.samsung.com/detail/dev.mehra.tackbok"
+  }
+}
