@@ -37,7 +37,7 @@ export async function loadReleases(): Promise<Release[] | null> {
     if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
     const data = (await response.json()) as unknown;
     if (!Array.isArray(data)) throw new Error('GitHub sent no release list');
-    return (data as ApiRelease[]).flatMap((release) => {
+    const releases = (data as ApiRelease[]).flatMap((release) => {
       const { tag_name, published_at, body_html, html_url } = release;
       if (release.draft || release.prerelease) return [];
       if (typeof tag_name !== 'string' || typeof published_at !== 'string') return [];
@@ -54,6 +54,8 @@ export async function loadReleases(): Promise<Release[] | null> {
         },
       ];
     });
+    // GitHub lists by creation; a draft published later belongs by its date.
+    return releases.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.warn(`[changelog] Release notes not loaded (${reason}); linking to GitHub.`);
