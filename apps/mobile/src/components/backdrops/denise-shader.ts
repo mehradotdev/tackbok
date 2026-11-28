@@ -38,7 +38,7 @@ export const DENISE_GEOMETRY = {
    *  head at rest; the canvas moves the texture, not the pixels. */
   boxes: {
     glass: [-114, 62, 90, 492],
-    figure: [-92, 386, 190, 10000],
+    figure: [-92, 386, 200, 10000],
     head: [42, 308, 162, 514],
     steam: [-102, 306, -18, 470],
   },
@@ -137,7 +137,7 @@ float fbm(float2 p) {
   return v;
 }
 // Colours are authored in gamma 2.2 and lit in linear light.
-float3 lin(float3 c) { return pow(c, float3(2.2)); }
+float3 lin(float3 c) { return pow(max(c, 0.0), float3(2.2)); }
 float lum(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
 float3 srgbToLinear(float3 c) {
   return mix(c / 12.92, pow((max(c, 0.0) + 0.055) / 1.055, float3(2.4)), step(0.04045, c));
@@ -160,7 +160,7 @@ float archSD(float2 p, float inset) {
     float R = hw + E;
     float phi = atan(v.y, v.x);
     float tp = clamp(phi / acos(E / R), 0.0, 1.0);
-    float cusp = 6.0 * pow(1.0 - abs(sin(tp * 4.0 * PI)), 4.0);
+    float cusp = 6.0 * pow(max(1.0 - abs(sin(tp * 4.0 * PI)), 0.0), 4.0);
     d = length(v) - (R - cusp);
   }
   return max(d, p.y - SILL);
@@ -172,7 +172,7 @@ float3 finish(float3 col, float2 xy, float2 size, float3 ink, float ceilRatio) {
   col *= 1.0 - 0.35 * smoothstep(0.5, 1.15, length((xy / size - 0.5) * float2(1.2, 1.0)));
   float ceilLum = (lum(srgbToLinear(ink)) + 0.05) / ceilRatio - 0.05;
   col *= min(1.0, ceilLum / max(lum(col), 1e-5));
-  return pow(col, float3(1.0 / 2.2));
+  return pow(max(col, 0.0), float3(1.0 / 2.2));
 }
 // A layer drawn over what is below it (premultiplied colour, alpha).
 void over(inout float3 pc, inout float a, float3 c, float cov) {
@@ -234,7 +234,7 @@ float3 view(float2 P) {
   float ridge = 0.0, amp = 1.0;
   for (int i = 0; i < 5; i++) {
     float nn = 1.0 - abs(2.0 * noise1(rx + float(i) * 13.1) - 1.0);
-    ridge += amp * pow(nn, 1.6);
+    ridge += amp * pow(max(nn, 0.0), 1.6);
     rx *= 2.2; amp *= 0.42;
   }
   // The billowy top of the cloud bank at the foot of the range.
@@ -385,7 +385,7 @@ half4 main(float2 xy) {
       float botY = mix(SILL, SILL + 44.0, u);
       float vv = (P.y - topY) / (botY - topY);
       if (vv >= 0.0 && vv <= 1.0) {
-        float lit = mix(0.85, 0.12, pow(u, 0.7)) * (0.85 + 0.15 * (1.0 - vv));
+        float lit = mix(0.85, 0.12, pow(max(u, 0.0), 0.7)) * (0.85 + 0.15 * (1.0 - vv));
         float3 paint = lin(float3(0.14, 0.33, 0.55)) * lit;
         // Three raised panels with bevels; planks between.
         float pu = abs(u - 0.5) - 0.33;
@@ -520,7 +520,7 @@ half4 main(float2 xy) {
       float crownA = atan(h.x - 8.0, h.y + 50.0) / 0.95;
       float lp = (mix(crownA, across, smoothstep(-35.0, 10.0, h.y)) * 0.5 + 0.5) * 13.0;
       lp += 0.8 * sin(h.y * 0.06 + 1.3 * floor(lp * 0.5)) * smoothstep(0.0, 60.0, h.y);
-      float lockShape = mix(1.0, pow(sin(PI * fract(lp)), 0.7), smoothstep(-40.0, 0.0, h.y));
+      float lockShape = mix(1.0, pow(max(sin(PI * fract(lp)), 0.0), 0.7), smoothstep(-40.0, 0.0, h.y));
       float fine = 0.5 * noise(float2(lp * 9.0, h.y * 0.04)) + 0.5 * noise(float2(lp * 31.0, h.y * 0.08));
       // Uneven lock ends: each lock stops at its own length and thins out.
       float endY = 104.0 + 20.0 * hash(floor(lp) + 7.0) - 8.0 * (1.0 - lockShape);
@@ -593,7 +593,8 @@ half4 main(float2 xy) {
     float r = mix(0.5, 1.9, grow);
     float2 c = tip + float2(0.0, r * 1.1 + 300.0 * fallT * fallT);
     float2 q = (P - c) / float2(r, r * (1.15 + 0.9 * step(0.0, fallT - 0.001)));
-    float drop = cover(length(q) - 1.0, 0.25);
+    // Fades out near the end of its fall so the reset at the tip doesn't pop.
+    float drop = cover(length(q) - 1.0, 0.25) * (1.0 - smoothstep(0.7, 1.0, fallT));
     float shine = cover(length(q - float2(-0.35, -0.35)) - 0.3, 0.2);
     over(pc, a, lin(float3(0.40, 0.46, 0.56)), drop * 0.7);
     over(pc, a, lin(float3(0.90, 0.93, 0.97)), drop * shine * 0.9);

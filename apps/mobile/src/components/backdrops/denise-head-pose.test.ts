@@ -1,6 +1,6 @@
 import { DENISE_HEAD_LOOP, deniseHeadPose } from './denise-shader';
+import { WRAP_SECONDS as WRAP } from './loop-phase';
 
-const WRAP = 21600; // useForwardTime's wrap
 const samples = Array.from({ length: 4800 }, (_, i) => i * 0.01);
 
 describe('deniseHeadPose', () => {

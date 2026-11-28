@@ -309,7 +309,7 @@ function TriggerAvatar({
   return (
     <Avatar
       alt={name ?? t('cloud.profile')}
-      className="border border-primary-foreground/50"
+      className="border border-header-foreground/50"
       style={{
         width: TRIGGER_AVATAR_SIZE,
         height: TRIGGER_AVATAR_SIZE,
