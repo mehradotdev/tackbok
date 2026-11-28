@@ -287,7 +287,7 @@ export const sv = {
     'Byt tillbaka till temat och ikonen du hade före högtiderna.',
   'festive.switchBack': 'Byt tillbaka',
   'festive.keepIt': 'Behåll',
-  'storeUpdate.title': 'En ny version av Tackbok finns',
+  'storeUpdate.title': 'Det finns en ny version av Tackbok',
   'storeUpdate.message':
     'Tackbok {version} finns i butiken, med de senaste rättelserna och förbättringarna.',
   'storeUpdate.requiredMessage':

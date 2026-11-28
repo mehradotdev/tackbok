@@ -82,10 +82,11 @@ export function storeUpdatePromptFor(
   notNowVersion: string | null,
 ): StoreUpdatePrompt | null {
   const current = parseVersion(installed);
-  if (!current || !release) return null;
-  const latest = parseVersion(release.latest)!;
+  const latest = parseVersion(release?.latest);
+  const minimum = parseVersion(release?.minimumSupported);
+  if (!current || !release || !latest || !minimum) return null;
   if (compareVersions(current, latest) >= 0) return null;
-  const required = compareVersions(current, parseVersion(release.minimumSupported)!) < 0;
+  const required = compareVersions(current, minimum) < 0;
   if (!required && notNowVersion === release.latest) return null;
   return { latest: release.latest, storeUrl: release.storeUrl, required };
 }
