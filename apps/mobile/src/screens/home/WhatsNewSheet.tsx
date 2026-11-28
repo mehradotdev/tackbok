@@ -199,8 +199,8 @@ export function WhatsNewSheet({ blocked }: { blocked: boolean }) {
                   accessible
                   accessibilityLabel={`${t(title)}. ${t(body)}`}
                   className="flex-row items-start gap-3">
-                  <View className="mt-0.5 rounded-full bg-primary/10 p-2">
-                    <Icon as={icon} size={20} className="text-primary" />
+                  <View className="mt-0.5 rounded-full bg-muted p-2">
+                    <Icon as={icon} size={20} className="text-foreground" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-semibold text-foreground">
