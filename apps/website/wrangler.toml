@@ -14,9 +14,10 @@ html_handling = "drop-trailing-slash"
 not_found_handling = "404-page"
 
 [vars]
-# Not secret. RESEND_API_KEY and REVENUECAT_SECRET_KEY are Worker secrets
-# (wrangler secret put); local development reads them from .dev.vars.
-REVENUECAT_PROJECT_ID = ""
+# Not secret. RESEND_API_KEY, REVENUECAT_SECRET_KEY and REVENUECAT_PROJECT_ID
+# are set with `wrangler secret put` before the first deploy; until then the
+# endpoint answers 503 and the app keeps notes to retry. Local development
+# reads them from .dev.vars (gitignored).
 DONOR_NOTE_FROM = "Tackbok <donor-notes@tackbok.org>"
 
 [[durable_objects.bindings]]

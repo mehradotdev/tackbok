@@ -68,9 +68,11 @@ const supportEmail = 'tackbok.support@mehra.dev';
           so the developer can reply. Leave both empty to donate anonymously. If you fill
           them in, they are sent once, privately, to the developer by email, and only
           after your payment has gone through. Until then they stay only on your device,
-          and the app deletes them once they are sent, or after 30 days if the payment
-          never completes. They are not part of your journal, backups, or analytics. If
-          you include an email address, it is used only to reply to you.
+          and the app deletes them once they are sent, or after 30 days if they could not
+          be sent. They are not part of your journal, backups, or analytics. If you
+          include an email address, it is used only to reply to you. To send each note
+          only once, the website keeps a record of which purchases already carried one,
+          using only the anonymous RevenueCat identifiers, never the message or email.
         </p>
 
         <h3 class="text-base font-semibold tracking-tight">

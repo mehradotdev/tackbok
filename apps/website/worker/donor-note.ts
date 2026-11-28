@@ -1,3 +1,5 @@
+import type { LedgerClaim } from './ledger';
+
 /**
  * POST /api/donor-note: forwards an optional note from a donor to the developer.
  *
@@ -14,8 +16,10 @@ export const MAX_BODY_BYTES = 8 * 1024;
 /** A pending payment may take up to 30 days; allow some slack after that. */
 export const MAX_PURCHASE_AGE_MS = 45 * 24 * 60 * 60 * 1000;
 
-const APP_USER_ID_PATTERN = /^[A-Za-z0-9$:._-]{1,200}$/;
+// At least one letter or digit, so "." and ".." can't change the lookup path.
+const APP_USER_ID_PATTERN = /^(?=.*[A-Za-z0-9])[A-Za-z0-9$:._-]{1,200}$/;
 const TRANSACTION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,255}$/;
+const NOTE_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 // Deliberately light: one @, no whitespace, a dot in the domain, and none of the
 // characters that could break an address header.
 const EMAIL_PATTERN =
@@ -27,6 +31,8 @@ const CONTROL_CHARACTERS = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g;
 export type DonorNoteRequest = {
   appUserId: string;
   transactionId: string | null;
+  /** Random per note, so a retried note is recognised. Older apps omit it. */
+  noteId: string | null;
   message: string;
   email: string;
 };
@@ -41,7 +47,7 @@ export function validateDonorNoteRequest(input: unknown): ValidationResult {
   }
   const body = input as Record<string, unknown>;
 
-  const { appUserId, transactionId, message = '', email = '' } = body;
+  const { appUserId, transactionId, noteId, message = '', email = '' } = body;
   if (typeof appUserId !== 'string' || !APP_USER_ID_PATTERN.test(appUserId)) {
     return { ok: false, error: 'invalid_app_user_id' };
   }
@@ -50,6 +56,9 @@ export function validateDonorNoteRequest(input: unknown): ValidationResult {
     (typeof transactionId !== 'string' || !TRANSACTION_ID_PATTERN.test(transactionId))
   ) {
     return { ok: false, error: 'invalid_transaction_id' };
+  }
+  if (noteId != null && (typeof noteId !== 'string' || !NOTE_ID_PATTERN.test(noteId))) {
+    return { ok: false, error: 'invalid_note_id' };
   }
   if (typeof message !== 'string' || typeof email !== 'string') {
     return { ok: false, error: 'invalid_note' };
@@ -75,6 +84,7 @@ export function validateDonorNoteRequest(input: unknown): ValidationResult {
     value: {
       appUserId,
       transactionId: transactionId ?? null,
+      noteId: noteId ?? null,
       message: cleanMessage,
       email: cleanEmail,
     },
@@ -93,17 +103,18 @@ export type RevenueCatPurchase = {
 };
 
 /**
- * Picks the purchase a note belongs to: the one matching the app's transaction
- * ID if there is one, otherwise the newest qualifying purchase. Only owned,
+ * Lists the purchases a note may belong to, best first: just the one matching
+ * the app's transaction ID if there is one, otherwise every qualifying purchase,
+ * newest first (the ledger claims the first one without a note). Only owned,
  * recent, real-money purchases qualify (no sandbox, Test Store or promotional
  * grants unless `allowSandbox` is set for local development).
  */
-export function selectPurchase(
+export function candidatePurchases(
   purchases: readonly RevenueCatPurchase[],
   transactionId: string | null,
   now: number,
   allowSandbox: boolean,
-): RevenueCatPurchase | null {
+): RevenueCatPurchase[] {
   const qualifying = purchases.filter(
     (purchase) =>
       purchase.status === 'owned' &&
@@ -119,16 +130,12 @@ export function selectPurchase(
         String(purchase.store_purchase_identifier) === transactionId ||
         purchase.id === transactionId,
     );
-    if (match) return match;
+    if (match) return [match];
   }
   // The store's transaction identifier is not always the one RevenueCat stores
-  // (for example, Play order IDs). Fall back to the newest qualifying purchase;
-  // the ledger still allows only one note per purchase.
-  return qualifying.reduce<RevenueCatPurchase | null>(
-    (newest, purchase) =>
-      !newest || purchase.purchased_at > newest.purchased_at ? purchase : newest,
-    null,
-  );
+  // (for example, Play order IDs). Fall back to the newest purchase that has no
+  // note yet; the ledger still allows only one note per purchase.
+  return qualifying.toSorted((a, b) => b.purchased_at - a.purchased_at);
 }
 
 export type PurchaseLookup =
@@ -219,11 +226,14 @@ export async function sendEmail(
   }
 }
 
-export type LedgerClaim = 'claimed' | 'duplicate' | 'user_limit';
-
 export interface DonorNoteLedgerApi {
-  claim(purchaseId: string, appUserId: string): Promise<LedgerClaim>;
-  release(purchaseId: string, appUserId: string): Promise<void>;
+  claim(
+    purchaseIds: readonly string[],
+    appUserId: string,
+    noteId: string | null,
+  ): Promise<LedgerClaim>;
+  confirm(purchaseId: string): Promise<void>;
+  release(purchaseId: string, appUserId: string, noteId: string | null): Promise<void>;
 }
 
 export type DonorNoteDeps = {
@@ -252,8 +262,29 @@ function json(status: number, body: Record<string, string>): Response {
 async function readBody(request: Request): Promise<unknown | 'too_large' | 'invalid'> {
   const declared = Number(request.headers.get('Content-Length') ?? '0');
   if (declared > MAX_BODY_BYTES) return 'too_large';
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return 'too_large';
+  // Count bytes as they arrive: a chunked body has no Content-Length.
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (request.body) {
+    const reader = request.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return 'too_large';
+      }
+      chunks.push(value);
+    }
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const text = new TextDecoder().decode(bytes);
   try {
     return JSON.parse(text) as unknown;
   } catch {
@@ -315,16 +346,28 @@ export async function handleDonorNote(
       ? respond(403, 'not_verified')
       : respond(503, 'verification_unavailable');
   }
-  const purchase = selectPurchase(
+  const candidates = candidatePurchases(
     lookup.purchases,
     note.transactionId,
     deps.now(),
     deps.env.DONOR_NOTE_ALLOW_SANDBOX === 'true',
   );
-  if (!purchase) return respond(403, 'not_verified');
+  if (!candidates.length) return respond(403, 'not_verified');
 
-  const claim = await deps.ledger.claim(purchase.id, note.appUserId);
-  if (claim !== 'claimed') return respond(409, claim);
+  const claim = await deps.ledger.claim(
+    candidates.map((candidate) => candidate.id),
+    note.appUserId,
+    note.noteId,
+  );
+  // Only a purchase that already carried a note is final; the app retries the
+  // others later.
+  if (claim.status !== 'claimed') {
+    if (claim.status === 'duplicate') return respond(409, 'duplicate');
+    if (claim.status === 'user_limit') return respond(429, 'user_limit');
+    return respond(503, 'in_progress');
+  }
+  const purchase = candidates.find((candidate) => candidate.id === claim.purchaseId);
+  if (!purchase) return respond(503, 'in_progress');
 
   const sent = await sendEmail(
     deps.fetcher,
@@ -334,8 +377,15 @@ export async function handleDonorNote(
   );
   if (!sent) {
     // Let the app try again later rather than losing the note.
-    await deps.ledger.release(purchase.id, note.appUserId);
+    await deps.ledger.release(purchase.id, note.appUserId, note.noteId);
     return respond(502, 'send_failed');
+  }
+  try {
+    await deps.ledger.confirm(purchase.id);
+  } catch {
+    // The email went out. A retry after the claim times out reuses the same
+    // Resend idempotency key, so it can't send a second copy within a day.
+    deps.log('confirm_failed');
   }
   return respond(202, 'sent');
 }

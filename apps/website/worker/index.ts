@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
-import { handleDonorNote, type LedgerClaim } from './donor-note';
-import { claimNote, releaseNote } from './ledger';
+import { handleDonorNote } from './donor-note';
+import { claimNote, confirmNote, releaseNote, type LedgerClaim } from './ledger';
+import { rateLimitKey } from './rate-limit-key';
 
 interface Env {
   ASSETS: Fetcher;
@@ -18,12 +19,20 @@ interface Env {
  * purchase can't both pass the duplicate check. Donor-note traffic is tiny.
  */
 export class DonorNoteLedger extends DurableObject<Env> {
-  claim(purchaseId: string, appUserId: string): Promise<LedgerClaim> {
-    return claimNote(this.ctx.storage, purchaseId, appUserId, Date.now());
+  claim(
+    purchaseIds: string[],
+    appUserId: string,
+    noteId: string | null,
+  ): Promise<LedgerClaim> {
+    return claimNote(this.ctx.storage, purchaseIds, appUserId, noteId, Date.now());
   }
 
-  release(purchaseId: string, appUserId: string): Promise<void> {
-    return releaseNote(this.ctx.storage, purchaseId, appUserId);
+  confirm(purchaseId: string): Promise<void> {
+    return confirmNote(this.ctx.storage, purchaseId);
+  }
+
+  release(purchaseId: string, appUserId: string, noteId: string | null): Promise<void> {
+    return releaseNote(this.ctx.storage, purchaseId, appUserId, noteId);
   }
 }
 
@@ -37,12 +46,15 @@ export default {
     }
 
     const ledger = env.DONOR_NOTE_LEDGER.get(env.DONOR_NOTE_LEDGER.idFromName('global'));
-    const clientKey = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+    const clientKey = rateLimitKey(request.headers.get('CF-Connecting-IP'));
     return handleDonorNote(request, {
       fetcher: fetch.bind(globalThis),
       ledger: {
-        claim: (purchaseId, appUserId) => ledger.claim(purchaseId, appUserId),
-        release: (purchaseId, appUserId) => ledger.release(purchaseId, appUserId),
+        claim: (purchaseIds, appUserId, noteId) =>
+          ledger.claim([...purchaseIds], appUserId, noteId),
+        confirm: (purchaseId) => ledger.confirm(purchaseId),
+        release: (purchaseId, appUserId, noteId) =>
+          ledger.release(purchaseId, appUserId, noteId),
       },
       allowRequest: async () =>
         env.DONOR_NOTE_RATE_LIMITER

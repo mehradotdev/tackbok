@@ -4,12 +4,20 @@ import {
   MAX_MESSAGE_LENGTH,
   MAX_PURCHASE_AGE_MS,
   NOTE_RECIPIENT,
-  selectPurchase,
+  candidatePurchases,
   validateDonorNoteRequest,
   type DonorNoteDeps,
   type RevenueCatPurchase,
 } from './donor-note';
-import { claimNote, MAX_NOTES_PER_USER, releaseNote, type LedgerStorage } from './ledger';
+import {
+  CLAIM_TIMEOUT_MS,
+  claimNote,
+  confirmNote,
+  MAX_NOTES_PER_USER,
+  releaseNote,
+  type LedgerStorage,
+} from './ledger';
+import { rateLimitKey } from './rate-limit-key';
 
 const NOW = Date.UTC(2026, 10, 28);
 const APP_USER_ID = '$RCAnonymousID:0123456789abcdef0123456789abcdef';
@@ -32,8 +40,10 @@ function memoryStorage(): LedgerStorage & { data: Map<string, unknown> } {
   return {
     data,
     get: async <T>(key: string) => data.get(key) as T | undefined,
-    put: async <T>(key: string, value: T) => {
-      data.set(key, structuredClone(value));
+    put: async (entries: Record<string, unknown>) => {
+      for (const [key, value] of Object.entries(entries)) {
+        data.set(key, structuredClone(value));
+      }
     },
     delete: async (key: string) => data.delete(key),
   };
@@ -52,6 +62,7 @@ describe('validateDonorNoteRequest', () => {
       value: {
         appUserId: APP_USER_ID,
         transactionId: 'GPA.1234-5678-9012-34567',
+        noteId: null,
         message: 'Thanks!\nLove it',
         email: 'me@example.org',
       },
@@ -69,11 +80,14 @@ describe('validateDonorNoteRequest', () => {
   it.each([
     [{}, 'invalid_app_user_id'],
     [{ appUserId: 'bad id with spaces', message: 'x' }, 'invalid_app_user_id'],
+    [{ appUserId: '.', message: 'x' }, 'invalid_app_user_id'],
+    [{ appUserId: '..', message: 'x' }, 'invalid_app_user_id'],
     [
       { appUserId: APP_USER_ID, transactionId: 'a/b', message: 'x' },
       'invalid_transaction_id',
     ],
     [{ appUserId: APP_USER_ID, message: 42 }, 'invalid_note'],
+    [{ appUserId: APP_USER_ID, noteId: 'a/b', message: 'x' }, 'invalid_note_id'],
     [{ appUserId: APP_USER_ID, message: '  ', email: '' }, 'empty_note'],
     [
       { appUserId: APP_USER_ID, message: 'x'.repeat(MAX_MESSAGE_LENGTH + 1) },
@@ -93,22 +107,26 @@ describe('validateDonorNoteRequest', () => {
   });
 });
 
-describe('selectPurchase', () => {
+describe('candidatePurchases', () => {
   it('prefers the purchase matching the transaction ID', () => {
     const newer = purchase({ id: 'newer', purchased_at: NOW - 1_000 });
     const matching = purchase({ id: 'match', store_purchase_identifier: 'tx-9' });
-    expect(selectPurchase([newer, matching], 'tx-9', NOW, false)?.id).toBe('match');
+    expect(
+      candidatePurchases([newer, matching], 'tx-9', NOW, false).map((p) => p.id),
+    ).toEqual(['match']);
   });
 
   it('matches numeric store identifiers', () => {
     const matching = purchase({ id: 'match', store_purchase_identifier: 2000000999 });
-    expect(selectPurchase([matching], '2000000999', NOW, false)?.id).toBe('match');
+    expect(candidatePurchases([matching], '2000000999', NOW, false)[0]?.id).toBe('match');
   });
 
-  it('falls back to the newest qualifying purchase', () => {
+  it('falls back to every qualifying purchase, newest first', () => {
     const older = purchase({ id: 'older', purchased_at: NOW - 10_000 });
     const newer = purchase({ id: 'newer', purchased_at: NOW - 1_000 });
-    expect(selectPurchase([older, newer], 'unknown', NOW, false)?.id).toBe('newer');
+    expect(
+      candidatePurchases([older, newer], 'unknown', NOW, false).map((p) => p.id),
+    ).toEqual(['newer', 'older']);
   });
 
   it.each([
@@ -118,40 +136,103 @@ describe('selectPurchase', () => {
     ['promotional', { store: 'promotional' }],
     ['too old', { purchased_at: NOW - MAX_PURCHASE_AGE_MS - 1 }],
   ])('ignores %s purchases', (_label, overrides) => {
-    expect(selectPurchase([purchase(overrides)], null, NOW, false)).toBeNull();
+    expect(candidatePurchases([purchase(overrides)], null, NOW, false)).toEqual([]);
   });
 
   it('allows sandbox purchases only when enabled', () => {
     const sandbox = purchase({ environment: 'sandbox', store: 'test_store' });
-    expect(selectPurchase([sandbox], null, NOW, true)?.id).toBe('purch_1');
+    expect(candidatePurchases([sandbox], null, NOW, true)[0]?.id).toBe('purch_1');
   });
 });
 
 describe('ledger', () => {
+  const claimed = (purchaseId: string) => ({ status: 'claimed', purchaseId });
+
   it('allows one note per purchase', async () => {
     const storage = memoryStorage();
-    expect(await claimNote(storage, 'p1', 'u1', NOW)).toBe('claimed');
-    expect(await claimNote(storage, 'p1', 'u1', NOW)).toBe('duplicate');
-    expect(await claimNote(storage, 'p1', 'u2', NOW)).toBe('duplicate');
+    expect(await claimNote(storage, ['p1'], 'u1', null, NOW)).toEqual(claimed('p1'));
+    await confirmNote(storage, 'p1');
+    expect(await claimNote(storage, ['p1'], 'u1', null, NOW)).toEqual({
+      status: 'duplicate',
+    });
+    expect(await claimNote(storage, ['p1'], 'u2', null, NOW)).toEqual({
+      status: 'duplicate',
+    });
+  });
+
+  it('claims the first purchase without a note', async () => {
+    const storage = memoryStorage();
+    await claimNote(storage, ['p2'], 'u1', null, NOW);
+    await confirmNote(storage, 'p2');
+    expect(await claimNote(storage, ['p2', 'p1'], 'u1', null, NOW)).toEqual(
+      claimed('p1'),
+    );
+  });
+
+  it('reports an unconfirmed claim as in progress until it times out', async () => {
+    const storage = memoryStorage();
+    await claimNote(storage, ['p1'], 'u1', null, NOW);
+    expect(await claimNote(storage, ['p1'], 'u1', null, NOW + 1)).toEqual({
+      status: 'in_progress',
+    });
+    const later = NOW + CLAIM_TIMEOUT_MS;
+    expect(await claimNote(storage, ['p1'], 'u1', null, later)).toEqual(claimed('p1'));
+    // The stale claim's slot is reused, not counted twice.
+    expect(storage.data.get('user:u1')).toEqual([later]);
   });
 
   it('caps notes per user within the window', async () => {
     const storage = memoryStorage();
     for (let i = 0; i < MAX_NOTES_PER_USER; i++) {
-      expect(await claimNote(storage, `p${i}`, 'u1', NOW + i)).toBe('claimed');
+      expect(await claimNote(storage, [`p${i}`], 'u1', null, NOW + i)).toEqual(
+        claimed(`p${i}`),
+      );
     }
-    expect(await claimNote(storage, 'px', 'u1', NOW + 10)).toBe('user_limit');
-    expect(await claimNote(storage, 'py', 'u2', NOW + 10)).toBe('claimed');
+    expect(await claimNote(storage, ['px'], 'u1', null, NOW + 10)).toEqual({
+      status: 'user_limit',
+    });
+    expect(await claimNote(storage, ['py'], 'u2', null, NOW + 10)).toEqual(claimed('py'));
     const later = NOW + 31 * 24 * 60 * 60 * 1000;
-    expect(await claimNote(storage, 'pz', 'u1', later)).toBe('claimed');
+    expect(await claimNote(storage, ['pz'], 'u1', null, later)).toEqual(claimed('pz'));
   });
 
   it('releases a claim so the note can be retried', async () => {
     const storage = memoryStorage();
-    await claimNote(storage, 'p1', 'u1', NOW);
-    await releaseNote(storage, 'p1', 'u1');
-    expect(storage.data.get('user:u1')).toEqual([]);
-    expect(await claimNote(storage, 'p1', 'u1', NOW)).toBe('claimed');
+    await claimNote(storage, ['p1'], 'u1', null, NOW);
+    await releaseNote(storage, 'p1', 'u1', null);
+    expect(storage.data.has('user:u1')).toBe(false);
+    expect(await claimNote(storage, ['p1'], 'u1', null, NOW)).toEqual(claimed('p1'));
+  });
+
+  it('releases only one of two claims made at the same moment', async () => {
+    const storage = memoryStorage();
+    await claimNote(storage, ['p1'], 'u1', null, NOW);
+    await claimNote(storage, ['p2'], 'u1', null, NOW);
+    await releaseNote(storage, 'p1', 'u1', null);
+    expect(storage.data.get('user:u1')).toEqual([NOW]);
+  });
+
+  it('never releases a sent note', async () => {
+    const storage = memoryStorage();
+    await claimNote(storage, ['p1'], 'u1', null, NOW);
+    await confirmNote(storage, 'p1');
+    await releaseNote(storage, 'p1', 'u1', null);
+    expect(await claimNote(storage, ['p1'], 'u1', null, NOW)).toEqual({
+      status: 'duplicate',
+    });
+  });
+});
+
+describe('rateLimitKey', () => {
+  it.each([
+    [null, 'unknown'],
+    ['203.0.113.7', '203.0.113.7'],
+    ['2001:db8:1:2:3:4:5:6', '2001:db8:1:2::/64'],
+    ['2001:0db8:0001:0002::1', '2001:db8:1:2::/64'],
+    ['2001:db8::1', '2001:db8:0:0::/64'],
+    ['::1', '0:0:0:0::/64'],
+  ])('keys %s as %s', (ip, key) => {
+    expect(rateLimitKey(ip)).toBe(key);
   });
 });
 
@@ -186,8 +267,11 @@ describe('handleDonorNote', () => {
     const deps: DonorNoteDeps = {
       fetcher,
       ledger: {
-        claim: (purchaseId, appUserId) => claimNote(storage, purchaseId, appUserId, NOW),
-        release: (purchaseId, appUserId) => releaseNote(storage, purchaseId, appUserId),
+        claim: (purchaseIds, appUserId, noteId) =>
+          claimNote(storage, purchaseIds, appUserId, noteId, NOW),
+        confirm: (purchaseId) => confirmNote(storage, purchaseId),
+        release: (purchaseId, appUserId, noteId) =>
+          releaseNote(storage, purchaseId, appUserId, noteId),
       },
       allowRequest: async () => options.allow ?? true,
       env: {
@@ -281,6 +365,45 @@ describe('handleDonorNote', () => {
     expect(first.storage.data.has('purchase:purch_1')).toBe(false);
   });
 
+  it('sends a second note for an older purchase without one', async () => {
+    const older = purchase({ id: 'older', purchased_at: NOW - 10_000 });
+    const newer = purchase({ id: 'newer', purchased_at: NOW - 1_000 });
+    const { calls, deps } = setup({ purchases: [older, newer] });
+    const unmatched = { ...note, transactionId: 'GPA.0000' };
+    expect((await handleDonorNote(post(unmatched), deps)).status).toBe(202);
+    expect((await handleDonorNote(post(unmatched), deps)).status).toBe(202);
+    const keys = calls
+      .filter((call) => call.url === 'https://api.resend.com/emails')
+      .map((call) => new Headers(call.init?.headers).get('Idempotency-Key'));
+    expect(keys).toEqual(['donor-note-newer', 'donor-note-older']);
+    expect((await handleDonorNote(post(unmatched), deps)).status).toBe(409);
+  });
+
+  it('keeps a retried note on the purchase it was first sent with', async () => {
+    const older = purchase({ id: 'older', purchased_at: NOW - 10_000 });
+    const newer = purchase({ id: 'newer', purchased_at: NOW - 1_000 });
+    const { calls, deps } = setup({ purchases: [older, newer] });
+    const retried = { ...note, transactionId: 'GPA.0000', noteId: 'note-0001' };
+    expect((await handleDonorNote(post(retried), deps)).status).toBe(202);
+    expect((await handleDonorNote(post(retried), deps)).status).toBe(409);
+    const emails = calls.filter((call) => call.url === 'https://api.resend.com/emails');
+    expect(emails).toHaveLength(1);
+  });
+
+  it('asks the app to retry while another request is sending the note', async () => {
+    const { deps, storage } = setup();
+    await claimNote(storage, ['purch_1'], APP_USER_ID, null, NOW);
+    expect((await handleDonorNote(post(note), deps)).status).toBe(503);
+  });
+
+  it('asks the app to retry when the user is over the note cap', async () => {
+    const { deps, storage } = setup();
+    for (let i = 0; i < MAX_NOTES_PER_USER; i++) {
+      await claimNote(storage, [`other${i}`], APP_USER_ID, null, NOW);
+    }
+    expect((await handleDonorNote(post(note), deps)).status).toBe(429);
+  });
+
   it('rate-limits before calling RevenueCat', async () => {
     const { calls, deps } = setup({ allow: false });
     expect((await handleDonorNote(post(note), deps)).status).toBe(429);
@@ -297,6 +420,17 @@ describe('handleDonorNote', () => {
     expect((await handleDonorNote(post('{'), deps)).status).toBe(400);
     const big = { ...note, message: 'x'.repeat(9000) };
     expect((await handleDonorNote(post(big), deps)).status).toBe(413);
+    const chunked = new Request('https://tackbok.org/api/donor-note', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < 20; i++) controller.enqueue(new Uint8Array(1024));
+          controller.close();
+        },
+      }),
+    });
+    expect((await handleDonorNote(chunked, deps)).status).toBe(413);
     expect(calls).toHaveLength(0);
   });
 
