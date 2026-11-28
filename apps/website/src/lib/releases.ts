@@ -1,7 +1,8 @@
 /** Release notes live in GitHub Releases; the changelog page is built from them. */
 export const RELEASES_PAGE = 'https://github.com/mehradotdev/tackbok/releases';
+// shortcut: one page of up to 100 releases, add paging past that.
 const RELEASES_API =
-  'https://api.github.com/repos/mehradotdev/tackbok/releases?per_page=50';
+  'https://api.github.com/repos/mehradotdev/tackbok/releases?per_page=100';
 
 export interface Release {
   /** For example `1.0.3`, from the `v1.0.3` tag. */
@@ -40,10 +41,14 @@ export async function loadReleases(): Promise<Release[] | null> {
       const { tag_name, published_at, body_html, html_url } = release;
       if (release.draft || release.prerelease) return [];
       if (typeof tag_name !== 'string' || typeof published_at !== 'string') return [];
+      const version = tag_name.replace(/^v/, '');
+      const publishedAt = new Date(published_at);
+      // The page formats the date, which throws on an invalid one.
+      if (!version || Number.isNaN(publishedAt.getTime())) return [];
       return [
         {
-          version: tag_name.replace(/^v/, ''),
-          publishedAt: new Date(published_at),
+          version,
+          publishedAt,
           html: typeof body_html === 'string' ? nestHeadings(body_html) : '',
           url: typeof html_url === 'string' ? html_url : RELEASES_PAGE,
         },
