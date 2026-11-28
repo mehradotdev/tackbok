@@ -86,14 +86,14 @@ export const Header: React.FC<IHeaderProps> = ({
 
   if (isSearchMode) {
     return (
-      <View className="w-full bg-primary">
+      <View className="w-full bg-header">
         {/* Search Input Row */}
         <View className="flex-row w-full items-center justify-between px-safe-or-4 py-2">
           {/* Back Button */}
           <Button className="p-1" onPress={onBackPress} variant="ghost">
             <Icon
               as={isRTL ? ArrowRight : ArrowLeft}
-              className="text-primary-foreground"
+              className="text-header-foreground"
             />
           </Button>
 
@@ -111,7 +111,7 @@ export const Header: React.FC<IHeaderProps> = ({
 
           {/* Search Icon (decorative) */}
           <View className="p-1">
-            <Icon as={Search} className="text-primary-foreground" />
+            <Icon as={Search} className="text-header-foreground" />
           </View>
         </View>
 
@@ -136,15 +136,15 @@ export const Header: React.FC<IHeaderProps> = ({
                     className={cn(
                       'border',
                       selectedTagIds.includes(tag.tag_id)
-                        ? 'bg-primary-foreground border-primary-foreground'
-                        : 'bg-primary/20 border-primary-foreground/30',
+                        ? 'bg-header-foreground border-header-foreground'
+                        : 'bg-header/20 border-header-foreground/30',
                     )}>
                     <Text
                       className={cn(
                         'text-sm font-body-medium',
                         selectedTagIds.includes(tag.tag_id)
-                          ? 'text-primary'
-                          : 'text-primary-foreground',
+                          ? 'text-header'
+                          : 'text-header-foreground',
                       )}>
                       #{tag.title}
                     </Text>
@@ -161,7 +161,7 @@ export const Header: React.FC<IHeaderProps> = ({
   return (
     <View
       onLayout={greetingState.onLayout}
-      className="relative w-full overflow-hidden bg-primary">
+      className="relative w-full overflow-hidden bg-header">
       <View
         pointerEvents={motion.active ? 'none' : 'auto'}
         accessibilityElementsHidden={motion.active}
@@ -175,7 +175,7 @@ export const Header: React.FC<IHeaderProps> = ({
               onPress={onSearchPress}
               variant="ghost"
               accessibilityLabel={t('search.search')}>
-              <Icon as={Search} className="text-primary-foreground" />
+              <Icon as={Search} className="text-header-foreground" />
             </Button>
           </View>
         </HeaderMotion>
@@ -187,13 +187,13 @@ export const Header: React.FC<IHeaderProps> = ({
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
-                className="shrink text-primary-foreground font-heading">
+                className="shrink text-header-foreground font-heading">
                 {t('common.tackbok')}
               </Text>
               {IS_BETA_BUILD && !betaBadgeHidden && (
                 <Text
                   maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
-                  className="shrink-0 ms-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
+                  className="shrink-0 ms-0.5 mt-1 text-xs leading-4 tracking-wider text-header-foreground font-body-semibold">
                   BETA
                 </Text>
               )}
@@ -224,7 +224,7 @@ export const Header: React.FC<IHeaderProps> = ({
                           : t('cloud.cloudSyncUpToDate')
               }>
               {syncIsActive ? (
-                <SpinningRefreshIcon className="text-primary-foreground size-5" />
+                <SpinningRefreshIcon className="text-header-foreground size-5" />
               ) : (
                 <View className="relative size-6">
                   <Icon
@@ -239,7 +239,7 @@ export const Header: React.FC<IHeaderProps> = ({
                               ? CloudUpload
                               : Cloud
                     }
-                    className="text-primary-foreground size-6"
+                    className="text-header-foreground size-6"
                     strokeWidth={2.5}
                   />
                   {syncIsUpToDate && (

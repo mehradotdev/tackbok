@@ -56,6 +56,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --color-header: #c2af5d;
+      --color-header-foreground: #44362c;
       --font-heading: 'Figtree_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -90,6 +92,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #6a755a;
+      --color-header-foreground: #ede4d4;
       --font-heading: 'Figtree_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -124,6 +128,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(60, 65, 60, 0.08);
+      --color-header: #e4cba1;
+      --color-header-foreground: #453220;
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -158,6 +164,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.45);
+      --color-header: #78603b;
+      --color-header-foreground: #efe4c8;
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -192,6 +200,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(30, 52, 76, 0.08);
+      --color-header: #b3cce2;
+      --color-header-foreground: #1e344c;
       --font-heading: 'Lora_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -226,6 +236,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
+      --color-header: #46678c;
+      --color-header-foreground: #f1eee7;
       --font-heading: 'Lora_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -260,6 +272,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(38, 56, 42, 0.14);
+      --color-header: #9dbf90;
+      --color-header-foreground: #243428;
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -294,6 +308,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --color-header: #57754d;
+      --color-header-foreground: #eef4e9;
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -328,6 +344,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(75, 58, 34, 0.10);
+      --color-header: #efca8c;
+      --color-header-foreground: #20374b;
       --font-heading: 'SpaceMono_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -362,6 +380,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
+      --color-header: #365575;
+      --color-header-foreground: #f2eadb;
       --font-heading: 'SpaceMono_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -370,9 +390,9 @@
     }
 
     /* ═══════════════════════════════════════════
-       DENISE — Blue mountains in drifting morning mist
+       ERIKA — Blue mountains in drifting morning mist
        ═══════════════════════════════════════════ */
-    @variant denise {
+    @variant erika {
       --color-background: #e6edf3;
       --color-foreground: #1d2f42;
       --color-card: #f1f5f8;
@@ -396,6 +416,44 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(29, 47, 66, 0.1);
+      --color-header: #46637f;
+      --color-header-foreground: #f5f8fb;
+      --font-heading: 'Cinzel_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       DENISE — A rainy blue hour at a carved hill-village window
+       ═══════════════════════════════════════════ */
+    @variant denise {
+      --color-background: #121b27;
+      --color-foreground: #dfe7f0;
+      --color-card: #1a2533;
+      --color-card-foreground: #dfe7f0;
+      --color-popover: #1f2b3a;
+      --color-popover-foreground: #dfe7f0;
+      --color-primary: #3f6694;
+      --color-primary-foreground: #eef3f9;
+      --color-secondary: #243244;
+      --color-secondary-foreground: #dfe7f0;
+      --color-muted: #1e2a39;
+      --color-muted-foreground: #93a6ba;
+      --color-accent: #2b4a6e;
+      --color-accent-foreground: #eef3f9;
+      --color-destructive: #ae5447;
+      --color-destructive-foreground: #f6f1ee;
+      --color-border: #2c3b4f;
+      --color-input: #243244;
+      --color-ring: #7fa3cc;
+      --color-active-overlay: rgba(223, 231, 240, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --color-header: #17212e;
+      --color-header-foreground: #dfe7f0;
       --font-heading: 'Cinzel_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -430,6 +488,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #d39a5a;
+      --color-header-foreground: #1c140c;
       --font-heading: 'Lora_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -464,6 +524,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(42, 47, 53, 0.1);
+      --color-header: #3f5e4c;
+      --color-header-foreground: #f4f1ea;
       --font-heading: 'Figtree_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -498,6 +560,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #b000b0;
+      --color-header-foreground: #ffffff;
       --font-heading: 'BagelFatOne_400Regular';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -532,6 +596,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #b23a48;
+      --color-header-foreground: #fbf1ee;
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -566,6 +632,8 @@
       --theme-radius: 12px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --color-header: #d4a64a;
+      --color-header-foreground: #2a1408;
       --font-heading: 'Cinzel_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -600,6 +668,8 @@
       --theme-radius: 0;
       --theme-border-width: 3px;
       --theme-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      --color-header: #ff3d9e;
+      --color-header-foreground: #000000;
       --font-heading: 'SpaceMono_700Bold';
       --font-body: 'JetBrainsMono_400Regular';
       --font-body-medium: 'JetBrainsMono_500Medium';
@@ -634,6 +704,8 @@
       --theme-radius: 0;
       --theme-border-width: 2px;
       --theme-shadow: 0px 0px 8px 0px rgba(0, 255, 65, 0.4);
+      --color-header: #0ac220;
+      --color-header-foreground: #d8e0f0;
       --font-heading: 'SpaceMono_700Bold';
       --font-body: 'JetBrainsMono_400Regular';
       --font-body-medium: 'JetBrainsMono_500Medium';
@@ -668,6 +740,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --color-header: #f5aa8d;
+      --color-header-foreground: #3d2417;
       --font-heading: 'Lora_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -702,6 +776,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #d4845a;
+      --color-header-foreground: #f0d8c8;
       --font-heading: 'Cinzel_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -736,6 +812,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --color-header: #82bcda;
+      --color-header-foreground: #1a3040;
       --font-heading: 'Cinzel_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -770,6 +848,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #6b8fd4;
+      --color-header-foreground: #d8e0f0;
       --font-heading: 'Cinzel_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -804,6 +884,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --color-header: #f2a6b8;
+      --color-header-foreground: #4a2030;
       --font-heading: 'Figtree_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -838,6 +920,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --color-header: #555d6b;
+      --color-header-foreground: #d4d6dc;
       --font-heading: 'GloriaHallelujah_400Regular';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -872,6 +956,8 @@
       --theme-radius: 0;
       --theme-border-width: 3px;
       --theme-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      --color-header: #acd16c;
+      --color-header-foreground: #4a2e1b;
       --font-heading: 'SpaceMono_700Bold';
       --font-body: 'JetBrainsMono_400Regular';
       --font-body-medium: 'JetBrainsMono_500Medium';
@@ -906,6 +992,8 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --color-header: #bea8e5;
+      --color-header-foreground: #2e2440;
       --font-heading: 'GloriaHallelujah_400Regular';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';

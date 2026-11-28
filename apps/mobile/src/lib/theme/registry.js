@@ -131,10 +131,19 @@ export const THEMES = [
     "defaultTitleFontId": "spacemono"
   },
   {
-    "id": "denise",
-    "name": "Denise",
+    "id": "erika",
+    "name": "Erika",
     "description": "Blue mountains in drifting morning mist",
     "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "erika",
+    "defaultTitleFontId": "cinzel"
+  },
+  {
+    "id": "denise",
+    "name": "Denise",
+    "description": "A rainy blue hour at a carved hill-village window",
+    "variant": "dark",
     "enableTimelineBorders": false,
     "backdropId": "denise",
     "defaultTitleFontId": "cinzel"

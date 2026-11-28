@@ -1,11 +1,12 @@
-// Render the Denise, Giuseppe, Kristen, Higa and Bea shader scenes at phone/
-// iPad/landscape/picker sizes and check body-text contrast against every
-// background pixel. Denise, Higa and Bea must stay at or above 4.5:1 (Bea
-// outside beaLanternBox, whose glass glows on purpose) and Kristen at its
+// Render the Erika, Denise, Giuseppe, Kristen, Higa and Bea shader scenes at
+// phone/iPad/landscape/picker sizes and check body-text contrast against every
+// background pixel. Erika, Denise, Higa and Bea must stay at or above 4.5:1
+// (Bea outside beaLanternBox, whose glass glows on purpose) and Kristen at its
 // KRISTEN_CONTRAST floor;
 // Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is reported only,
 // because the owner kept it as is (2026-11-26). It also checks that Kristen's
-// hiker and hawk stay inside the strip their overlay is clipped to.
+// hiker and hawk stay inside the strip their overlay is clipped to, and that
+// each Denise layer stays inside the box the canvas draws it in.
 const fs = require('fs'),
   path = require('path'),
   Module = require('module');
@@ -38,6 +39,7 @@ for (const ext of ['.ts', '.tsx'])
   Skia = headless.getSkiaExports().Skia;
   const backdrops = root + '/apps/mobile/src/components/backdrops/';
   const shaders = {
+    ...require(backdrops + 'erika-shader.ts'),
     ...require(backdrops + 'denise-shader.ts'),
     ...require(backdrops + 'giuseppe-shader.ts'),
     ...require(backdrops + 'kristen-shader.ts'),
@@ -46,7 +48,8 @@ for (const ext of ['.ts', '.tsx'])
   };
   const {
     THEME_DEFINITIONS,
-    DENISE_PALETTE,
+    ERIKA_PALETTE,
+    DENISE_TEXT_CONTRAST,
     GIUSEPPE_PALETTE,
     KRISTEN_PALETTE,
     KRISTEN_CONTRAST,
@@ -55,8 +58,13 @@ for (const ext of ['.ts', '.tsx'])
   } = require(root + '/apps/mobile/src/lib/theme/theme-tokens.ts');
   const fx = {};
   for (const name of [
-    'DENISE_SCENE',
-    'DENISE_MIST',
+    'ERIKA_SCENE',
+    'ERIKA_MIST',
+    'DENISE_ROOM',
+    'DENISE_FIGURE',
+    'DENISE_HEAD',
+    'DENISE_AIR',
+    'DENISE_STEAM',
     'GIUSEPPE_LAKE',
     'GIUSEPPE_BOKEH',
     'GIUSEPPE_CAIRN',
@@ -95,7 +103,18 @@ for (const ext of ['.ts', '.tsx'])
     ['picker', 160, 210],
   ]) {
     for (const time of [0, 30]) {
-      const d = tokens('denise');
+      const d = tokens('erika');
+      const dn = tokens('denise');
+      const deniseColors = {
+        size: [width, height],
+        ink: rgb(dn['--color-foreground']),
+        ceilRatio: DENISE_TEXT_CONTRAST,
+      };
+      const box = (name) => shaders.deniseRegion(width, height, name);
+      const at = (r) => [r.x, r.y, r.width, r.height];
+      const s = shaders.deniseScale(width, height);
+      const pose = shaders.deniseHeadPose(time);
+      const pivot = shaders.DENISE_GEOMETRY.pivot;
       const g = tokens('giuseppe');
       const k = tokens('kristen');
       const h = tokens('higa');
@@ -110,19 +129,19 @@ for (const ext of ['.ts', '.tsx'])
       const lifeBand = shaders.kristenLifeBand(width, height);
       const scenes = [
         {
-          name: 'denise',
+          name: 'erika',
           foreground: d['--color-foreground'],
           minimum: 4.5,
           tree: [
             layer(
-              fx.DENISE_SCENE,
+              fx.ERIKA_SCENE,
               {
                 size: [width, height],
                 sky: rgb(d['--color-background']),
-                ridge: rgb(DENISE_PALETTE.ridge),
-                near: rgb(DENISE_PALETTE.near),
-                fogCol: rgb(DENISE_PALETTE.fog),
-                sun: rgb(DENISE_PALETTE.sun),
+                ridge: rgb(ERIKA_PALETTE.ridge),
+                near: rgb(ERIKA_PALETTE.near),
+                fogCol: rgb(ERIKA_PALETTE.fog),
+                sun: rgb(ERIKA_PALETTE.sun),
                 ink: rgb(d['--color-foreground']),
               },
               0,
@@ -131,13 +150,38 @@ for (const ext of ['.ts', '.tsx'])
               height,
             ),
             layer(
-              fx.DENISE_MIST,
-              { size: [width, height], time, fogCol: rgb(DENISE_PALETTE.fog) },
+              fx.ERIKA_MIST,
+              { size: [width, height], time, fogCol: rgb(ERIKA_PALETTE.fog) },
               0,
               height * 0.45,
               width,
               height * 0.55,
             ),
+          ],
+        },
+        {
+          // The app bakes the room, figure and head into textures; drawing the
+          // shaders straight into their boxes gives the same pixels.
+          name: 'denise',
+          foreground: dn['--color-foreground'],
+          minimum: 4.5,
+          tree: [
+            layer(fx.DENISE_ROOM, deniseColors, 0, 0, width, height),
+            layer(fx.DENISE_AIR, { ...deniseColors, time }, ...at(box('glass'))),
+            layer(fx.DENISE_FIGURE, deniseColors, ...at(box('figure'))),
+            e(
+              headless.Group,
+              {
+                origin: { x: width / 2 + pivot.x * s, y: pivot.y * s },
+                transform: [
+                  { translateX: pose.dx * s },
+                  { translateY: pose.dy * s },
+                  { rotate: pose.angle },
+                ],
+              },
+              layer(fx.DENISE_HEAD, deniseColors, ...at(box('head'))),
+            ),
+            layer(fx.DENISE_STEAM, { ...deniseColors, time }, ...at(box('steam'))),
           ],
         },
         {
@@ -331,6 +375,42 @@ for (const ext of ['.ts', '.tsx'])
         image.dispose();
         surface.dispose();
       }
+      // Each Denise layer must fit the box the canvas draws (or bakes) it in:
+      // draw it over the whole canvas and look for pixels outside the box.
+      if (time === 0)
+        for (const [name, effect, times] of [
+          ['glass', fx.DENISE_AIR, [0, 3.3, 7.9, 11.2]],
+          ['figure', fx.DENISE_FIGURE, [0]],
+          ['head', fx.DENISE_HEAD, [0]],
+          ['steam', fx.DENISE_STEAM, [0, 1.7, 4.1]],
+        ]) {
+          const r = box(name);
+          let outside = 0,
+            inside = 0;
+          for (const t of times) {
+            const surface = headless.makeOffscreenSurface(width, height);
+            const image = await headless.drawOffscreen(
+              surface,
+              layer(effect, { ...deniseColors, time: t }, 0, 0, width, height),
+            );
+            const pixels = await image.readPixels();
+            for (let y = 0; y < height; y++)
+              for (let x = 0; x < width; x++) {
+                if (pixels[(y * width + x) * 4 + 3] === 0) continue;
+                const within =
+                  x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+                if (within) inside++;
+                else outside++;
+              }
+            image.dispose();
+            surface.dispose();
+          }
+          const contained = outside === 0 && inside > 0;
+          failed ||= !contained;
+          console.log(
+            `${contained ? 'ok  ' : 'FAIL'} denise-${size} ${name} box: ${outside} pixels outside, ${inside} inside`,
+          );
+        }
       // Kristen's hiker and hawk must fit the strip their overlay is clipped to:
       // draw the life layer over the whole canvas through a full hawk orbit and
       // look for figure pixels outside kristenLifeBand.

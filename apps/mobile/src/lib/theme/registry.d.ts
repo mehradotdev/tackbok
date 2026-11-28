@@ -2,11 +2,11 @@
 
 export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono' | 'baskervville' | 'bagelfatone';
 
-export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'bea' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'christmas' | 'new-year' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'naini' | 'sakura' | 'slate' | 'kela' | 'lavender';
+export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'bea' | 'camino' | 'camino-night' | 'erika' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'christmas' | 'new-year' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'naini' | 'sakura' | 'slate' | 'kela' | 'lavender';
 
 export type ThemeVariant = 'light' | 'dark';
 
-export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'bea' | 'camino' | 'camino-night' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'christmas' | 'new-year';
+export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'bea' | 'camino' | 'camino-night' | 'erika' | 'denise' | 'giuseppe' | 'kristen' | 'higa' | 'christmas' | 'new-year';
 
 export interface TitleFontConfig {
   id: TitleFontId;

@@ -15,6 +15,7 @@ import {
   useTexture,
   type SkRuntimeEffect,
 } from 'react-native-skia';
+import { WRAP_SECONDS } from './loop-phase';
 
 // Shared plumbing for the shader-painted backdrops (friend and festive themes).
 
@@ -85,9 +86,6 @@ export function useShaderTexture(
     density,
   ]);
 }
-
-/** Forward time wraps after six hours on screen, long before float precision blurs motion. */
-const WRAP_SECONDS = 6 * 60 * 60;
 
 /**
  * While the screen is focused, runs `onChange(active)` now and whenever the app

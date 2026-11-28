@@ -131,7 +131,7 @@ function AppLockScreen({
 
   const content = (
     <SafeAreaView
-      className="flex-1 bg-background dark:bg-primary"
+      className="flex-1 bg-background dark:bg-header"
       edges={['top', 'left', 'right', 'bottom']}>
       <AppStatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
       <View className="flex-1 items-center justify-center gap-10">

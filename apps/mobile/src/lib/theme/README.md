@@ -60,7 +60,9 @@ That split is intentional. The source of truth is now centralized in TypeScript,
 
 1. Edit the target theme in `THEME_DEFINITIONS` inside `theme-tokens.ts`.
 2. Update metadata such as `name`, `description`, `variant`, `enableTimelineBorders`, `backdropId`, or `defaultTitleFontId` as needed.
-3. Update the theme token values in that same definition.
+3. Update the theme token values in that same definition. The home header bar
+   uses `--color-header` and `--color-header-foreground`, which follow `primary`
+   unless the theme sets both (Denise's bar blends into her dark room).
 4. If you changed font references, make sure the referenced title font and body font pack still exist.
 5. Run `bun run generate:themes` to rewrite the generated artifacts.
 6. Run `bun run test:theme` to confirm the generated CSS and registry stay in sync.
@@ -170,19 +172,25 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
-### Denise, Giuseppe, Kristen, Higa and Bea
+### Erika, Denise, Giuseppe, Kristen, Higa and Bea
 
-`FriendBackdrops.tsx` renders five shader scenes: Denise's misty blue ridges
-(light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora), Kristen's
+`FriendBackdrops.tsx` renders six shader scenes: Erika's misty blue ridges
+(light, Cinzel), Denise at a carved hill-village window in the rainy blue hour
+(dark, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora), Kristen's
 sheer granite wall, in the spirit of El Capitan, above a misty pine valley
 (light, Figtree), Higa's neon blobs drifting behind frosted glass (dark,
 Bagel Fat One, with a magenta header bar) and Bea's forest at dusk, where a
 brass lantern hangs from a branch and fireflies blink (dark, Baskervville).
-The detailed layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`,
-`KRISTEN_SCENE`, `BEA_SCENE`) are expensive, so each is drawn once into a
-texture with `useTexture`.
-Giuseppe's cairn texture covers only its corner.
-Only cheap overlays animate per frame: Denise's fog wisps, Giuseppe's additive
+The detailed layers (`ERIKA_SCENE`, `DENISE_ROOM`, `DENISE_FIGURE`,
+`DENISE_HEAD`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`, `KRISTEN_SCENE`, `BEA_SCENE`)
+are expensive, so each is drawn once into a texture with `useTexture`.
+Giuseppe's cairn texture and Denise's figure and head textures cover only
+their boxes (`DENISE_GEOMETRY` in `denise-shader.ts`). Denise's outlines are
+generated from hand-placed points by `scripts/art/generate-denise-outlines.py`.
+Only cheap overlays animate per frame: Erika's fog wisps, Denise's rain, drips,
+chimney smoke and mist inside the glass (`DENISE_AIR`) and mug steam
+(`DENISE_STEAM`), plus her head, whose texture the canvas turns about her chin
+with `deniseHeadPose` (a 24 s loop with pauses), Giuseppe's additive
 bokeh, Kristen's valley mist, and Kristen's hiker (waves for about five
 seconds, rests for four) and hawk (one slow loop every 36 s). The hiker and
 hawk share the wall's geometry with the scene through `GEOMETRY` in
@@ -198,7 +206,7 @@ background; previews and
 Reduce Motion show still scenes. The theme background colour is painted first,
 so a failed shader degrades to a plain theme.
 
-Journal text sits directly on the art. Denise's and Kristen's scenes lift any
+Journal text sits directly on the art. Erika's and Kristen's scenes lift any
 pixel darker than 4.5:1 against `--color-foreground` toward the mist, which is
 why Kristen's pines are pale and hazy. `KRISTEN_CONTRAST` in `theme-tokens.ts`
 tunes Kristen: `wall` deepens the granite's shading and streaks, `forest` the
@@ -207,7 +215,9 @@ Higa works the other way, as a dark theme: its scene rolls any pixel brighter
 than `HIGA_TEXT_CONTRAST` (4.7:1) against the foreground down toward it, with a
 soft knee so bright blobs keep soft edges. Its muted prompt text is not
 covered and drops to about 3.4:1 at a blob's brightest (the owner's choice).
-Bea keeps `BEA_TEXT_CONTRAST` (4.7:1) the same way. Its light layer cannot
+Bea keeps `BEA_TEXT_CONTRAST` (4.7:1) the same way, and so does Denise with
+`DENISE_TEXT_CONTRAST` (4.7:1): each of her layers caps its own pixels, so the
+composite stays near the cap. Her muted text is not covered. Its light layer cannot
 read the scene below it, so it ceils against the brightest the scene can be
 there (the sky or a hazy far trunk under the densest mist); darker pixels
 stay darker. Only the
@@ -217,11 +227,11 @@ Giuseppe has no such lift (the owner kept it as is): its lit cairn reaches
 about 2:1 and the sun glow on the lake about 3:1.
 
 Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
-all the shaders and render the five scenes at phone, iPad, landscape and
-picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise,
-Kristen, Higa or Bea (outside `beaLanternBox`) drops below 4.5:1 (or below a lower Kristen `floor`; it checks
-`--color-foreground` only), or if Kristen's hiker or hawk strays outside
-`kristenLifeBand`. Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (about 15
+all the shaders and render the six scenes at phone, iPad, landscape and
+picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Erika,
+Denise, Kristen, Higa or Bea (outside `beaLanternBox`) drops below 4.5:1 (or below a lower Kristen `floor`; it checks
+`--color-foreground` only), if Kristen's hiker or hawk strays outside
+`kristenLifeBand`, or if a Denise layer draws outside its box. Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (about 15
 minutes on an idle Mac, much longer when other jobs compete for the CPU); it
 says nothing about GPU cost.
 

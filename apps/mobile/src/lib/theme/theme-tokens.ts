@@ -94,8 +94,14 @@ export const FONT_TOKEN_KEYS = [
   '--font-body-bold',
 ] as const;
 
+/** The home header bar. A theme may set both in its `tokens` to give the bar
+ *  its own colour (Denise's bar blends into her dark room); otherwise they
+ *  follow `--color-primary` and `--color-primary-foreground`. */
+export const HEADER_TOKEN_KEYS = ['--color-header', '--color-header-foreground'] as const;
+
 export const REQUIRED_THEME_VARIABLES = [
   ...THEME_TOKEN_KEYS,
+  ...HEADER_TOKEN_KEYS,
   ...FONT_TOKEN_KEYS,
 ] as const;
 
@@ -456,12 +462,12 @@ export const THEME_DEFINITIONS = [
     },
   },
   {
-    id: 'denise',
-    name: 'Denise',
+    id: 'erika',
+    name: 'Erika',
     description: 'Blue mountains in drifting morning mist',
     variant: 'light',
     enableTimelineBorders: false,
-    backdropId: 'denise',
+    backdropId: 'erika',
     defaultTitleFontId: 'cinzel',
     bodyFontPackId: 'inter',
     tokens: {
@@ -488,6 +494,43 @@ export const THEME_DEFINITIONS = [
       '--theme-radius': '12px',
       '--theme-border-width': '1px',
       '--theme-shadow': '0 6px 16px 0 rgba(29, 47, 66, 0.1)',
+    },
+  },
+  {
+    id: 'denise',
+    name: 'Denise',
+    description: 'A rainy blue hour at a carved hill-village window',
+    variant: 'dark',
+    enableTimelineBorders: false,
+    backdropId: 'denise',
+    defaultTitleFontId: 'cinzel',
+    bodyFontPackId: 'inter',
+    tokens: {
+      '--color-background': '#121b27',
+      '--color-foreground': '#dfe7f0',
+      '--color-card': '#1a2533',
+      '--color-card-foreground': '#dfe7f0',
+      '--color-popover': '#1f2b3a',
+      '--color-popover-foreground': '#dfe7f0',
+      '--color-primary': '#3f6694',
+      '--color-primary-foreground': '#eef3f9',
+      '--color-header': '#17212e',
+      '--color-header-foreground': '#dfe7f0',
+      '--color-secondary': '#243244',
+      '--color-secondary-foreground': '#dfe7f0',
+      '--color-muted': '#1e2a39',
+      '--color-muted-foreground': '#93a6ba',
+      '--color-accent': '#2b4a6e',
+      '--color-accent-foreground': '#eef3f9',
+      '--color-destructive': '#ae5447',
+      '--color-destructive-foreground': '#f6f1ee',
+      '--color-border': '#2c3b4f',
+      '--color-input': '#243244',
+      '--color-ring': '#7fa3cc',
+      '--color-active-overlay': 'rgba(223, 231, 240, 0.1)',
+      '--theme-radius': '12px',
+      '--theme-border-width': '1px',
+      '--theme-shadow': '0 10px 15px 0 rgba(0, 0, 0, 0.45)',
     },
   },
   {
@@ -1031,8 +1074,13 @@ export function resolveThemeVariables(theme: ThemeDefinition): Record<string, st
   const titleFont = getTitleFontConfig(theme.defaultTitleFontId);
   const bodyFontPack = getBodyFontPack(theme.bodyFontPackId);
 
+  const tokens: Record<string, string> = theme.tokens;
+
   return {
     ...theme.tokens,
+    '--color-header': tokens['--color-header'] ?? tokens['--color-primary'],
+    '--color-header-foreground':
+      tokens['--color-header-foreground'] ?? tokens['--color-primary-foreground'],
     '--font-heading': `'${titleFont.fontFamily}'`,
     '--font-body': `'${bodyFontPack['--font-body']}'`,
     '--font-body-medium': `'${bodyFontPack['--font-body-medium']}'`,
@@ -1070,7 +1118,7 @@ export const MEADOW_PALETTES = {
 
 /** Backdrop art colors for the friend scenes; the sky/water use the theme
  * background, so only the painted elements live here. */
-export const DENISE_PALETTE = {
+export const ERIKA_PALETTE = {
   ridge: '#6b8cb0',
   near: '#3d5978',
   fog: '#e2e9f0',
@@ -1112,6 +1160,12 @@ export const HIGA_TEXT_CONTRAST = 4.7;
  *  knee like Higa's; only the lantern glass glows above it. Measured worst
  *  outside the lantern: about 4.69:1 (render-friends plus a time sweep). */
 export const BEA_TEXT_CONTRAST = 4.7;
+
+/** Body-text contrast Denise's window scene keeps against the foreground: every
+ *  layer caps its own pixels at this ratio, so their blend stays under it too.
+ *  shortcut: muted prompt text is not covered (as in Higa and Bea); target the
+ *  muted colour if prompts need AA over the view. */
+export const DENISE_TEXT_CONTRAST = 4.7;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
 export const CHRISTMAS_PALETTE = {

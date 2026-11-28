@@ -23,7 +23,7 @@ export interface AppLoadingScreenProps {
 /**
  * Shown while fonts load and DB migrations run (after the native splash has dismissed),
  * or while Insights loads its first data.
- * Matches header chrome (`bg-primary`) and logo treatment used on milestones (`--color-foreground`).
+ * Matches header chrome (`bg-header`) and logo treatment used on milestones (`--color-foreground`).
  */
 export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = false }) => {
   const theme = useSettingsStore((s) => s.theme);
@@ -37,7 +37,7 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
 
   const content = (
     <SafeAreaView
-      className="flex-1 bg-background dark:bg-primary"
+      className="flex-1 bg-background dark:bg-header"
       edges={['top', 'left', 'right', 'bottom']}>
       <AppStatusBar style={statusBarStyle} />
       <View className="flex-1">
